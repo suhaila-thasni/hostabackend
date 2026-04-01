@@ -30,6 +30,17 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 // ROUTES
 app.use("/", ambulanceRoutes);
 
+// Health check endpoint
+app.get("/health", (req: Request, res: Response) => {
+  res.status(200).json({
+    status: "healthy",
+    service: "ambulance-service",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || "development"
+  });
+});
+
 // 404 handler
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.status(404).json({

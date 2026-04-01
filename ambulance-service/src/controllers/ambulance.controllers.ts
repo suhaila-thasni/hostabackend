@@ -7,17 +7,23 @@ import { publishEvent } from "../events/publisher";
 
 // REGISTER - POST /ambulance/register
 export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
-  const { serviceName, address, phone, vehicleType } = req.body;
+  const { serviceName, address, phone, vehicleType, email, password } = req.body;
 
   const exist = await Ambulance.findOne({ where: { phone: phone } });
   if (exist) {
-    res.status(404).json({
+    res.status(400).json({
       success: false,
-      message: "Ambulance is already exist",
+      message: "Ambulance already exists",
       data: null,
       error: { code: "AMBULANCE_ALREADY_EXISTS", details: null },
     });
     return;
+  }
+
+  // Hash password if provided
+  let hashedPassword;
+  if (password) {
+    hashedPassword = await bcrypt.hash(password, 10);
   }
 
   const newAmbulance = await Ambulance.create({
@@ -25,6 +31,8 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
     address: address,
     phone: phone,
     vehicleType: vehicleType,
+    email: email,
+    password: hashedPassword,
   });
 
   await publishEvent("ambulance_events", "AMBULANCE_REGISTERED", {
@@ -32,10 +40,13 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
     phone: newAmbulance.phone,
   });
 
+  // Remove password from response
+  const { password: _, ...ambulanceData } = newAmbulance.toJSON();
+
   res.status(201).json({
     success: true,
-    message: "Registeration completed successfully",
-    data: null,
+    message: "Registration completed successfully",
+    data: ambulanceData,
     error: null,
   });
 });
@@ -46,7 +57,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
 
   const user = await Ambulance.findOne({ where: { email: email } });
   if (!user) {
-    res.status(404).json({
+    res.status(401).json({
       success: false,
       message: "Ambulance not found! Please register",
       data: null,
@@ -57,9 +68,9 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
 
   const checkPassword = await bcrypt.compare(password, user.password || "");
   if (!checkPassword) {
-    res.status(404).json({
+    res.status(401).json({
       success: false,
-      message: "Wrong password, Plese try again",
+      message: "Wrong password, Please try again",
       data: null,
       error: { code: "WRONG_PASSWORD", details: null },
     });
@@ -98,11 +109,14 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
 
+  // Remove password from response
+  const { password: _, ...safeUser } = user.toJSON();
+
   res.status(200).json({
     success: true,
-    message: "Loggedin successfully",
+    message: "Logged in successfully",
     status: 200,
-    data: user,
+    data: safeUser,
     error: null,
   });
 });
@@ -120,10 +134,13 @@ export const getanAmbulace: any = asyncHandler(async (req: Request, res: Respons
     return;
   }
 
+  // Remove password from response
+  const { password: _, ...safeUser } = user.toJSON();
+
   res.status(200).json({
     success: true,
     status: "Success",
-    data: user,
+    data: safeUser,
     error: null,
   });
 });
@@ -203,10 +220,16 @@ export const getAmbulaces: any = asyncHandler(async (req: Request, res: Response
     return;
   }
 
+  // Remove password from response
+  const safeAmbulances = ambulances.map(ambulance => {
+    const { password, ...safeAmbulance } = ambulance.toJSON();
+    return safeAmbulance;
+  });
+
   res.status(200).json({
     success: true,
     status: "Success",
-    data: ambulances,
+    data: safeAmbulances,
     error: null,
   });
 });
@@ -254,10 +277,13 @@ export const changepassword: any = asyncHandler(async (req: Request, res: Respon
 
   await ambulances.save();
 
+  // Remove password from response
+  const { password: _, ...safeAmbulances } = ambulances;
+
   res.status(200).json({
     success: true,
     status: 200,
-    data: ambulances,
+    data: safeAmbulances,
     error: null,
   });
 });

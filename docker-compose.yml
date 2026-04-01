@@ -40,6 +40,12 @@ services:
       - "3000:3000"
     depends_on:
       - ambulance-service
+    env_file:
+      - ./api-gateway/.env
+    environment:
+      - PORT=3000
+      - AMBULANCE_SERVICE_URL=http://ambulance-service:3001
+      - NODE_ENV=development
     networks:
       - hosta-network
 

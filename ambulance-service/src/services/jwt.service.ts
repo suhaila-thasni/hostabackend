@@ -3,7 +3,12 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || "myjwtsecretkey";
+// Validate JWT_SECRET on startup
+if (!process.env.JWT_SECRET) {
+  throw new Error("❌ JWT_SECRET environment variable is required");
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const generateToken = (payload: any): string => {
   return jwt.sign(payload, JWT_SECRET, {
