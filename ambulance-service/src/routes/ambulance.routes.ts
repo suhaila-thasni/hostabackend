@@ -18,6 +18,7 @@ import {
   forgetPasswordSchema,
   idParamSchema,
 } from "../validators/ambulance.validator";
+import { authenticate } from "../middleware/authenticate";
 
 const router = Router();
 
@@ -25,12 +26,12 @@ const router = Router();
 router.post("/ambulance/register", validate(registerSchema), Registeration);
 router.post("/ambulance/login", validate(loginSchema), login);
 router.post("/ambulance/forgot", validate(forgetPasswordSchema), forgetpassword);
-router.put("/ambulance/changepassword", validate(changePasswordSchema), changepassword);
+router.put("/ambulance/changepassword", authenticate, validate(changePasswordSchema), changepassword);
 
 // CRUD
-router.get("/ambulance", getAmbulaces);
-router.get("/ambulance/:id", validateParams(idParamSchema), getanAmbulace);
-router.put("/ambulance/:id", validateParams(idParamSchema), validate(updateSchema), updateData);
-router.delete("/ambulance/:id", validateParams(idParamSchema), ambulanceDelete);
+router.get("/ambulance", authenticate, getAmbulaces);
+router.get("/ambulance/:id", authenticate, validateParams(idParamSchema), getanAmbulace);
+router.put("/ambulance/:id", authenticate, validateParams(idParamSchema), validate(updateSchema), updateData);
+router.delete("/ambulance/:id", authenticate, validateParams(idParamSchema), ambulanceDelete);
 
 export default router;

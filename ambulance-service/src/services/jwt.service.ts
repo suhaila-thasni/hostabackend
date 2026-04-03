@@ -1,25 +1,12 @@
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
+import { env } from "../config/env";
 
-dotenv.config();
-
-// Validate JWT_SECRET on startup
-if (!process.env.JWT_SECRET) {
-  throw new Error("❌ JWT_SECRET environment variable is required");
-}
-
-const JWT_SECRET = process.env.JWT_SECRET;
-
-export const generateToken = (payload: any): string => {
-  return jwt.sign(payload, JWT_SECRET, {
+export const generateToken = (payload: any) => {
+  return jwt.sign(payload, env.JWT_SECRET, {
     expiresIn: "1h",
   });
 };
 
-export const verifyToken = (token: string): any => {
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    return null;
-  }
+export const verifyToken = (token: string) => {
+  return jwt.verify(token, env.JWT_SECRET);
 };

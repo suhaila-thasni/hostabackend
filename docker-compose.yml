@@ -1,54 +1,41 @@
-version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15
-    container_name: postgres-db
-    restart: always
-    environment:
-      POSTGRES_DB: ambulance_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+  api-gateway:
+    build: ./api-gateway
     ports:
-      - "5432:5432"
+      - "3000:3000"
+    env_file:
+      - ./api-gateway/.env
+    depends_on:
+      - user-service
+      - ambulance-service
+      - blood-service
+    networks:
+      - hosta-network
+
+  user-service:
+    build: ./user-service
+    env_file:
+      - ./user-service/.env
     networks:
       - hosta-network
 
   ambulance-service:
     build: ./ambulance-service
-    ports:
-      - "3001:3001"
-    depends_on:
-      - postgres
     env_file:
       - ./ambulance-service/.env
-    environment:
-      - PORT=3001
-      - DB_HOST=postgres
-      - DB_USER=postgres
-      - DB_PASSWORD=password
-      - DB_NAME=ambulance_db
-      - RABBITMQ_URL=amqps://cqneyljc:5hViP3MTU5ZIvHw8ZvVY-9O_k97o8Agw@raccoon.lmq.cloudamqp.com/cqneyljc
-      - JWT_SECRET=supersecretjwtkey
-      - NODE_ENV=development
     networks:
       - hosta-network
 
-  api-gateway:
-    build: ./api-gateway
-    ports:
-      - "3000:3000"
-    depends_on:
-      - ambulance-service
+  blood-service:
+    build: ./blood-service
     env_file:
-      - ./api-gateway/.env
-    environment:
-      - PORT=3000
-      - AMBULANCE_SERVICE_URL=http://ambulance-service:3001
-      - NODE_ENV=development
+      - ./blood-service/.env
     networks:
       - hosta-network
 
 networks:
   hosta-network:
     driver: bridge
+
+

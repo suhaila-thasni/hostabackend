@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import asyncHandler from "express-async-handler";
 import Ambulance from "../models/ambulance.model";
 import { publishEvent } from "../events/publisher";
+import { generateToken } from "../services/jwt.service";
 
 // REGISTER - POST /ambulance/register
 export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
@@ -77,37 +77,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  const jwtKey = process.env.JWT_SECRET;
-  if (!jwtKey) {
-    res.status(404).json({
-      success: false,
-      message: "JWT_SECRET is not defined",
-      data: null,
-      error: { code: "JWT_SECRET_NOT_DEFINED", details: null },
-    });
-    return;
-  }
-
-  // Generate JWT tokens
-  const token = jwt.sign({ id: user.id, name: user.serviceName }, jwtKey, {
-    expiresIn: "15m",
-  });
-
-  const refreshToken = jwt.sign(
-    { id: user.id, name: user.serviceName },
-    jwtKey,
-    { expiresIn: "7d" }
-  );
-
-  const sevenDayInMs = 7 * 24 * 60 * 60 * 1000;
-  const expirationDate = new Date(Date.now() + sevenDayInMs);
-
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    expires: expirationDate,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  });
+  const token = generateToken({ id: user.id, name: user.serviceName });
 
   // Remove password from response
   const { password: _, ...safeUser } = user.toJSON();
@@ -116,6 +86,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     success: true,
     message: "Logged in successfully",
     status: 200,
+    token, // Return token for API Gateway forwarding
     data: safeUser,
     error: null,
   });
@@ -182,8 +153,8 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 export const ambulanceDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const hospital = await Ambulance.findByPk(id);
-  if (!hospital) {
+  const ambulances = await Ambulance.findByPk(id);
+  if (!ambulances) {
     res.status(404).json({
       success: false,
       message: "Hospital not found",
