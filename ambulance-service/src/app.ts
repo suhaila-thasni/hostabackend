@@ -1,14 +1,19 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-import logger from "morgan";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import ambulanceRoutes from "./routes/ambulance.routes";
+import { requestLogger } from "./middleware/logger.middleware";
+import { logger } from "./utils/logger";
+import { env } from "./config/env";
 
 const app = express();
 
 // Security middleware
 app.use(helmet());
+
+// Request Tracking & Logging
+app.use(requestLogger);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -22,8 +27,21 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-app.use(cors());
-app.use(logger("dev"));
+// Strict limit for login route
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 5,
+  message: "Too many login attempts, please try again after 15 minutes."
+});
+app.use("/ambulance/login", loginLimiter);
+
+// CORS
+app.use(cors({
+  origin: ["http://localhost:3000", "https://yourfrontend.com"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+}));
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
@@ -37,7 +55,7 @@ app.get("/health", (req: Request, res: Response) => {
     service: "ambulance-service",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || "development"
+    environment: env.NODE_ENV
   });
 });
 
@@ -50,12 +68,18 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Error handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+// Global Error handler with Winston
+app.use((err: any, req: any, res: Response, next: NextFunction) => {
+  logger.error("Server error", {
+    requestId: req.id,
+    message: err.message,
+    stack: err.stack,
+  });
+
   res.status(err.status || 500).json({
-    status: err.status || 500,
-    message: err.message || "Internal Server Error in Ambulance Service",
-    error: process.env.NODE_ENV === "development" ? err : {},
+    success: false,
+    message: "Internal Server Error in Ambulance Service",
+    error: env.NODE_ENV === "development" ? err : {},
   });
 });
 

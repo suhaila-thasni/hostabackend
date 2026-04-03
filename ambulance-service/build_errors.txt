@@ -1,0 +1,2 @@
+src/middleware/validate.middleware.ts(11,37): error TS2339: Property 'errors' does not exist on type 'ZodError<unknown>'.
+src/middleware/validate.middleware.ts(48,37): error TS2339: Property 'errors' does not exist on type 'ZodError<unknown>'.
