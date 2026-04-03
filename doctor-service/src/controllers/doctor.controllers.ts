@@ -177,6 +177,7 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 // DELETE - DELETE /doctor/:id
 export const doctorDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
+  const updatePayload = req.body;
 
   const doctor = await Doctor.findByPk(id);
   if (!doctor) {
@@ -189,8 +190,10 @@ export const doctorDelete: any = asyncHandler(async (req: Request, res: Response
     return;
   }
 
-  await Doctor.destroy({
-    where: { id: id }
+
+    await Doctor.update(updatePayload, {
+    where: { id: id },
+    returning: true,
   });
 
   res.status(200).json({
@@ -203,7 +206,7 @@ export const doctorDelete: any = asyncHandler(async (req: Request, res: Response
 });
 
 // GET ALL - GET /doctor
-export const getAmbulaces: any = asyncHandler(async (req: Request, res: Response) => {
+export const getDoctors: any = asyncHandler(async (req: Request, res: Response) => {
   const doctor = await Doctor.findAll();
 
   if (doctor.length === 0) {

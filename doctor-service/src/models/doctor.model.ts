@@ -42,6 +42,9 @@ interface IDoctor {
   consulting?: IConsulting;
   bookingOpen: boolean;
   displayName:string;
+
+  isActive?: boolean;
+  isDelete?: boolean;
 }
 
 /* =======================
@@ -170,6 +173,17 @@ Doctor.init(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+    isDelete: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+
+
   },
   {
     sequelize,

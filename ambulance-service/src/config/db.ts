@@ -33,12 +33,12 @@ const sequelize = new Sequelize(
 export const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log("✅ PostgreSQL Connected");
+    console.log("✅ PostgreSQL Connected (Ambulance Service)");
 
     // Note: In production, use migrations instead of sync
-    if (process.env.NODE_ENV === "development") {
-      await sequelize.sync();
-    }
+    // if (env.NODE_ENV === "development") {
+    //   await sequelize.sync();
+    // }
   } catch (error) {
     console.error("❌ DB Error:", error);
     process.exit(1);

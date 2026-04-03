@@ -1,43 +1,28 @@
-import amqp, { Channel } from "amqplib";
-import dotenv from "dotenv";
 
-dotenv.config();
+import amqp from 'amqplib';
+import { env } from '../config/env';
 
-let channel: Channel | undefined;
+let channel: amqp.Channel;
 
-const connectRabbitMQ = async (): Promise<void> => {
-  try {
-    const amqpServer = process.env.RABBITMQ_URL || "amqp://rabbitmq:5672";
-    const connection = await amqp.connect(amqpServer);
-    channel = await connection.createChannel();
-    console.log("🐰 Doctor Service connected to RabbitMQ");
-  } catch (error) {
-    console.error("❌ RabbitMQ Connection Error in Doctor Service:", error);
-    // Retry connection after 5 seconds
-    setTimeout(connectRabbitMQ, 5000);
-  }
+export const connectRabbitMQ = async () => {
+    try {
+        const connection = await amqp.connect(env.RABBITMQ_URL);
+        channel = await connection.createChannel();
+        console.log('🐰 Doctor Service connected to RabbitMQ');
+    } catch (error) {
+        console.error('❌ RabbitMQ Error:', error);
+    }
 };
 
-connectRabbitMQ();
-
-export const publishEvent = async (queue: string, eventType: string, data: any): Promise<void> => {
-  try {
-    if (!channel) {
-      console.warn(`Channel not established. Cannot publish event ${eventType} to ${queue}`);
-      return;
+export const publishEvent = async (exchange: string, routingKey: string, data: any) => {
+    try {
+        if (!channel) {
+            await connectRabbitMQ();
+        }
+        await channel.assertExchange(exchange, 'direct', { durable: true });
+        channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(data)), { persistent: true });
+        console.log(`📤 Published event '${routingKey}' to exchange '${exchange}'`);
+    } catch (error) {
+        console.error('❌ Event Publish Error:', error);
     }
-    
-    await channel.assertQueue(queue, { durable: true });
-    
-    const message = {
-      eventType,
-      data,
-      timestamp: new Date().toISOString()
-    };
-    
-    channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)));
-    console.log(`📤 Published event '${eventType}' to queue '${queue}'`);
-  } catch (error) {
-    console.error(`Failed to publish event ${eventType}:`, error);
-  }
 };

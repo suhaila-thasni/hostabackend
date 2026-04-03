@@ -5,7 +5,7 @@ import {
   getanDoctor,
   updateData,
   doctorDelete,
-  getAmbulaces,
+  getDoctors,
   forgetpassword,
   changepassword,
 } from "../controllers/doctor.controllers";
@@ -19,7 +19,8 @@ router.post("/doctor/forgot", forgetpassword);
 router.put("/doctor/changepassword", changepassword);
 
 // CRUD
-router.get("/doctor", getAmbulaces);
+
+router.get("/doctor", getDoctors);
 router.get("/doctor/:id", getanDoctor);
 router.put("/doctor/:id", updateData);
 router.delete("/doctor/:id", doctorDelete);

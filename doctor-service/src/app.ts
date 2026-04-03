@@ -1,19 +1,27 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-import logger from "morgan";
+
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import doctorRoutes from "./routes/doctor.routes";
+import { requestLogger } from "./middleware/logger.middleware";
+import { logger } from "./utils/logger";
+import { env } from "./config/env";
 
 const app = express();
 
 // Security middleware
 app.use(helmet());
 
+
+// Request Tracking & Logging
+app.use(requestLogger);
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 100, // Reduced from 1000 to production-typical 100
+
   message: {
     success: false,
     message: "Too many requests from this IP, please try again later.",
@@ -22,29 +30,65 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-app.use(cors());
-app.use(logger("dev"));
+
+// Specific limit for login
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: "Too many login attempts, please try again after 15 minutes."
+});
+app.use("/doctor/login", loginLimiter); // can be changed if logic changes
+
+// CORS
+app.use(cors({
+  origin: ["http://localhost:3000", "https://yourfrontend.com"], // Allowing local dev and prospective production
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+}));
+
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // ROUTES
 app.use("/", doctorRoutes);
 
+
+// Health check endpoint
+app.get("/health", (req: Request, res: Response) => {
+  res.status(200).json({
+    status: "healthy",
+    service: "doctor-service",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: env.NODE_ENV
+  });
+});
+
+
 // 404 handler
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.status(404).json({
     status: 404,
     message: "Requested doctor-related resource not found",
-    path: req.path,
+
   });
 });
 
-// Error handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+
+// Global Error handler with Winston
+app.use((err: any, req: any, res: Response, next: NextFunction) => {
+  logger.error("Server error", {
+    requestId: req.id,
+    message: err.message,
+    stack: err.stack,
+  });
+
   res.status(err.status || 500).json({
-    status: err.status || 500,
-    message: err.message || "Internal Server Error in Ambulance Service",
-    error: process.env.NODE_ENV === "development" ? err : {},
+    success: false,
+    message: "Internal Server Error in Blood Service",
+    error: env.NODE_ENV === "development" ? err : {}, // Still show object in dev, hide details in prod
+
   });
 });
 

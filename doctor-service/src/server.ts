@@ -1,15 +1,30 @@
 import app from "./app";
-import dotenv from "dotenv";
+
 import { connectDB } from "./config/db";
+import { connectRabbitMQ } from "./events/publisher";
+import { env } from "./config/env";
+import { logger } from "./utils/logger";
 
-dotenv.config();
+const PORT = env.PORT;
 
-const PORT = process.env.PORT || 3004;
+// Database Connection and Server Startup
+const startServer = async () => {
+    try {
+        await connectDB();
+        await connectRabbitMQ();
+        
+        // Ensure table exists safely
+        const { default: Doctor } = await import("./models/doctor.model");
+        await Doctor.sync({ alter: true });
+        
+        // Starting blood Service
+        app.listen(PORT, () => {
+            logger.info(`🚀 Doctor Service is running on port ${PORT}`);
+        });
+    } catch (error) {
+        logger.error("❌ Failed to start server:", { error });
+        process.exit(1);
+    }
+};
 
-// Database Connection
-connectDB();
-
-// Starting ambulance Service
-app.listen(PORT, () => {
-  console.log(`🚀 Doctor Service is running on port ${PORT}`);
-});
+startServer();

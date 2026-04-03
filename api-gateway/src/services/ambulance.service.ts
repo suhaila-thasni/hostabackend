@@ -1,62 +1,59 @@
-import axios, { AxiosError } from "axios";
 import { Request, Response } from "express";
+import CircuitBreaker from "opossum";
+import { httpClient } from "../utils/httpClient";
 import { SERVICES } from "../config/services";
+
+// Service call function
+const callAmbulanceService = (options: any) => {
+  return httpClient(options);
+};
+
+// Config for Circuit Breaker
+const breakerOptions = {
+    timeout: 10000, 
+    errorThresholdPercentage: 50,
+    resetTimeout: 10000,
+};
+
+const breaker = new CircuitBreaker(callAmbulanceService, breakerOptions);
+
+// Fallback for when the circuit is open
+breaker.fallback(() => {
+    return { 
+        status: 503, 
+        data: { success: false, message: "Ambulance service temporarily unavailable" } 
+    };
+});
 
 export const proxyRequest = async (req: Request, res: Response) => {
   try {
-    // Add timeout to prevent hanging requests
-    const response = await axios({
-      method: req.method as any,
-      url: `${SERVICES.AMBULANCE_SERVICE}${req.originalUrl.replace("/api", "")}`,
-      data: req.body,
-      headers: {
-        ...req.headers,
-        host: undefined,
-        // Remove sensitive headers
-        authorization: req.headers.authorization
-      },
-      timeout: 30000, // 30 seconds timeout
-      validateStatus: (status) => status < 500, // Don't throw for 4xx errors
+    const options = {
+        method: req.method as any,
+        url: `${SERVICES.AMBULANCE_SERVICE}${req.originalUrl.replace("/api", "")}`,
+        data: req.body,
+        headers: {
+            ...(() => {
+                const { host, "content-length": contentLength, "transfer-encoding": transferEncoding, ...headers } = req.headers;
+                return headers;
+            })(),
+            "X-Request-ID": (req as any).id,
+        },
+        validateStatus: (status: number) => status < 500, // Handle 4xxx manually
+    };
+
+    const response: any = await breaker.fire(options);
+
+    res.status(response.status).json({
+        success: response.status < 400,
+        data: response.data,
     });
 
-    res.status(response.status).json(response.data);
   } catch (error: any) {
-    if (error.code === 'ECONNABORTED') {
-      res.status(504).json({
-        success: false,
-        message: "Service timeout",
-        error: { code: "SERVICE_TIMEOUT", details: null }
-      });
-      return;
-    }
-
-    if (error.code === 'ECONNREFUSED') {
-      res.status(503).json({
+    // If it's not a circuit breaker fallback, handle generic errors
+    res.status(503).json({
         success: false,
         message: "Service unavailable",
-        error: { code: "SERVICE_UNAVAILABLE", details: null }
-      });
-      return;
-    }
-
-    // Handle Axios errors properly
-    if (error instanceof AxiosError && error.response) {
-      res.status(error.response.status).json({
-        success: false,
-        message: "Service error",
-        error: {
-          code: "SERVICE_ERROR",
-          details: process.env.NODE_ENV === "development" ? error.response.data : null
-        }
-      });
-      return;
-    }
-
-    // Generic error - don't expose internal details
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: { code: "INTERNAL_ERROR", details: null }
+        error: { code: "SERVICE_ERROR", details: null }
     });
   }
 };
