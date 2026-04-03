@@ -21,7 +21,7 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
   }
 
   // Hash password if provided
-  let hashedPassword;
+  let hashedPassword: string;
   if (password) {
     hashedPassword = await bcrypt.hash(password, 10);
   }
