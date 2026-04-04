@@ -17,6 +17,11 @@ const createProxy = (target) => (0, http_proxy_middleware_1.createProxyMiddlewar
 });
 // ROUTES
 app.use("/ambulance", createProxy("http://ambulance-service:3001"));
+app.use("/doctor", createProxy("http://doctor-service:3004"));
+app.use("/staff", createProxy("http://staff-service:3006"));
+
+
+
 const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`🚀 API Gateway running on port ${PORT}`);

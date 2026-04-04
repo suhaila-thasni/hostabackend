@@ -37,6 +37,10 @@ const loginLimiter = rateLimit({
 });
 app.use("/api/users/login", loginLimiter);
 app.use("/api/ambulance/login", loginLimiter);
+app.use("/api/doctor/login", loginLimiter);
+app.use("/api/staff/login", loginLimiter);
+
+
 
 // CORS
 app.use(cors({
