@@ -11,9 +11,19 @@ interface IConsultingSession {
   close: string;
 }
 
-interface IConsulting {
+interface IWorkingHoursGeneral {
+  day: string;
+  opening_time?: string;
+  closing_time?: string;
+  is_holiday?: boolean;
+}
+
+interface IWorkingHoursClinic {
+  day: string;
   morning_session?: IConsultingSession;
   evening_session?: IConsultingSession;
+  is_holiday?: boolean;
+  has_break?: boolean;
 }
 
 interface IAddress {
@@ -24,73 +34,75 @@ interface IAddress {
   pincode: number;
 }
 
-interface IDoctor {
+export interface IHospital {
   id: number;
-  firstName: string;
-  lastName: string;
-  department?: string;
-  specialist?: string;
+  name: string;
+  type: string;
   address: IAddress;
   phone: string;
+  emergencyContact: string;
   email?: string;
   password?: string;
-  fees?: number;
-  dob?: Date;
-  gender?: string;
-  knowLanguages?: string[];
-  qualification?: string;
-  consulting?: IConsulting;
-  bookingOpen: boolean;
-  displayName:string;
-  joiningDate?: Date;
-  todayBookingAcceptCount: number;
+  latitude: number;
+  longitude: number;
+  about: string;
+  deleteRequested?: boolean;
+  working_hours_general?: IWorkingHoursGeneral[];
+  working_hours_clinic?: IWorkingHoursClinic[];
+  deleteDate?: Date;
   isActive?: boolean;
   isDelete?: boolean;
 }
 
 /* =======================
-   CREATE TYPE (Optional Fields)
+   CREATION ATTRIBUTES
 ======================= */
 
-type DoctorCreationAttributes = Optional<
-  IDoctor,
-  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consulting" | "department" | "specialist" | "displayName" 
+type HospitalCreationAttributes = Optional<
+  IHospital,
+  | "id"
+  | "email"
+  | "password"
+  | "deleteRequested"
+  | "working_hours_general"
+  | "working_hours_clinic"
+  | "deleteDate"
+  | "isActive"
+  | "isDelete"
 >;
 
 /* =======================
    MODEL CLASS
 ======================= */
 
-class Doctor
-  extends Model<IDoctor, DoctorCreationAttributes>
-  implements IDoctor
+class Hospital
+  extends Model<IHospital, HospitalCreationAttributes>
+  implements IHospital
 {
   public id!: number;
-  public firstName!: string;
-  public lastName!: string;
-  public department?: string;
-  public specialist?: string;
+  public name!: string;
+  public type!: string;
+  public address!: IAddress;
   public phone!: string;
+  public emergencyContact!: string;
   public email?: string;
   public password?: string;
-  public fees?: number;
-  public dob?: Date;
-  public gender?: string;
-  public knowLanguages?: string[];
-  public qualification?: string;
-  public consulting?: IConsulting;
-  public bookingOpen!: boolean;
-  public address!: IAddress;
-  public displayName!: string;
-  public joiningDate?: Date;
-  public todayBookingAcceptCount!: number;
+  public latitude!: number;
+  public longitude!: number;
+  public about!: string;
+  public deleteRequested?: boolean;
+  public working_hours_general?: IWorkingHoursGeneral[];
+  public working_hours_clinic?: IWorkingHoursClinic[];
+  public deleteDate?: Date;
+  public isActive?: boolean;
+  public isDelete?: boolean;
 }
 
 /* =======================
    INIT MODEL
 ======================= */
 
-Doctor.init(
+Hospital.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -98,31 +110,19 @@ Doctor.init(
       primaryKey: true,
     },
 
-    firstName: {
+    name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
 
-    lastName: {
+    type: {
       type: DataTypes.STRING,
       allowNull: false,
     },
 
-    displayName: {
-      type: DataTypes.STRING,
+    address: {
+      type: DataTypes.JSONB,
       allowNull: false,
-    },
-
-    department: {
-      type: DataTypes.STRING,
-    },
-
-    specialist: {
-      type: DataTypes.STRING,
-    },
-
-    qualification: {
-      type: DataTypes.STRING,
     },
 
     phone: {
@@ -132,6 +132,11 @@ Doctor.init(
       validate: {
         notEmpty: true,
       },
+    },
+
+    emergencyContact: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
 
     email: {
@@ -147,56 +152,54 @@ Doctor.init(
       type: DataTypes.STRING,
     },
 
-    fees: {
-      type: DataTypes.DECIMAL(10, 2), 
-    },
-
-    gender: {
-      type: DataTypes.STRING,
-    },
-
-    dob: {
-      type: DataTypes.DATE,
-    },
-
-    knowLanguages: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
-    },
-
-    address: {
-      type: DataTypes.JSONB,
+    latitude: {
+      type: DataTypes.DOUBLE,
       allowNull: false,
     },
 
-    consulting: {
-      type: DataTypes.JSONB,
+    longitude: {
+      type: DataTypes.DOUBLE,
+      allowNull: false,
     },
 
-    bookingOpen: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
+    about: {
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
-     joiningDate: {
-      type: DataTypes.DATE,
+
+    working_hours_general: {
+      type: DataTypes.JSONB,
+      allowNull: true,
     },
-    todayBookingAcceptCount: {
-      type: DataTypes.DECIMAL(10, 2),
+
+    working_hours_clinic: {
+      type: DataTypes.JSONB,
+      allowNull: true,
     },
-    isActive: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-    isDelete: {
+
+    deleteRequested: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
 
+    deleteDate: {
+      type: DataTypes.DATE,
+    },
 
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+
+    isDelete: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     sequelize,
-    modelName: "Doctor",
-    tableName: "doctor",
+    modelName: "Hospital",
+    tableName: "hospital",
     timestamps: true,
 
     defaultScope: {
@@ -226,18 +229,16 @@ Doctor.init(
    HOOKS (SECURITY)
 ======================= */
 
-Doctor.beforeCreate(async (doctor: Doctor) => {
-  if (doctor.password) {
-    doctor.password = await bcrypt.hash(doctor.password, 10);
+Hospital.beforeCreate(async (hospital: Hospital) => {
+  if (hospital.password) {
+    hospital.password = await bcrypt.hash(hospital.password, 10);
   }
 });
 
-Doctor.beforeUpdate(async (doctor: Doctor) => {
-  if (doctor.changed("password")) {
-    doctor.password = await bcrypt.hash(doctor.password!, 10);
+Hospital.beforeUpdate(async (hospital: Hospital) => {
+  if (hospital.changed("password")) {
+    hospital.password = await bcrypt.hash(hospital.password!, 10);
   }
 });
 
-
-
-export default Doctor;
+export default Hospital;
