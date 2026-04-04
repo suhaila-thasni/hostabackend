@@ -6,16 +6,6 @@ import bcrypt from "bcrypt";
    INTERFACES
 ======================= */
 
-interface IConsultingSession {
-  open: string;
-  close: string;
-}
-
-interface IConsulting {
-  morning_session?: IConsultingSession;
-  evening_session?: IConsultingSession;
-}
-
 interface IAddress {
   country?: string;
   state?: string;
@@ -24,71 +14,90 @@ interface IAddress {
   pincode: number;
 }
 
-interface IDoctor {
+interface IStaff {
   id: number;
-  firstName: string;
-  lastName: string;
-  department?: string;
-  specialist?: string;
+  name: string;
+  designation?: string;
+  joiningDate?: Date;
+  staffType?: string;
+  jobType?: string;
   address: IAddress;
   phone: string;
   email?: string;
   password?: string;
-  fees?: number;
   dob?: Date;
   gender?: string;
   knowLanguages?: string[];
   qualification?: string;
-  consulting?: IConsulting;
-  bookingOpen: boolean;
-  displayName:string;
-  joiningDate?: Date;
   isActive?: boolean;
   isDelete?: boolean;
 }
 
 /* =======================
-   CREATE TYPE (Optional Fields)
+   CREATE TYPE
 ======================= */
 
-type DoctorCreationAttributes = Optional<
-  IDoctor,
-  "id" | "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consulting" | "department" | "specialist" | "displayName"
+type StaffCreationAttributes = Optional<
+  IStaff,
+  | "id"
+  | "email"
+  | "password"
+  | "dob"
+  | "gender"
+  | "knowLanguages"
+  | "qualification"
+  | "designation"
+  | "joiningDate"
+  | "staffType"
+  | "jobType"
+  | "isActive"
+  | "isDelete"
 >;
 
 /* =======================
    MODEL CLASS
 ======================= */
 
-class Doctor
-  extends Model<IDoctor, DoctorCreationAttributes>
-  implements IDoctor
+class Staff
+  extends Model<IStaff, StaffCreationAttributes>
+  implements IStaff
 {
   public id!: number;
-  public firstName!: string;
-  public lastName!: string;
-  public department?: string;
-  public specialist?: string;
+  public name!: string;
+  public designation?: string;
+  public joiningDate?: Date;
+  public staffType?: string;
+  public jobType?: string;
   public phone!: string;
   public email?: string;
   public password?: string;
-  public fees?: number;
   public dob?: Date;
   public gender?: string;
   public knowLanguages?: string[];
   public qualification?: string;
-  public consulting?: IConsulting;
-  public bookingOpen!: boolean;
   public address!: IAddress;
-  public displayName!: string;
-  public joiningDate?: Date;
+  public bookingOpen!: boolean;
+  public isActive?: boolean;
+  public isDelete?: boolean;
+
+  // timestamps
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+
+  /* =======================
+     INSTANCE METHOD
+  ======================= */
+  public async comparePassword(password: string): Promise<boolean> {
+    if (!this.password) return false;
+    return bcrypt.compare(password, this.password);
+  }
 }
 
 /* =======================
    INIT MODEL
 ======================= */
 
-Doctor.init(
+Staff.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -96,26 +105,24 @@ Doctor.init(
       primaryKey: true,
     },
 
-    firstName: {
+    name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
 
-    lastName: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-
-    displayName: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-
-    department: {
+    designation: {
       type: DataTypes.STRING,
     },
 
-    specialist: {
+    joiningDate: {
+      type: DataTypes.DATE,
+    },
+
+    staffType: {
+      type: DataTypes.STRING,
+    },
+
+    jobType: {
       type: DataTypes.STRING,
     },
 
@@ -134,8 +141,8 @@ Doctor.init(
 
     email: {
       type: DataTypes.STRING,
-      unique: true,
       allowNull: true,
+      unique: true,
       validate: {
         isEmail: true,
       },
@@ -143,10 +150,6 @@ Doctor.init(
 
     password: {
       type: DataTypes.STRING,
-    },
-
-    fees: {
-      type: DataTypes.DECIMAL(10, 2), 
     },
 
     gender: {
@@ -158,7 +161,7 @@ Doctor.init(
     },
 
     knowLanguages: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
+      type: DataTypes.JSONB, // safer for PostgreSQL
     },
 
     address: {
@@ -166,33 +169,20 @@ Doctor.init(
       allowNull: false,
     },
 
-    consulting: {
-      type: DataTypes.JSONB,
-    },
-
-    bookingOpen: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-     joiningDate: {
-      type: DataTypes.DATE,
-    },
-
     isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+
     isDelete: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-
-
   },
   {
     sequelize,
-    modelName: "Doctor",
-    tableName: "doctor",
+    modelName: "Staff",
+    tableName: "staff",
     timestamps: true,
 
     defaultScope: {
@@ -222,18 +212,18 @@ Doctor.init(
    HOOKS (SECURITY)
 ======================= */
 
-Doctor.beforeCreate(async (doctor: Doctor) => {
-  if (doctor.password) {
-    doctor.password = await bcrypt.hash(doctor.password, 10);
+// hash before create
+Staff.beforeCreate(async (staff: Staff) => {
+  if (staff.password) {
+    staff.password = await bcrypt.hash(staff.password, 10);
   }
 });
 
-Doctor.beforeUpdate(async (doctor: Doctor) => {
-  if (doctor.changed("password")) {
-    doctor.password = await bcrypt.hash(doctor.password!, 10);
+// hash before update
+Staff.beforeUpdate(async (staff: Staff) => {
+  if (staff.changed("password") && staff.password) {
+    staff.password = await bcrypt.hash(staff.password, 10);
   }
 });
 
-
-
-export default Doctor;
+export default Staff;
