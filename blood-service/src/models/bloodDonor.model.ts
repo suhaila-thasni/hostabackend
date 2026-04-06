@@ -3,6 +3,7 @@ import sequelize from "../config/db";
 
 interface IBloodDonor {
   id?: number;
+  donorId?: string; // Virtual ID
   phone: string;
   userId: number;
   dateOfBirth: Date;
@@ -18,6 +19,7 @@ interface IBloodDonor {
 
 class BloodDonor extends Model<IBloodDonor> implements IBloodDonor {
   public id!: number;
+  public readonly donorId!: string;
   public phone!: string;
   public userId!: number;
   public dateOfBirth!: Date;
@@ -31,6 +33,13 @@ BloodDonor.init(
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+    },
+    donorId: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        const id = this.getDataValue("id");
+        return `#DON${String(id).padStart(5, "0")}`;
+      },
     },
     phone: {
       type: DataTypes.STRING,
@@ -62,6 +71,7 @@ BloodDonor.init(
     modelName: "BloodDonor",
     tableName: "blood_donors",
     timestamps: true,
+    paranoid: true, // Enables soft deletes
   }
 );
 

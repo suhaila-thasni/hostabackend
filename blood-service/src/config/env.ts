@@ -14,7 +14,7 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error("❌ Invalid environment variables in User Service:");
+  console.error("❌ Invalid environment variables in Blood Service:");
   console.error(parsed.error.format());
   process.exit(1);
 }

@@ -17,10 +17,7 @@ export const connectDB = async () => {
     await sequelize.authenticate();
     console.log("✅ PostgreSQL Connected (User Service)");
 
-    // Note: In production, use migrations instead of sync
-    // if (process.env.NODE_ENV === "development") {
-    //   await sequelize.sync();
-    // }
+    
   } catch (error) {
     console.error("❌ DB Error:", error);
     process.exit(1);

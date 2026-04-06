@@ -9,6 +9,9 @@ import { env } from "./config/env";
 
 const app = express();
 
+// ✅ FIX: Trust exactly 1 proxy (the API Gateway) to resolve ERR_ERL_PERMISSIVE_TRUST_PROXY
+app.set("trust proxy", 1);
+
 // Security middleware
 app.use(helmet());
 
@@ -18,7 +21,7 @@ app.use(requestLogger);
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Reduced from 1000 to production-typical 100
+  max: 1000, // Increased for development
   message: {
     success: false,
     message: "Too many requests from this IP, please try again later.",
@@ -27,13 +30,18 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Specific limit for login
+// Specific limit for login / OTP (prevents SMS spam bills)
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
-    message: "Too many login attempts, please try again after 15 minutes."
+    max: 100, // Increased from 5 to 100 for dev testing
+    message: {
+      success: false,
+      message: "Too many login or OTP attempts, please try again after 15 minutes."
+    }
 });
 app.use("/users/login", loginLimiter);
+app.use("/users/login/phone", loginLimiter);
+app.use("/users/otp", loginLimiter);
 
 // CORS
 app.use(cors({

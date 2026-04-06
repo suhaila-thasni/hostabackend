@@ -3,6 +3,7 @@ import sequelize from "../config/db";
 
 interface IPatient {
   id: number;
+  patientId?: string; // Virtual ID
   profileImage?: any;
 
   firstName: string;
@@ -43,6 +44,7 @@ interface IPatient {
 
 class Patient extends Model<IPatient> implements IPatient {
   public id!: number;
+  public readonly patientId!: string;
   public profileImage!: any;
 
   public firstName!: string;
@@ -87,6 +89,13 @@ Patient.init(
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+    },
+    patientId: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        const id = this.getDataValue("id");
+        return `#PAT${String(id).padStart(5, "0")}`;
+      },
     },
 
     // 🔥 Image (JSONB)
@@ -174,6 +183,7 @@ Patient.init(
     modelName: "Patient",
     tableName: "patients",
     timestamps: true,
+    paranoid: true,
   }
 );
 

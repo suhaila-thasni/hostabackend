@@ -1,6 +1,19 @@
 import { Request, Response } from "express";
+import { Op } from "sequelize";
 import BloodDonor from "../models/bloodDonor.model";
 import axios from "axios";
+
+// 🩸 Medical Compatibility Matrix (Recipient -> Compatible Donors)
+const COMPATIBILITY_MAP: Record<string, string[]> = {
+  "A+": ["A+", "A-", "O+", "O-"],
+  "A-": ["A-", "O-"],
+  "B+": ["B+", "B-", "O+", "O-"],
+  "B-": ["B-", "O-"],
+  "O+": ["O+", "O-"],
+  "O-": ["O-"],
+  "AB+": ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"],
+  "AB-": ["AB-", "A-", "B-", "O-"],
+};
 // ✅ Create Donor
 export const createDonor = async (req: Request, res: Response): Promise<any> => {
   try {
@@ -28,10 +41,12 @@ export const createDonor = async (req: Request, res: Response): Promise<any> => 
         return res.status(404).json({ message: "User not found" });
       }
     } catch (err: any) {
-      if (err.response && err.response.status === 404) {
-        return res.status(404).json({ message: "User not found" });
+      if (err.response) {
+         if (err.response.status === 404) return res.status(404).json({ message: "User not found" });
+         if (err.response.status === 401) return res.status(401).json({ message: "Unauthorized. Please provide a valid token." });
+         return res.status(err.response.status).json({ message: err.response.data?.message || "User service error" });
       }
-      throw new Error("Failed to validate user from user-service");
+      throw new Error("Failed to validate user from user-service: " + err.message);
     }
 
     // Check donor already exists for user
@@ -68,18 +83,25 @@ export const createDonor = async (req: Request, res: Response): Promise<any> => 
       donor,
     });
   } catch (error: any) {
-    return res.status(500).json({ message: error.message });
+    console.error("Create Donor Error:", error);
+    return res.status(500).json({ message: error.message || "Internal server error" });
   }
 };
 
-// 🔍 Get All Donors (with filters)
+// 🔍 Get All Donors (with compatibility filters)
 export const getDonors = async (req: Request, res: Response): Promise<any> => {
   try {
     const { bloodGroup, pincode, place } = req.query;
 
     let where: any = {};
 
-    if (bloodGroup) where.bloodGroup = bloodGroup;
+    // 🩸 Apply Smart Compatibility Logic
+    if (bloodGroup && typeof bloodGroup === "string") {
+      const compatibleGroups = COMPATIBILITY_MAP[bloodGroup.toUpperCase()] || [bloodGroup];
+      where.bloodGroup = {
+        [Op.in]: compatibleGroups,
+      };
+    }
 
     if (pincode) {
       where.address = {

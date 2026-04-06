@@ -21,6 +21,8 @@ export const connectDB = async () => {
     // if (env.NODE_ENV === "development") {
     //   await sequelize.sync();
     // }
+
+
   } catch (error) {
     console.error("❌ DB Error:", error);
     process.exit(1);
@@ -28,3 +30,7 @@ export const connectDB = async () => {
 };
 
 export default sequelize;
+
+
+
+

@@ -15,3 +15,13 @@ export const loginSchema = z.object({
 export const idParamSchema = z.object({
   id: z.string().regex(/^\d+$/),
 });
+
+export const loginWithPhoneSchema = z.object({
+    phone: z.string().regex(/^[0-9]{10}$/, "Phone must be a 10-digit number"),
+});
+
+export const verifyOtpSchema = z.object({
+    phone: z.string().regex(/^[0-9]{10}$/, "Phone must be a 10-digit number"),
+    otp: z.string().length(6, "OTP must be exactly 6 digits"),
+    FcmToken: z.string().optional(),
+});

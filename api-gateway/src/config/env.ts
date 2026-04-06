@@ -9,6 +9,8 @@ const envSchema = z.object({
   USER_SERVICE_URL: z.string().url(),
   AMBULANCE_SERVICE_URL: z.string().url(),
   BLOOD_SERVICE_URL: z.string().url(),
+  BLOOD_BANK_SERVICE_URL: z.string().url(),
+  PHARMACY_SERVICE_URL: z.string().url(),
   JWT_SECRET: z.string().min(10),
 });
 

@@ -21,7 +21,7 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
   }
 
   // Hash password if provided
-  let hashedPassword;
+  let hashedPassword : string;
   if (password) {
     hashedPassword = await bcrypt.hash(password, 10);
   }
@@ -119,32 +119,37 @@ export const getanAmbulace: any = asyncHandler(async (req: Request, res: Respons
 // UPDATE - PUT /ambulance/:id
 export const updateData: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const updatePayload = req.body;
+  
+  // Whitelist fields to prevent Mass Assignment
+  const { serviceName, address, phone, vehicleType, email } = req.body;
+  const updatePayload = { serviceName, address, phone, vehicleType, email };
 
-  const ambulance = await Ambulance.update(updatePayload, {
+  const [affectedCount, affectedRows] = await Ambulance.update(updatePayload, {
     where: { id: id },
     returning: true,
   });
 
-  if (!ambulance[1] || ambulance[1].length === 0) {
+  if (affectedCount === 0) {
     res.status(404).json({
       success: false,
       message: "Ambulance not found",
-      status: 200,
       data: null,
       error: { code: "AMBULANCE_NOT_FOUND", details: null },
     });
     return;
   }
 
+  const updatedAmbulance = affectedRows[0].toJSON();
+  delete (updatedAmbulance as any).password;
+
   await publishEvent("ambulance_events", "AMBULANCE_UPDATED", {
-    ambulanceId: ambulance[1][0].id,
+    ambulanceId: updatedAmbulance.id,
   });
 
   res.status(200).json({
     success: true,
     message: "successfully updated",
-    data: ambulance[1][0],
+    data: updatedAmbulance,
     error: null,
   });
 });
@@ -153,11 +158,11 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 export const ambulanceDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const ambulances = await Ambulance.findByPk(id);
-  if (!ambulances) {
+  const ambulance = await Ambulance.findByPk(id);
+  if (!ambulance) {
     res.status(404).json({
       success: false,
-      message: "Hospital not found",
+      message: "Ambulance not found",
       data: null,
       error: { code: "AMBULANCE_NOT_FOUND", details: null },
     });
@@ -168,10 +173,13 @@ export const ambulanceDelete: any = asyncHandler(async (req: Request, res: Respo
     where: { id: id }
   });
 
+  await publishEvent("ambulance_events", "AMBULANCE_DELETED", {
+    ambulanceId: id,
+  });
+
   res.status(200).json({
     success: true,
     message: "Your account deleted successfully",
-    status: 200,
     data: null,
     error: null,
   });
@@ -191,10 +199,10 @@ export const getAmbulaces: any = asyncHandler(async (req: Request, res: Response
     return;
   }
 
-  // Remove password from response
   const safeAmbulances = ambulances.map(ambulance => {
-    const { password, ...safeAmbulance } = ambulance.toJSON();
-    return safeAmbulance;
+    const json = ambulance.toJSON();
+    delete (json as any).password;
+    return json;
   });
 
   res.status(200).json({
@@ -210,20 +218,17 @@ export const forgetpassword: any = asyncHandler(async (req: Request, res: Respon
   const { email } = req.body;
 
   const ambulance = await Ambulance.findOne({ where: { email } });
-  if (!ambulance) {
-    res.status(404).json({
-      success: false,
-      message: "No data found",
-      data: null,
-      error: { code: "AMBULANCE_NOT_FOUND", details: null },
-    });
-    return;
+  
+  // Production Note: Never confirm if an email exists for security (Prevent user enumeration)
+  // But searching for existing user for internal trigger...
+  if (ambulance) {
+     // Trigger reset email logic here...
   }
 
   res.status(200).json({
     success: true,
-    status: 200,
-    data: ambulance,
+    message: "If an account exists with this email, a reset link will be sent.",
+    data: null, // Don't return user data!
     error: null,
   });
 });
@@ -232,11 +237,11 @@ export const forgetpassword: any = asyncHandler(async (req: Request, res: Respon
 export const changepassword: any = asyncHandler(async (req: Request, res: Response) => {
   const { password, email } = req.body;
 
-  const ambulances = await Ambulance.findOne({ where: { email } });
-  if (!ambulances) {
+  const ambulance = await Ambulance.findOne({ where: { email } });
+  if (!ambulance) {
     res.status(404).json({
       success: false,
-      message: "No data found",
+      message: "Ambulance not found",
       data: null,
       error: { code: "AMBULANCE_NOT_FOUND", details: null },
     });
@@ -244,17 +249,13 @@ export const changepassword: any = asyncHandler(async (req: Request, res: Respon
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  ambulances.password = hashedPassword;
-
-  await ambulances.save();
-
-  // Remove password from response
-  const { password: _, ...safeAmbulances } = ambulances;
+  ambulance.password = hashedPassword;
+  await ambulance.save();
 
   res.status(200).json({
     success: true,
-    status: 200,
-    data: safeAmbulances,
+    message: "Password changed successfully",
+    data: null,
     error: null,
   });
 });

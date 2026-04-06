@@ -1,124 +1,100 @@
 import { Request, Response } from "express";
-import bcrypt from "bcrypt";
 import asyncHandler from "express-async-handler";
-import User from "../models/user.model";
+import { userService } from "../services/user.service";
 import Patient from "../models/patient.model";
-import { generateToken } from "../services/jwt.service";
 
 // --- USER CONTROLLERS ---
 
-// REGISTER
 export const registerUser: any = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password, phone } = req.body;
-
-  const exist = await User.findOne({ where: { email } });
-  if (exist) {
-    res.status(400).json({
-      success: false,
-      message: "User already exists",
-      error: { code: "USER_EXISTS" },
-    });
-    return;
+  try {
+    const data = await userService.register(req.body);
+    res.status(201).json({ success: true, message: "User registered successfully", data });
+  } catch (error: any) {
+    res.status(error.status || 500).json({ success: false, message: error.message || "Server Error" });
   }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const user = await User.create({
-    name,
-    email,
-    password: hashedPassword,
-    phone,
-  });
-
-  const { password: _, ...safeUser } = user.toJSON();
-
-  res.status(201).json({
-    success: true,
-    message: "User registered successfully",
-    data: safeUser,
-  });
 });
 
-// LOGIN
 export const loginUser: any = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-
-  const user = await User.findOne({ where: { email } });
-  if (!user) {
-    res.status(404).json({
-      success: false,
-      message: "User not found",
-    });
-    return;
+  try {
+    const { token, user } = await userService.login(req.body);
+    res.status(200).json({ success: true, message: "Login success", token, data: user });
+  } catch (error: any) {
+    res.status(error.status || 500).json({ success: false, message: error.message || "Server Error" });
   }
-
-  const match = await bcrypt.compare(password, user.password || "");
-  if (!match) {
-    res.status(401).json({
-      success: false,
-      message: "Wrong password",
-    });
-    return;
-  }
-
-  const token = generateToken({ id: user.id, email: user.email });
-
-  const { password: _, ...safeUser } = user.toJSON();
-
-  res.status(200).json({
-    success: true,
-    message: "Login success",
-    token,
-    data: safeUser,
-  });
 });
 
-// GET ALL USERS
+export const loginWithPhone: any = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const result = await userService.loginWithPhone(req.body.phone || "");
+    res.status(200).json({ ...result, success: true, status: 200 });
+  } catch (error: any) {
+    res.status(error.status || 500).json({ success: false, message: error.message || "Failed to send OTP" });
+  }
+});
+
+export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { token, user } = await userService.verifyOtp(req.body);
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully",
+      token,
+      userDetails: user,
+      status: 200,
+    });
+  } catch (error: any) {
+    res.status(error.status || 500).json({ success: false, message: error.message || "Server error" });
+  }
+});
+
 export const getUsers: any = asyncHandler(async (req: Request, res: Response) => {
-  const users = await User.findAll();
-
-  res.status(200).json({
-    success: true,
-    data: users,
-  });
+  const users = await userService.getAllUsers();
+  res.status(200).json({ success: true, data: users });
 });
 
-// GET ONE USER
 export const getUser: any = asyncHandler(async (req: Request, res: Response) => {
-  const user = await User.findByPk(req.params.id);
-
-  if (!user) {
-    res.status(404).json({
-      success: false,
-      message: "User not found",
-    });
-    return;
+  try {
+    const user = await userService.getUserById(req.params.id);
+    res.status(200).json({ success: true, data: user });
+  } catch (error: any) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
   }
-
-  res.status(200).json({
-    success: true,
-    data: user,
-  });
 });
 
-// DELETE USER
 export const deleteUser: any = asyncHandler(async (req: Request, res: Response) => {
-  const user = await User.findByPk(req.params.id);
-
-  if (!user) {
-    res.status(404).json({
-      success: false,
-      message: "User not found",
-    });
-    return;
+  try {
+    await userService.deleteUser(req.params.id);
+    res.status(200).json({ success: true, message: "User deleted" });
+  } catch (error: any) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
   }
+});
 
-  await User.destroy({ where: { id: req.params.id } });
+export const resetPassword: any = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    await userService.resetPassword(req.body);
+    res.status(200).json({ success: true, message: "Password reset successful" });
+  } catch (error: any) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
 
-  res.status(200).json({
-    success: true,
-    message: "User deleted",
-  });
+export const saveExpoToken: any = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const user = await userService.saveExpoToken(req.params.id, req.body.expoPushToken);
+    res.status(200).json({ success: true, message: "Expo token updated", user });
+  } catch (error: any) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+export const testPushNotification: any = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const result = await userService.testPushNotification(req.params.id);
+    res.status(200).json({ success: true, ...result });
+  } catch (error: any) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
 });
 
 
@@ -126,7 +102,12 @@ export const deleteUser: any = asyncHandler(async (req: Request, res: Response) 
 
 // CREATE PATIENT
 export const createPatient: any = asyncHandler(async (req: Request, res: Response) => {
-  const patient = await Patient.create(req.body);
+  // Only extract allowed fields for production security (Prevent Mass Assignment)
+  const { name, age, gender, address, phone, emergencyContact, medicalCondition } = req.body;
+  
+  const patient = await Patient.create({
+    name, age, gender, address, phone, emergencyContact, medicalCondition
+  } as any);
 
   res.status(201).json({
     success: true,

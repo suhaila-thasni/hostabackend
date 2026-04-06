@@ -2,16 +2,21 @@ import { Router } from "express";
 import {
   registerUser,
   loginUser,
+  loginWithPhone,
+  verifyOtp,
   getUsers,
   getUser,
   deleteUser,
+  resetPassword,
+  saveExpoToken,
+  testPushNotification,
   createPatient,
   getPatients,
   getPatient,
 } from "../controllers/user.controller";
 
 import { validate, validateParams } from "../middleware/validate.middleware";
-import { registerSchema, loginSchema, idParamSchema } from "../validators/user.validator";
+import { registerSchema, loginSchema, idParamSchema, loginWithPhoneSchema, verifyOtpSchema } from "../validators/user.validator";
 import { authenticate } from "../middleware/authenticate";
 
 const router = Router();
@@ -19,6 +24,11 @@ const router = Router();
 // User Routes
 router.post("/users/register", validate(registerSchema), registerUser);
 router.post("/users/login", validate(loginSchema), loginUser);
+router.post("/users/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
+router.post("/users/otp", validate(verifyOtpSchema), verifyOtp);
+router.post("/users/password", resetPassword);
+router.post("/users/:id/token", validateParams(idParamSchema), saveExpoToken);
+router.post("/users/test/:id", validateParams(idParamSchema), testPushNotification);
 router.get("/users", authenticate, getUsers);
 router.get("/users/:id", authenticate, validateParams(idParamSchema), getUser);
 router.delete("/users/:id", authenticate, validateParams(idParamSchema), deleteUser);

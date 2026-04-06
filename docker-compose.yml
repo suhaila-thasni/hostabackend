@@ -34,6 +34,18 @@ services:
     networks:
       - hosta-network
 
+  blood-bank-service:
+    build: ./blood-bank-service
+    env_file: ./blood-bank-service/.env
+    networks:
+      - hosta-network
+
+  pharmacy-service:
+    build: ./pharmacy-service
+    env_file: ./pharmacy-service/.env
+    networks:
+      - hosta-network 
+  
 networks:
   hosta-network:
     driver: bridge

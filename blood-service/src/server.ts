@@ -4,6 +4,8 @@ import { connectRabbitMQ } from "./events/publisher";
 import { env } from "./config/env";
 import { logger } from "./utils/logger";
 
+import { startSubscriber } from "./events/subscriber";
+
 const PORT = env.PORT;
 
 // Database Connection and Server Startup
@@ -12,14 +14,25 @@ const startServer = async () => {
         await connectDB();
         await connectRabbitMQ();
         
-        // Ensure table exists safely
-        const { default: BloodDonor } = await import("./models/bloodDonor.model");
-        await BloodDonor.sync({ alter: true });
+        // Start waiting for RabbitMQ events 
+        await startSubscriber();
         
         // Starting blood Service
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, () => {
             logger.info(`🚀 Blood Service is running on port ${PORT}`);
         });
+
+        // Graceful Shutdown Handler
+        process.on("SIGTERM", async () => {
+            logger.info("SIGTERM received. Shutting down gracefully...");
+            server.close(() => {
+                logger.info("HTTP server closed.");
+            });
+            // Example closing DB connection (Assuming imported sequelize from db.ts if needed):
+            // await sequelize.close();
+            process.exit(0);
+        });
+
     } catch (error) {
         logger.error("❌ Failed to start server:", { error });
         process.exit(1);
