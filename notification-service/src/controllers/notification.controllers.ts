@@ -243,8 +243,8 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 export const notificationDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const staff = await Notification.findByPk(id);
-  if (!staff) {
+  const notification = await Notification.findByPk(id);
+  if (!notification) {
     res.status(404).json({
       success: false,
       message: "notification not found",
