@@ -184,6 +184,7 @@ Staff.init(
     modelName: "Staff",
     tableName: "staff",
     timestamps: true,
+    paranoid: true, // 🔥 Enables Soft Delete
 
     defaultScope: {
       attributes: { exclude: ["password"] },

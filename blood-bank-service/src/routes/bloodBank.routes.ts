@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { createOrUpdateStock, getAllStock, updateStockByGroup, deleteStock } from "../controllers/bloodBank.controller";
+import { createOrUpdateStock, getAllStock, getStockById, updateStockById, deleteStockById } from "../controllers/bloodBank.controller";
 
 const router = Router();
 
 router.post("/stocks", createOrUpdateStock);
 router.get("/stocks", getAllStock);
-router.put("/stocks/:group", updateStockByGroup);
-router.delete("/stocks/:group", deleteStock);
+router.get("/stocks/:id", getStockById);
+router.put("/stocks/:id", updateStockById);
+router.delete("/stocks/:id", deleteStockById);
 
 export default router;

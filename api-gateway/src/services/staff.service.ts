@@ -20,10 +20,12 @@ breaker.fallback(() => {
 
 export const proxyRequest = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const url = `${SERVICES.STAFF_SERVICE}${req.originalUrl.replace("/api", "")}`;
+    // 🛡️ Safe Path Mapping: Gateway /api/staff -> Microservice /staff
+    const targetPath = req.originalUrl.replace("/api", "");
+    const url = `${SERVICES.STAFF_SERVICE}${targetPath}`;
 
     const options = {
-      method: req.method,   
+      method: req.method,
       url: url,
       data: req.body,
       params: req.query,
@@ -32,34 +34,31 @@ export const proxyRequest = async (req: Request, res: Response, next: NextFuncti
           const { host, "content-length": contentLength, "transfer-encoding": transferEncoding, ...headers } = req.headers;
           return headers;
         })(),
-        "X-Request-ID": (req as any).id,
+        "X-Request-ID": (req as any).id || "gateway-internal",
       },
-      validateStatus: (status: number) => status < 500, 
+      validateStatus: (status: number) => true,
     };
 
     const response: any = await breaker.fire(options);
 
-    res.status(response.status).json({
-        success: response.status < 400,
-        data: response.data,
-    });
+    // 🔥 Fix: Ensure we use the status code from the microservice response
+    return res.status(response.status).json(response.data);
 
   } catch (error: any) {
     if (error.response) {
-      res.status(error.response.status).json({
+      return res.status(error.response.status).json({
         success: false,
-        message: "Service error",
+        message: "Staff Service Error",
         data: error.response.data
       });
     } else {
-      logger.error("API Gateway Proxy Error (Blood):", {
+      logger.error("API Gateway Proxy Error (Staff):", {
         message: error.message,
         path: req.originalUrl,
-        requestId: (req as any).id,
       });
-      res.status(503).json({
+      return res.status(503).json({
         success: false,
-        message: "Service unavailable",
+        message: "Staff service temporarily unavailable or unreachable",
       });
     }
   }

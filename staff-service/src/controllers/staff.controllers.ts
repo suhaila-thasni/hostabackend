@@ -172,7 +172,6 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 // DELETE - DELETE /staff/:id
 export const staffDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const updatePayload = req.body;
 
   const staff = await Staff.findByPk(id);
   if (!staff) {
@@ -185,15 +184,12 @@ export const staffDelete: any = asyncHandler(async (req: Request, res: Response)
     return;
   }
 
-
-    await Staff.update(updatePayload, {
-    where: { id: id },
-    returning: true,
-  });
+  // 🔥 Perform Soft Delete (requires paranoid: true in model)
+  await staff.destroy();
 
   res.status(200).json({
     success: true,
-    message: "Your account deleted successfully",
+    message: "Staff soft-deleted successfully",
     status: 200,
     data: null,
     error: null,

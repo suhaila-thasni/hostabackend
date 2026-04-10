@@ -178,7 +178,6 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 // DELETE - DELETE /doctor/:id
 export const doctorDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const updatePayload = req.body;
 
   const doctor = await Doctor.findByPk(id);
   if (!doctor) {
@@ -191,20 +190,22 @@ export const doctorDelete: any = asyncHandler(async (req: Request, res: Response
     return;
   }
 
+  // 🔥 Perform Soft Delete (requires paranoid: true in model)
+  await doctor.destroy();
 
-    await Doctor.update(updatePayload, {
-    where: { id: id },
-    returning: true,
+  await publishEvent("doctor_events", "DOCTOR_DELETED", {
+    doctorId: id,
   });
 
   res.status(200).json({
     success: true,
-    message: "Your account deleted successfully",
+    message: "Doctor account soft-deleted successfully",
     status: 200,
     data: null,
     error: null,
   });
 });
+
 
 // GET ALL - GET /doctor
 export const getDoctors: any = asyncHandler(async (req: Request, res: Response) => {

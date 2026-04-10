@@ -16,7 +16,10 @@ const envSchema = z.object({
   DOCTOR_SERVICE_URL: z.string().url(),
   SPECIALITY_SERVICE_URL: z.string().url(),
   HOSPITAL_SERVICE_URL: z.string().url(),
+  MEDICINREMINDER_SERVICE_URL: z.string().url(),
+  BOOKING_SERVICE_URL: z.string().url(),
 });
+
 
 const parsed = envSchema.safeParse(process.env);
 

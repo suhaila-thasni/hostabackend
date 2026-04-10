@@ -14,6 +14,7 @@ RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/config ./config
 COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/.sequelizerc ./.sequelizerc
 
 # SECURITY: run as non-root user
 USER node

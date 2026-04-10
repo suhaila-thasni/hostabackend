@@ -113,6 +113,7 @@ MedicineSchedule.init(
     tableName: "medicine_schedules",
     modelName: "MedicineSchedule",
     timestamps: true,
+    paranoid:true
   }
 );
 

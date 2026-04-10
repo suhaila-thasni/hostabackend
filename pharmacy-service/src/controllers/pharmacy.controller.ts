@@ -109,10 +109,37 @@ export const getPharmacy: any = asyncHandler(async (req:Request, res:Response )=
     });
 })
 
-
-
-
-
+export const updatePharmacy: any = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const updatePayload = req.body;
+  
+    const pharmacy = await Pharmacy.update(updatePayload, {
+      where: { id: id },
+      returning: true,
+    });
+  
+    if (!pharmacy[1] || pharmacy[1].length === 0) {
+      res.status(404).json({
+        success: false,
+        message: "Medicine not found",
+        status: 200,
+        data: null,
+        error: { code: "MEDICINE_NOT_FOUND", details: null },
+      });
+      return;
+    }
+  
+    await publishEvent("pharmacy_queue", "PHARMACY_UPDATED", {
+      pharmacyId: pharmacy[1][0].id,
+    });
+  
+    res.status(200).json({
+      success: true,
+      message: "Medicine updated successfully",
+      data: pharmacy[1][0],
+      error: null,
+    });
+});
 
 export const getPharmacies: any = asyncHandler(async (req: Request, res: Response) =>{
     const pharmacies = await Pharmacy.findAll();

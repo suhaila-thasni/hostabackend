@@ -1,12 +1,14 @@
 {
-  "name": "medicinremainder-service",
+  "name": "medicine-reminder-service",
   "version": "1.0.0",
-  "description": "Medicinremainder microservice for Hosta project",
+  "description": "Medicine Reminder microservice for Hosta project",
+
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc",
     "dev": "nodemon --exec ts-node src/server.ts",
+    "migrate": "sequelize-cli db:migrate",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

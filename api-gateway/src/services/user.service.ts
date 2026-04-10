@@ -11,9 +11,9 @@ const callUserService = async (options: any) => {
 
 // Create Circuit Breaker instance
 const breaker = new CircuitBreaker(callUserService, {
-  timeout: 10000, // If service call takes longer than 10s, count as failure
-  errorThresholdPercentage: 50, // When 50% of requests fail, trip the breaker
-  resetTimeout: 10000, // Wait 10s before trying again
+  timeout: 50000, // Increased to 50s to avoid premature fallbacks during slow DB responses/retries
+  errorThresholdPercentage: 50, 
+  resetTimeout: 15000, 
 });
 
 // Fallback behavior

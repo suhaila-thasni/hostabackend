@@ -38,6 +38,7 @@ User.init(
       type: DataTypes.VIRTUAL,
       get() {
         const id = this.getDataValue("id");
+        if (!id) return null;
         return `#USR${String(id).padStart(5, "0")}`;
       },
     },

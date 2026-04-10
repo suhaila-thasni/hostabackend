@@ -9,8 +9,12 @@ import staffRoutes from "./staff.routes";
 import doctorRoutes from "./doctor.routes";
 import specialityRoutes from "./speciality.routes";
 import hospitalRoutes from "./hospital.routes";
+import bookingRoutes from "./booking.routes";
+import medicineReminderRoutes from "./medicinereminder.routes";
+
 
 const router = express.Router();
+
 
 router.use("/", bloodRoutes);
 router.use("/", bloodBankRoutes);
@@ -21,4 +25,7 @@ router.use("/", staffRoutes);
 router.use("/", doctorRoutes);
 router.use("/", specialityRoutes);
 router.use("/", hospitalRoutes);
+router.use("/", bookingRoutes);
+router.use("/", medicineReminderRoutes);
 export default router;
+

@@ -86,6 +86,7 @@ Speciality.init(
     modelName: "Speciality",
     tableName: "speciality",
     timestamps: true,
+    paranoid: true, // 🔥 Enables Soft Delete
 
     indexes: [
       {

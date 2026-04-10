@@ -96,7 +96,6 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 // DELETE - DELETE /speciality/:id
 export const specialityDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const updatePayload = req.body;
 
   const speciality = await Speciality.findByPk(id);
   if (!speciality) {
@@ -109,15 +108,12 @@ export const specialityDelete: any = asyncHandler(async (req: Request, res: Resp
     return;
   }
 
-
-    await speciality.update(updatePayload, {
-    where: { id: id },
-    returning: true,
-  });
+  // 🔥 Perform Soft Delete (requires paranoid: true in model)
+  await speciality.destroy();
 
   res.status(200).json({
     success: true,
-    message: "Your account deleted successfully",
+    message: "Speciality soft-deleted successfully",
     status: 200,
     data: null,
     error: null,

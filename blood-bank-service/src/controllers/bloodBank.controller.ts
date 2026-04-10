@@ -47,30 +47,42 @@ export const getAllStock = asyncHandler(async (req: Request, res: Response) => {
   res.status(200).json({ success: true, count: stocks.length, data: stocks });
 });
 
-// ✏️ Partial Update (via blood group parameter)
-export const updateStockByGroup = asyncHandler(async (req: Request, res: Response) => {
-  const group = req.params.group;
-  const count = req.body.count;
+// 🔍 Get One Stock by ID
+export const getStockById = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const stock = await BloodBank.findByPk(id);
+    if (!stock) {
+      res.status(404).json({ success: false, message: `No inventory record found with ID ${id}` });
+      return;
+    }
+    res.status(200).json({ success: true, data: stock });
+});
 
-  const stock = await BloodBank.findOne({ where: { bloodGroup: group } });
+// ✏️ Update Stock by ID
+export const updateStockById = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { count } = req.body;
+
+  const stock = await BloodBank.findByPk(id);
   if (!stock) {
-    res.status(404).json({ success: false, message: `No inventory record for ${group}` });
+    res.status(404).json({ success: false, message: `No inventory record found with ID ${id}` });
     return;
   }
   
   await stock.update({ count });
-  res.status(200).json({ success: true, data: stock });
+  res.status(200).json({ success: true, message: "Inventory updated successfully", data: stock });
 });
 
-// ❌ Delete Entry
-export const deleteStock = asyncHandler(async (req: Request, res: Response) => {
-  const group = req.params.group;
-  const deleted = await BloodBank.destroy({ where: { bloodGroup: group } });
+// ❌ Delete Stock by ID
+export const deleteStockById = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const deleted = await BloodBank.destroy({ where: { id: id } });
   
   if (!deleted) {
-      res.status(404).json({ success: false, message: `No inventory record for ${group}` });
+      res.status(404).json({ success: false, message: `No inventory record found with ID ${id}` });
       return;
   }
   
-  res.status(200).json({ success: true, message: `Blood group ${group} inventory removed` });
+  res.status(200).json({ success: true, message: `Inventory record removed successfully` });
 });
+

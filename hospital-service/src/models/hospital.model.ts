@@ -201,10 +201,12 @@ Hospital.init(
     modelName: "Hospital",
     tableName: "hospital",
     timestamps: true,
+    paranoid: true, // 🔥 Enables Soft Delete
 
     defaultScope: {
       attributes: { exclude: ["password"] },
     },
+
 
     scopes: {
       withPassword: {
@@ -240,5 +242,7 @@ Hospital.beforeUpdate(async (hospital: Hospital) => {
     hospital.password = await bcrypt.hash(hospital.password!, 10);
   }
 });
+
+
 
 export default Hospital;

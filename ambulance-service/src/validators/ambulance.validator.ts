@@ -19,6 +19,10 @@ export const registerSchema = z.object({
   address: addressSchema,
 });
 
+
+
+
+
 // Login validation
 export const loginSchema = z.object({
   email: z.string().email("Invalid email format"),

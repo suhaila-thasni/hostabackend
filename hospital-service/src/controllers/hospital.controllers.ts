@@ -173,33 +173,34 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 // DELETE - DELETE /hospital/:id
 export const hospitalDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const updatePayload = req.body;
 
   const hospital = await Hospital.findByPk(id);
   if (!hospital) {
     res.status(404).json({
       success: false,
-      message: "Doctor not found",
+      message: "Hospital not found",
       data: null,
       error: { code: "HOSPITAL_NOT_FOUND", details: null },
     });
     return;
   }
 
+  // 🔥 Perform Soft Delete (requires paranoid: true in model)
+  await hospital.destroy();
 
-    await Hospital.update(updatePayload, {
-    where: { id: id },
-    returning: true,
+  await publishEvent("hospital_events", "HOSPITAL_DELETED", {
+    hospitalId: id,
   });
 
   res.status(200).json({
     success: true,
-    message: "Your account deleted successfully",
+    message: "Hospital account soft-deleted successfully",
     status: 200,
     data: null,
     error: null,
   });
 });
+
 
 // GET ALL - GET /hospital 
 export const getHospital: any = asyncHandler(async (req: Request, res: Response) => {

@@ -1,7 +1,8 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import User from "../models/user.model";
 import { generateToken } from "./jwt.service";
 import twilio from "twilio";
+import { logger } from "../utils/logger";
 import { publishEvent } from "../events/publisher";
 
 const client = twilio(
@@ -14,19 +15,34 @@ const APPLE_TEST_OTP = "123456";
 
 export const userService = {
   async register(data: any) {
+    logger.info("Registering user: checking existing email", { email: data.email });
     const exist = await User.findOne({ where: { email: data.email } });
     if (exist) {
+      logger.info("User already exists", { email: data.email });
       throw { status: 400, message: "User already exists", code: "USER_EXISTS" };
     }
 
+    logger.info("Hashing password");
     const hashedPassword = await bcrypt.hash(data.password, 10);
-    const user = await User.create({
-      ...data,
-      password: hashedPassword,
-    });
+    
+    logger.info("Creating user in DB");
+    try {
+      const user = await User.create({
+        ...data,
+        password: hashedPassword,
+      });
 
-    const { password: _, ...safeUser } = user.toJSON();
-    return safeUser;
+      logger.info("User created successfully", { id: user.id });
+      const { password: _, ...safeUser } = user.toJSON();
+      return safeUser;
+    } catch (dbError: any) {
+      logger.error("Sequelize Creation Error", { 
+        message: dbError.message, 
+        errors: dbError.errors, 
+        original: dbError.original 
+      });
+      throw dbError;
+    }
   },
 
   async login(data: any) {

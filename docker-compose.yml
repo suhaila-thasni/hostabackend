@@ -1,6 +1,7 @@
 
 services:
   api-gateway:
+    container_name: api-gateway
     build: ./api-gateway
     ports:
       - "3000:3000"
@@ -13,10 +14,13 @@ services:
       - blood-bank-service
       - pharmacy-service
       - staff-service
+      - medicine-reminder-service
+      - booking-service
     networks:
       - hosta-network
 
   user-service:
+    container_name: user-service
     build: ./user-service
     env_file:
       - ./user-service/.env
@@ -24,6 +28,7 @@ services:
       - hosta-network
 
   ambulance-service:
+    container_name: ambulance-service
     build: ./ambulance-service
     env_file:
       - ./ambulance-service/.env
@@ -31,6 +36,7 @@ services:
       - hosta-network
 
   blood-service:
+    container_name: blood-service
     build: ./blood-service
     env_file:
       - ./blood-service/.env
@@ -38,44 +44,62 @@ services:
       - hosta-network
 
   blood-bank-service:
+    container_name: blood-bank-service
     build: ./blood-bank-service
     env_file: ./blood-bank-service/.env
     networks:
       - hosta-network
 
   pharmacy-service:
+    container_name: pharmacy-service
     build: ./pharmacy-service
     env_file: ./pharmacy-service/.env
     networks:
       - hosta-network 
 
   staff-service:
+    container_name: staff-service
     build: ./staff-service
     env_file: ./staff-service/.env
     networks:
       - hosta-network
 
   doctor-service:
+    container_name: doctor-service
     build: ./doctor-service
     env_file: ./doctor-service/.env
     networks:
       - hosta-network
 
   speciality-service:
+    container_name: speciality-service
     build: ./speciality-service
     env_file: ./speciality-service/.env
     networks:
       - hosta-network 
 
   hospital-service:
+    container_name: hospital-service
     build: ./hospital-service
     env_file: ./hospital-service/.env
-    networks: 
-      - hosta-network 
+    networks:
+      - hosta-network
 
-  
+  booking-service:
+    container_name: booking-service
+    build: ./booking-service
+    env_file: ./booking-service/.env
+    networks:
+      - hosta-network
+
+  medicine-reminder-service:
+    container_name: medicine-reminder-service
+    build: ./medicinremainder-service
+    env_file: ./medicinremainder-service/.env
+    networks:
+      - hosta-network
+
 networks:
   hosta-network:
+    name: hosta-network
     driver: bridge
-
-
