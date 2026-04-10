@@ -122,6 +122,7 @@ Booking.init(
         "pending",
         "accepted",
         "declined",
+        "completed",
         "cancel"
       ),
       defaultValue: "pending",
