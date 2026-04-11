@@ -15,6 +15,15 @@ import {
   getPatient,
 } from "../controllers/user.controller";
 
+import {
+  addVitals,
+  getVitalsByPatient,
+  getLatestVitals,
+  getVitalsById,
+  updateVitals,
+  deleteVitals,
+} from "../controllers/patientVitals.controller";
+
 import { validate, validateParams } from "../middleware/validate.middleware";
 import { registerSchema, loginSchema, idParamSchema, loginWithPhoneSchema, verifyOtpSchema } from "../validators/user.validator";
 import { authenticate } from "../middleware/authenticate";
@@ -37,5 +46,13 @@ router.delete("/users/:id", authenticate, validateParams(idParamSchema), deleteU
 router.post("/patients", authenticate, createPatient);
 router.get("/patients", authenticate, getPatients);
 router.get("/patients/:id", authenticate, validateParams(idParamSchema), getPatient);
+
+// Patient Vitals Routes
+router.post("/patients/:patientId/vitals", authenticate, addVitals);
+router.get("/patients/:patientId/vitals", authenticate, getVitalsByPatient);
+router.get("/patients/:patientId/vitals/latest", authenticate, getLatestVitals);
+router.get("/vitals/:id", authenticate, getVitalsById);
+router.put("/vitals/:id", authenticate, updateVitals);
+router.delete("/vitals/:id", authenticate, deleteVitals);
 
 export default router;

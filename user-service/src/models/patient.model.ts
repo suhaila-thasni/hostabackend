@@ -1,5 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/db";
+import PatientVitals from "./patientVitals.model";
+
 
 interface IPatient {
   id: number;
@@ -40,7 +42,10 @@ interface IPatient {
 
   email?: string;
   password?: string;
+
+  vitals?: any[]; // Array of PatientVitals
 }
+
 
 class Patient extends Model<IPatient> implements IPatient {
   public id!: number;
@@ -81,7 +86,10 @@ class Patient extends Model<IPatient> implements IPatient {
 
   public email!: string;
   public password!: string;
+
+  public readonly vitals?: any[];
 }
+
 
 Patient.init(
   {
@@ -175,6 +183,8 @@ Patient.init(
         isEmail: true,
       },
     },
+
+    
 
     password: DataTypes.STRING,
   },

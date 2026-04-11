@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import { userService } from "../services/user.service";
 import Patient from "../models/patient.model";
+import PatientVitals from "../models/patientVitals.model";
 
 // --- USER CONTROLLERS ---
 
@@ -102,23 +103,73 @@ export const testPushNotification: any = asyncHandler(async (req: Request, res: 
 
 // CREATE PATIENT
 export const createPatient: any = asyncHandler(async (req: Request, res: Response) => {
-  // Only extract allowed fields for production security (Prevent Mass Assignment)
-  const { name, age, gender, address, phone, emergencyContact, medicalCondition } = req.body;
-  
-  const patient = await Patient.create({
-    name, age, gender, address, phone, emergencyContact, medicalCondition
-  } as any);
+  const t = await Patient.sequelize!.transaction();
 
-  res.status(201).json({
-    success: true,
-    message: "Patient created successfully",
-    data: patient,
-  });
+  try {
+    // 1. Extract Patient Info
+    const {
+      firstName, middleName, lastName, bloodGroup, gender, maritalStatus,
+      patientType, age, dob, company, mobileNumber, emergencyNumber,
+      guardianName, addressLine1, addressLine2, country, city, state, pinCode,
+      referredBy, department, referredOn, notes, email, profileImage
+    } = req.body;
+
+    // 2. Extract Vitals Info (if any)
+    const {
+      temperature, pulse, respiratoryRate, spo2, height, weight, waist
+    } = req.body;
+
+    // 3. Create Patient
+    const patient = await Patient.create({
+      firstName, middleName, lastName, bloodGroup, gender, maritalStatus,
+      patientType, age, dob, company, mobileNumber, emergencyNumber,
+      guardianName, addressLine1, addressLine2, country, city, state, pinCode,
+      referredBy, department, referredOn, notes, email, profileImage
+    }, { transaction: t });
+
+    // 4. If any vitals field is provided, create a vitals record
+    if (temperature || pulse || respiratoryRate || spo2 || height || weight || waist) {
+      // We'll calculate BMI/BSA here or let the service handle it.
+      // Since addVitals in patientVitalsService handles calculation, let's use a helper or just do it here to keep things in one transaction.
+      
+      let bmi, bsa;
+      if (height && weight) {
+        const hInM = height / 100;
+        bmi = parseFloat((weight / (hInM * hInM)).toFixed(2));
+        bsa = parseFloat((0.007184 * Math.pow(height, 0.725) * Math.pow(weight, 0.425)).toFixed(4));
+      }
+
+      await PatientVitals.create({
+        patientId: patient.id,
+        temperature, pulse, respiratoryRate, spo2,
+        height, weight, waist, bmi, bsa
+      }, { transaction: t });
+    }
+
+    await t.commit();
+
+    // Fetch the stored patient with vitals to return
+    const result = await Patient.findByPk(patient.id, {
+      include: [{ model: PatientVitals, as: "vitals" }]
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Patient created successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    await t.rollback();
+    res.status(500).json({ success: false, message: error.message || "Failed to create patient" });
+  }
 });
+
 
 // GET ALL PATIENTS
 export const getPatients: any = asyncHandler(async (req: Request, res: Response) => {
-  const patients = await Patient.findAll();
+  const patients = await Patient.findAll({
+    include: [{ model: PatientVitals, as: "vitals", limit: 1, order: [["createdAt", "DESC"]] }],
+  });
 
   res.status(200).json({
     success: true,
@@ -126,9 +177,11 @@ export const getPatients: any = asyncHandler(async (req: Request, res: Response)
   });
 });
 
-// GET ONE PATIENT
+// GET ONE PATIENT (with all vitals history)
 export const getPatient: any = asyncHandler(async (req: Request, res: Response) => {
-  const patient = await Patient.findByPk(req.params.id);
+  const patient = await Patient.findByPk(req.params.id, {
+    include: [{ model: PatientVitals, as: "vitals", order: [["createdAt", "DESC"]] }],
+  });
 
   if (!patient) {
     res.status(404).json({
