@@ -16,6 +16,8 @@ services:
       - staff-service
       - medicine-reminder-service
       - booking-service
+      - notification-service
+      - review-service
     networks:
       - hosta-network
 
@@ -99,7 +101,23 @@ services:
     networks:
       - hosta-network
 
+  notification-service:
+    container_name: notification-service
+    build: ./notification-service
+    env_file: ./notification-service/.env
+    networks:
+      - hosta-network
+
+  review-service:
+    container_name: review-service
+    build: ./review-service
+    env_file: ./review-service/.env
+    networks:
+      - hosta-network
+
 networks:
   hosta-network:
     name: hosta-network
+
+    
     driver: bridge

@@ -11,6 +11,8 @@ import specialityRoutes from "./speciality.routes";
 import hospitalRoutes from "./hospital.routes";
 import bookingRoutes from "./booking.routes";
 import medicineReminderRoutes from "./medicinereminder.routes";
+import notificationRoutes from "./notification.routes";
+import reviewRoutes from "./review.routes"; 
 
 
 const router = express.Router();
@@ -27,5 +29,7 @@ router.use("/", specialityRoutes);
 router.use("/", hospitalRoutes);
 router.use("/", bookingRoutes);
 router.use("/", medicineReminderRoutes);
+router.use("/", notificationRoutes);
+router.use("/", reviewRoutes);  
 export default router;
 
