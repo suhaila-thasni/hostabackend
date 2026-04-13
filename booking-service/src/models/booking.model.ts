@@ -18,7 +18,7 @@ interface IBooking {
   hospitalId: number;  // Hospital
 
   booking_date: Date;
-  booking_time: string;
+  consulting_time: string;
 
   status: "pending" | "accepted" | "declined" | "cancel";
 
@@ -55,7 +55,7 @@ class Booking
 
 
   public booking_date!: Date;
-  public booking_time!: string;
+  public consulting_time!: string;
 
   public status!: "pending" | "accepted" | "declined" | "cancel";
 
@@ -112,7 +112,7 @@ Booking.init(
       allowNull: false,
     },
 
-    booking_time: {
+    consulting_time: {
       type: DataTypes.STRING,
       allowNull: false,
     },

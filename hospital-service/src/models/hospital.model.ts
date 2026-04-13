@@ -49,6 +49,7 @@ export interface IHospital {
   deleteRequested?: boolean;
   working_hours_general?: IWorkingHoursGeneral[];
   working_hours_clinic?: IWorkingHoursClinic[];
+  working_hours_clinic_nobreak?: IWorkingHoursGeneral[];
   deleteDate?: Date;
   isActive?: boolean;
   isDelete?: boolean;
@@ -66,6 +67,7 @@ type HospitalCreationAttributes = Optional<
   | "deleteRequested"
   | "working_hours_general"
   | "working_hours_clinic"
+  | "working_hours_clinic_nobreak"
   | "deleteDate"
   | "isActive"
   | "isDelete"
@@ -93,6 +95,7 @@ class Hospital
   public deleteRequested?: boolean;
   public working_hours_general?: IWorkingHoursGeneral[];
   public working_hours_clinic?: IWorkingHoursClinic[];
+  public working_hours_clinic_nobreak?: IWorkingHoursGeneral[];
   public deleteDate?: Date;
   public isActive?: boolean;
   public isDelete?: boolean;
@@ -173,6 +176,11 @@ Hospital.init(
     },
 
     working_hours_clinic: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+
+    working_hours_clinic_nobreak:  {
       type: DataTypes.JSONB,
       allowNull: true,
     },
