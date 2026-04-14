@@ -46,6 +46,8 @@ interface IDoctor {
   todayBookingAcceptCount: number;
   isActive?: boolean;
   isDelete?: boolean;
+  otp?: string;
+  otpExpiry?: Date;
 }
 
 /* =======================
@@ -54,7 +56,7 @@ interface IDoctor {
 
 type DoctorCreationAttributes = Optional<
   IDoctor,
-  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consulting" | "department" | "specialist" | "displayName" 
+  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consulting" | "department" | "specialist" | "displayName" | "otp" | "otpExpiry"
 >;
 
 /* =======================
@@ -84,6 +86,8 @@ class Doctor
   public displayName!: string;
   public joiningDate?: Date;
   public todayBookingAcceptCount!: number;
+  public otp!: string;
+  public otpExpiry!: Date;
 }
 
 /* =======================
@@ -190,6 +194,14 @@ Doctor.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    otp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    otpExpiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
 
 
   },
@@ -201,13 +213,13 @@ Doctor.init(
     paranoid: true, // 🔥 Enables Soft Delete
 
     defaultScope: {
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["password", "otp", "otpExpiry"] },
     },
 
 
     scopes: {
       withPassword: {
-        attributes: { include: ["password"] },
+        attributes: { include: ["password", "otp", "otpExpiry"] },
       },
     },
 

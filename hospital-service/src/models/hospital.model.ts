@@ -52,6 +52,8 @@ export interface IHospital {
   deleteDate?: Date;
   isActive?: boolean;
   isDelete?: boolean;
+  otp?: string;
+  otpExpiry?: Date;
 }
 
 /* =======================
@@ -69,6 +71,8 @@ type HospitalCreationAttributes = Optional<
   | "deleteDate"
   | "isActive"
   | "isDelete"
+  | "otp"
+  | "otpExpiry"
 >;
 
 /* =======================
@@ -96,6 +100,8 @@ class Hospital
   public deleteDate?: Date;
   public isActive?: boolean;
   public isDelete?: boolean;
+  public otp!: string;
+  public otpExpiry!: Date;
 }
 
 /* =======================
@@ -195,6 +201,14 @@ Hospital.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    otp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    otpExpiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     sequelize,
@@ -204,13 +218,13 @@ Hospital.init(
     paranoid: true, // 🔥 Enables Soft Delete
 
     defaultScope: {
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["password", "otp", "otpExpiry"] },
     },
 
 
     scopes: {
       withPassword: {
-        attributes: { include: ["password"] },
+        attributes: { include: ["password", "otp", "otpExpiry"] },
       },
     },
 

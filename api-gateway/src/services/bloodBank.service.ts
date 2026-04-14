@@ -36,7 +36,7 @@ export const proxyRequest = async (req: Request, res: Response, next: NextFuncti
         })(),
         "X-Request-ID": (req as any).id || "gateway-internal",
       },
-      validateStatus: (status: number) => true,
+      validateStatus: (status: number) => status < 600,
     };
 
     const response: any = await breaker.fire(options);

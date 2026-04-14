@@ -196,3 +196,87 @@ export const getPatient: any = asyncHandler(async (req: Request, res: Response) 
     data: patient,
   });
 });
+
+// UPDATE PATIENT (Allows updating profile + recording new vitals)
+export const updatePatient: any = asyncHandler(async (req: Request, res: Response) => {
+  const t = await Patient.sequelize!.transaction();
+  
+  try {
+    const patient = await Patient.findByPk(req.params.id);
+
+    if (!patient) {
+      res.status(404).json({ success: false, message: "Patient not found" });
+      return;
+    }
+
+    // 1. Update Patient Profile Fields
+    const {
+      firstName, middleName, lastName, bloodGroup, gender, maritalStatus,
+      patientType, age, dob, company, mobileNumber, emergencyNumber,
+      guardianName, addressLine1, addressLine2, country, city, state, pinCode,
+      referredBy, department, referredOn, notes, email, profileImage
+    } = req.body;
+
+    await patient.update({
+      firstName, middleName, lastName, bloodGroup, gender, maritalStatus,
+      patientType, age, dob, company, mobileNumber, emergencyNumber,
+      guardianName, addressLine1, addressLine2, country, city, state, pinCode,
+      referredBy, department, referredOn, notes, email, profileImage
+    }, { transaction: t });
+
+    // 2. Check for NEW Vitals in the same request
+    const {
+      temperature, pulse, respiratoryRate, spo2, height, weight, waist
+    } = req.body;
+
+    if (temperature || pulse || respiratoryRate || spo2 || height || weight || waist) {
+      let bmi, bsa;
+      if (height && weight) {
+        const hInM = height / 100;
+        bmi = parseFloat((weight / (hInM * hInM)).toFixed(2));
+        bsa = parseFloat((0.007184 * Math.pow(height, 0.725) * Math.pow(weight, 0.425)).toFixed(4));
+      }
+
+      await PatientVitals.create({
+        patientId: patient.id,
+        temperature, pulse, respiratoryRate, spo2,
+        height, weight, waist, bmi, bsa
+      }, { transaction: t });
+    }
+
+    await t.commit();
+
+    // 3. Return updated patient with fresh vitals
+    const result = await Patient.findByPk(patient.id, {
+      include: [{ model: PatientVitals, as: "vitals", limit: 1, order: [["createdAt", "DESC"]] }]
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Patient record updated successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    await t.rollback();
+    res.status(500).json({ success: false, message: error.message || "Failed to update patient" });
+  }
+});
+
+
+// DELETE PATIENT
+export const deletePatient: any = asyncHandler(async (req: Request, res: Response) => {
+  const patient = await Patient.findByPk(req.params.id);
+
+  if (!patient) {
+    res.status(404).json({ success: false, message: "Patient not found" });
+    return;
+  }
+
+  await patient.destroy(); // Soft delete because of paranoid: true
+
+  res.status(200).json({
+    success: true,
+    message: "Patient deleted successfully",
+  });
+});
+

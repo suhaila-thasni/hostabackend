@@ -23,7 +23,7 @@ breaker.fallback(() => {
 
 export const proxyRequest = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const url = `${SERVICES.USER_SERVICE}${req.originalUrl.replace("/api/users", "/users").replace("/api/patients", "/patients")}`;
+    const url = `${SERVICES.USER_SERVICE}${req.originalUrl.replace("/api/users", "/users").replace("/api/patients", "/patients").replace("/api/prescription", "/prescription")}`;
 
     const options = {
       method: req.method,
@@ -38,7 +38,7 @@ export const proxyRequest = async (req: Request, res: Response, next: NextFuncti
         "X-Request-ID": (req as any).id,
       },
       // Ensure we get raw response for manual management
-      validateStatus: (status: number) => status < 500, 
+      validateStatus: (status: number) => status < 600, 
     };
 
     const response: any = await breaker.fire(options);

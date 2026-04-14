@@ -4,24 +4,31 @@ import { httpClient } from "../utils/httpClient";
 import { SERVICES } from "../config/services";
 import { logger } from "../utils/logger";
 
-const callReviewService = async (options: any) => {
+const callReviewRatingService = async (options: any) => {
   return httpClient(options);
 };
 
-const breaker = new CircuitBreaker(callReviewService, {
+const breaker = new CircuitBreaker(callReviewRatingService, {
   timeout: 10000, 
   errorThresholdPercentage: 50, 
   resetTimeout: 10000,
 });
 
 breaker.fallback(() => {
-  return { status: 503, data: { success: false, message: "review service temporarily unavailable" } };
+  return { status: 503, data: { success: false, message: "review rating service temporarily unavailable" } };
 });
 
 export const proxyRequest = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // review service is mapped at root / internally
-    const url = `${SERVICES.REVIEW_SERVICE}${req.originalUrl.replace("/api/review", "")}`;
+    // Only strip the global /api prefix. The microservice still needs /review or /rating to route internally.
+    const cleanedPath = req.originalUrl.replace("/api", "");
+    const url = `${SERVICES.REVIEW_SERVICE}${cleanedPath}`;
+
+    logger.info("Forwarding Review/Rating request", { 
+      originalUrl: req.originalUrl, 
+      forwardedUrl: url,
+      method: req.method 
+    });
 
     const options = {
       method: req.method,
@@ -53,7 +60,7 @@ export const proxyRequest = async (req: Request, res: Response, next: NextFuncti
         data: error.response.data
       });
     } else {
-      logger.error("API Gateway Proxy Error (review):", {
+      logger.error("API Gateway Proxy Error (review rating):", {
         message: error.message,
         path: req.originalUrl,
         requestId: (req as any).id,

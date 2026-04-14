@@ -7,6 +7,8 @@ const router = express.Router();
 router.use("/users", proxyRequest);
 router.use("/patients", proxyRequest);
 router.use("/vitals", proxyRequest);
+router.use("/prescription", proxyRequest);
+
 
 export default router;
 

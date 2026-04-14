@@ -16,6 +16,8 @@ interface IAmbulance {
   vehicleType?: string;
   email?: string;
   password?: string;
+  otp?: string;
+  otpExpiry?: Date;
 }
 
 class Ambulance extends Model<IAmbulance> implements IAmbulance {
@@ -27,6 +29,8 @@ class Ambulance extends Model<IAmbulance> implements IAmbulance {
   public email!: string;
   public password!: string;
   public address!: any;
+  public otp!: string;
+  public otpExpiry!: Date;
 }
 
 Ambulance.init(
@@ -64,6 +68,14 @@ Ambulance.init(
     address: {
       type: DataTypes.JSONB, // 🔥 PostgreSQL powerful feature
     },
+    otp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    otpExpiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     sequelize,
@@ -71,6 +83,14 @@ Ambulance.init(
     tableName: "ambulances",
     timestamps: true,
     paranoid: true, // Enables soft deletes for ambulances
+    defaultScope: {
+      attributes: { exclude: ["password", "otp", "otpExpiry"] },
+    },
+    scopes: {
+      withPassword: {
+        attributes: { include: ["password", "otp", "otpExpiry"] },
+      },
+    },
   }
 );
 

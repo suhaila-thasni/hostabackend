@@ -7,10 +7,12 @@ export const httpClient = axios.create({
 
 // Configure retry mechanism
 axiosRetry(httpClient, {
-  retries: 3,
+  retries: 1, // Reduced to 1 to avoid long hanging requests during failures
   retryDelay: axiosRetry.exponentialDelay,
   retryCondition: (error) => {
-    // Retry on network errors or 5xx server errors
-    return axiosRetry.isNetworkOrIdempotentRequestError(error) || (error.response?.status && error.response.status >= 500);
+    // ONLY retry on network/connection errors. 
+    // Do NOT retry on 5xx because these are usually logic/DB errors that will fail again.
+    return axiosRetry.isNetworkError(error);
   },
 });
+

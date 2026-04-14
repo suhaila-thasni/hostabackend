@@ -12,13 +12,13 @@ import hospitalRoutes from "./hospital.routes";
 import bookingRoutes from "./booking.routes";
 import medicineReminderRoutes from "./medicinereminder.routes";
 import notificationRoutes from "./notification.routes";
-import reviewRoutes from "./review.routes"; 
+import reviewRatingRoutes from "./review.routes"; 
 
 
 const router = express.Router();
 
 
-router.use("/", bloodRoutes);
+router.use("/", bloodRoutes);   
 router.use("/", bloodBankRoutes);
 router.use("/", ambulanceRoutes);
 router.use("/", userRoutes);
@@ -30,6 +30,6 @@ router.use("/", hospitalRoutes);
 router.use("/", bookingRoutes);
 router.use("/", medicineReminderRoutes);
 router.use("/", notificationRoutes);
-router.use("/", reviewRoutes);  
+router.use("/", reviewRatingRoutes);  
 export default router;
 

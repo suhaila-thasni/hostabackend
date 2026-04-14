@@ -81,13 +81,13 @@ app.use((err: any, req: any, res: Response, next: NextFunction) => {
     requestId: req.id,
     message: err.message,
     stack: err.stack,
+    details: err.errors || err // Capture Sequelize validation errors or the whole error object
   });
 
   res.status(err.status || 500).json({
     success: false,
     message: "Internal Server Error in Staff Service",
-    error: env.NODE_ENV === "development" ? err : {}, // Still show object in dev, hide details in prod
-
+    error: env.NODE_ENV === "development" ? err : (err.errors || {}), // Show errors if available even in prod for now to debug
   });
 });
 

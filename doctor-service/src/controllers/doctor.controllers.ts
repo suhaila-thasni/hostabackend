@@ -4,6 +4,18 @@ import jwt from "jsonwebtoken";
 import asyncHandler from "express-async-handler";
 import Doctor from "../models/doctor.model";
 import { publishEvent } from "../events/publisher";
+import { Op } from "sequelize";
+import twilio from "twilio";
+
+// Helper for Twilio Client
+const getTwilioClient = () => {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  if (!sid || !token) {
+    return null;
+  }
+  return twilio(sid, token);
+};
 
 // REGISTER - POST /doctor/register
 export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
@@ -56,11 +68,28 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
 
 // LOGIN - POST /doctor/login
 export const login: any = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, phone, password } = req.body;
 
-  const doctor = await Doctor.findOne({ where: { email: email } });
+  if ((!email && !phone) || !password) {
+    res.status(400).json({
+      success: false,
+      message: "Identifier (email/phone) and password are required",
+    });
+    return;
+  }
+
+  // Find doctor by email OR phone
+  const doctor = await Doctor.scope("withPassword").findOne({
+    where: {
+      [Op.or]: [
+        email ? { email } : null,
+        phone ? { phone } : null,
+      ].filter(Boolean) as any,
+    },
+  });
+
   if (!doctor) {
-    res.status(404).json({
+    res.status(401).json({
       success: false,
       message: "Doctor not found! Please register",
       data: null,
@@ -71,53 +100,104 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
 
   const checkPassword = await bcrypt.compare(password, doctor.password || "");
   if (!checkPassword) {
-    res.status(404).json({
+    res.status(401).json({
       success: false,
-      message: "Wrong password, Plese try again",
+      message: "Wrong password, Please try again",
       data: null,
       error: { code: "WRONG_PASSWORD", details: null },
     });
     return;
   }
 
-  const jwtKey = process.env.JWT_SECRET;
-  if (!jwtKey) {
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+  const token = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`}, jwtKey, {
+    expiresIn: "24h",
+  });
+
+  // Remove password and OTP fields from response
+  const { password: _, otp: __, otpExpiry: ___, ...safeDoctor } = doctor.get();
+
+  res.status(200).json({
+    success: true,
+    message: "Logged in successfully",
+    status: 200,
+    token, // Return token for API Gateway forwarding
+    data: safeDoctor,
+    error: null,
+  });
+});
+
+// LOGIN WITH PHONE (OTP REQUEST) - POST /doctor/login/phone
+export const loginWithPhone: any = asyncHandler(async (req: Request, res: Response) => {
+  const { phone } = req.body;
+
+  const doctor = await Doctor.findOne({ where: { phone } });
+  if (!doctor) {
     res.status(404).json({
       success: false,
-      message: "JWT_SECRET is not defined",
-      data: null,
-      error: { code: "JWT_SECRET_NOT_DEFINED", details: null },
+      message: "Doctor not found with this phone number",
     });
     return;
   }
 
-  // Generate JWT tokens
-  const token = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`}, jwtKey, {
-    expiresIn: "15m",
-  });
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins expiry
 
-  const refreshToken = jwt.sign(
-    { id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}` },
-    jwtKey,
-    { expiresIn: "7d" }
-  );
+  await Doctor.update({ otp, otpExpiry }, { where: { phone } });
 
-  const sevenDayInMs = 7 * 24 * 60 * 60 * 1000;
-  const expirationDate = new Date(Date.now() + sevenDayInMs);
+  // Send OTP via Twilio
+  const client = getTwilioClient();
+  const twilioNumber = process.env.TWILIO_NUMBER;
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    expires: expirationDate,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  });
+  if (client && twilioNumber) {
+    try {
+      await client.messages.create({
+        body: `Your Hosta Doctor verification code is: ${otp}. Valid for 10 minutes.`,
+        from: twilioNumber,
+        to: phone,
+      });
+    } catch (err: any) {
+      console.error("Twilio Error:", err.message);
+    }
+  }
 
   res.status(200).json({
     success: true,
-    message: "Loggedin successfully",
-    status: 200,
-    data: doctor,
-    error: null,
+    message: "OTP sent successfully",
+    data: process.env.NODE_ENV === "development" ? { otp } : null,
+  });
+});
+
+// VERIFY OTP - POST /doctor/otp
+export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) => {
+  const { phone, otp } = req.body;
+
+  const doctor = await Doctor.scope("withPassword").findOne({ where: { phone } });
+
+  if (!doctor || doctor.otp !== otp || (doctor.otpExpiry && new Date() > doctor.otpExpiry)) {
+    res.status(400).json({
+      success: false,
+      message: "Invalid or expired OTP",
+    });
+    return;
+  }
+
+  // Clear OTP fields after verification
+  await doctor.update({ otp: null, otpExpiry: null });
+
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+  const token = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`}, jwtKey, {
+    expiresIn: "24h",
+  });
+
+  const { password: _, otp: __, otpExpiry: ___, ...safeDoctor } = doctor.get();
+
+  res.status(200).json({
+    success: true,
+    message: "OTP verified successfully",
+    token,
+    data: safeDoctor,
   });
 });
 
@@ -229,53 +309,35 @@ export const getDoctors: any = asyncHandler(async (req: Request, res: Response) 
   });
 });
 
-// FORGET PASSWORD - POST /doctor/forgot
-export const forgetpassword: any = asyncHandler(async (req: Request, res: Response) => {
-  const { email } = req.body;
-
-  const doctor = await Doctor.findOne({ where: { email } });
-  if (!doctor) {
-    res.status(404).json({
-      success: false,
-      message: "No data found",
-      data: null,
-      error: { code: "DOCTOR_NOT_FOUND", details: null },
-    });
-    return;
-  }
-
-  res.status(200).json({
-    success: true,
-    status: 200,
-    data: doctor,
-    error: null,
-  });
-});
-
-// CHANGE PASSWORD - PUT /doctor/changepassword
+// CHANGE PASSWORD - PUT /doctor/password
 export const changepassword: any = asyncHandler(async (req: Request, res: Response) => {
-  const { password, email } = req.body;
+  const { currentPassword, newPassword, email } = req.body;
 
-  const doctor = await Doctor.findOne({ where: { email } });
+  const doctor = await Doctor.scope("withPassword").findOne({ where: { email } });
   if (!doctor) {
     res.status(404).json({
       success: false,
-      message: "No data found",
-      data: null,
-      error: { code: "DOCTOR_NOT_FOUND", details: null },
+      message: "Doctor not found",
     });
     return;
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  doctor.password = hashedPassword;
+  // Verify current password
+  const isMatch = await bcrypt.compare(currentPassword, doctor.password || "");
+  if (!isMatch) {
+    res.status(401).json({
+      success: false,
+      message: "Incorrect current password",
+    });
+    return;
+  }
 
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  doctor.password = hashedPassword;
   await doctor.save();
 
   res.status(200).json({
     success: true,
-    status: 200,
-    data: doctor,
-    error: null,
+    message: "Password changed successfully",
   });
 });

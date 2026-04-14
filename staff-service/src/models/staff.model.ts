@@ -31,6 +31,8 @@ interface IStaff {
   qualification?: string;
   isActive?: boolean;
   isDelete?: boolean;
+  otp?: string;
+  otpExpiry?: Date;
 }
 
 /* =======================
@@ -52,6 +54,8 @@ type StaffCreationAttributes = Optional<
   | "jobType"
   | "isActive"
   | "isDelete"
+  | "otp"
+  | "otpExpiry"
 >;
 
 /* =======================
@@ -79,6 +83,8 @@ class Staff
   public bookingOpen!: boolean;
   public isActive?: boolean;
   public isDelete?: boolean;
+  public otp?: string;
+  public otpExpiry?: Date;
 
   // timestamps
   public readonly createdAt!: Date;
@@ -177,6 +183,12 @@ Staff.init(
     isDelete: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
+    },
+    otp: {
+      type: DataTypes.STRING,
+    },
+    otpExpiry: {
+      type: DataTypes.DATE,
     },
   },
   {

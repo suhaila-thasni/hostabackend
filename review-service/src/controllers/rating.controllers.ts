@@ -52,13 +52,11 @@ asyncHandler(
        GET BOOKINGS FROM SERVICE
     ========================== */
 
-    const appointmentResponse =
-      await axios.get(
-        "http://localhost:3001/bookings"
-      );
+    const bookingServiceUrl = process.env.BOOKING_SERVICE_URL || "http://booking-service:3011";
+    const appointmentResponse = await axios.get(`${bookingServiceUrl}/booking`);
 
     const bookings =
-      appointmentResponse.data;
+      appointmentResponse.data.data;
 
     /* =========================
        FILTER BOOKINGS

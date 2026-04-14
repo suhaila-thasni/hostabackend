@@ -31,6 +31,15 @@ export const loginStaffSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const loginWithPhoneSchema = z.object({
+  phone: z.string().regex(/^[0-9]{10}$/, "Phone number must be 10 digits"),
+});
+
+export const verifyOtpSchema = z.object({
+  phone: z.string().regex(/^[0-9]{10}$/, "Phone number must be 10 digits"),
+  otp: z.string().length(6, "OTP must be 6 digits"),
+});
+
 // ID parameter validation
 export const idParamSchema = z.object({
   id: z.string().regex(/^\d+$/, "Invalid ID format"),

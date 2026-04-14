@@ -2,20 +2,22 @@ import { Router } from "express";
 import {
   Registeration,
   login,
+  loginWithPhone,
+  verifyOtp,
   getanAmbulace,
   updateData,
   ambulanceDelete,
   getAmbulaces,
-  forgetpassword,
   changepassword,
 } from "../controllers/ambulance.controllers";
 import { validate, validateParams } from "../middleware/validate.middleware";
 import {
   registerSchema,
   loginSchema,
+  loginWithPhoneSchema,
+  verifyOtpSchema,
   updateSchema,
   changePasswordSchema,
-  forgetPasswordSchema,
   idParamSchema,
 } from "../validators/ambulance.validator";
 import { authenticate } from "../middleware/authenticate";
@@ -25,8 +27,9 @@ const router = Router();
 // Auth
 router.post("/ambulance/register", validate(registerSchema), Registeration);
 router.post("/ambulance/login", validate(loginSchema), login);
-router.post("/ambulance/forgot", validate(forgetPasswordSchema), forgetpassword);
-router.put("/ambulance/changepassword", authenticate, validate(changePasswordSchema), changepassword);
+router.post("/ambulance/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
+router.post("/ambulance/otp", validate(verifyOtpSchema), verifyOtp);
+router.put("/ambulance/password", validate(changePasswordSchema), changepassword);
 
 // CRUD
 router.get("/ambulance", authenticate, getAmbulaces);

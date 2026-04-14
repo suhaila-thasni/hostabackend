@@ -5,13 +5,31 @@ import twilio from "twilio";
 import { logger } from "../utils/logger";
 import { publishEvent } from "../events/publisher";
 
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+let twilioClient: any = null;
+
+const getTwilioClient = () => {
+  if (twilioClient) return twilioClient;
+  
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  
+  if (!sid || !token) {
+    logger.warn("Twilio credentials NOT FOUND in environment variables. SMS will NOT be sent.");
+    return null;
+  }
+  
+  try {
+    twilioClient = twilio(sid, token);
+    return twilioClient;
+  } catch (error) {
+    logger.error("Failed to initialize Twilio client", error);
+    return null;
+  }
+};
 
 const APPLE_TEST_NUMBER = "9999999999";
 const APPLE_TEST_OTP = "123456";
+
 
 export const userService = {
   async register(data: any) {
@@ -36,6 +54,12 @@ export const userService = {
       const { password: _, ...safeUser } = user.toJSON();
       return safeUser;
     } catch (dbError: any) {
+      if (dbError.name === 'SequelizeUniqueConstraintError') {
+        const message = dbError.errors[0]?.message || "Unique constraint violation";
+        logger.info("Registration failed: Unique constraint", { message });
+        throw { status: 400, message, code: "VALIDATION_ERROR" };
+      }
+
       logger.error("Sequelize Creation Error", { 
         message: dbError.message, 
         errors: dbError.errors, 
@@ -43,6 +67,7 @@ export const userService = {
       });
       throw dbError;
     }
+
   },
 
   async login(data: any) {
@@ -83,12 +108,37 @@ export const userService = {
     await user.save();
 
     if (numericPhone !== APPLE_TEST_NUMBER) {
-        await client.messages.create({
-          body: `Your verification code is: ${otp}`,
-          from: process.env.TWILIO_NUMBER,
-          to: "+91" + numericPhone,
-        });
+        try {
+          const client = getTwilioClient();
+          const from = process.env.TWILIO_NUMBER;
+          
+          if (client && from) {
+            // Support different country codes (Default to +91 if not specified)
+            const targetNumber = phone.startsWith("+") ? phone : `+91${numericPhone}`;
+            
+            await client.messages.create({
+              body: `Your verification code is: ${otp}. Valid for 5 minutes.`,
+              from: from,
+              to: targetNumber,
+            });
+            logger.info("OTP SMS sent successfully", { phone: targetNumber });
+          } else {
+            logger.warn("Development Mode: OTP created but not sent via SMS (Missing Twilio Config)", { 
+              numericPhone, 
+              otp 
+            });
+          }
+        } catch (twilioError: any) {
+          logger.error("Production Error: Twilio SMS failed to send", { 
+            error: twilioError.message, 
+            phone: numericPhone,
+            otp 
+          });
+          // Note: OTP is still recorded in DB, so user can check logs to proceed in dev environment
+        }
     }
+
+
 
     return { 
         message: numericPhone === APPLE_TEST_NUMBER ? "OTP sent (TEST ACCOUNT)" : "OTP sent successfully", 

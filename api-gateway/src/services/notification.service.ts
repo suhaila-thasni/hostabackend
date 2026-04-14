@@ -20,8 +20,8 @@ breaker.fallback(() => {
 
 export const proxyRequest = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Pharmacy service is mapped at root / internally
-    const url = `${SERVICES.NOTIFICATION_SERVICE}${req.originalUrl.replace("/api/notification", "")}`;
+    // Only strip the /api prefix so the microservice receives /notification/...
+    const url = `${SERVICES.NOTIFICATION_SERVICE}${req.originalUrl.replace("/api", "")}`;
 
     const options = {
       method: req.method,
