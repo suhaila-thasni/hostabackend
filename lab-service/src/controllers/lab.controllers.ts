@@ -2,45 +2,43 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import asyncHandler from "express-async-handler";
-import Hospital from "../models/hospital.model";
+import Lab from "../models/lab.model";
 import { publishEvent } from "../events/publisher";
 
-// REGISTER - POST /hospital/register
+// REGISTER - POST /lab/register
 export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
-  const { name, type, address, phone, emergencyContact, email, password, latitude, longitude,  about,  working_hours_clinic, working_hours_general,  working_hours_clinic_nobreak, web } = req.body;
+  const { name,  address, phone, emergencyContact, email, password, latitude, longitude,  about,  working_hours, web, hospitalId } = req.body;
 
 
-  const exist = await Hospital.findOne({ where: { phone: phone } });
+  const exist = await Lab.findOne({ where: { phone: phone } });
   if (exist) {
     res.status(404).json({
       success: false,
-      message: "Hospital is already exist",
+      message: "Lab is already exist",
       data: null,
-      error: { code: "HOSPITAL_ALREADY_EXISTS", details: null },
+      error: { code: "LAB_ALREADY_EXISTS", details: null },
     });
     return;
   }
 
-  const newHospital = await Hospital.create({
+  const newLab = await Lab.create({
    name, 
    phone, 
    email, 
    password, 
-   type,
    emergencyContact,
    latitude,
    longitude,
    about,
-   working_hours_clinic,
-   working_hours_general, 
+   working_hours,
    address, 
-   working_hours_clinic_nobreak,
-   web
+   web,
+   hospitalId
   });
 
-  await publishEvent("hospital_events", "HOSPITAL_REGISTERED", {
-    hospitalId: newHospital.id,
-    phone: newHospital.phone,
+  await publishEvent("lab_events", "LAB_REGISTERED", {
+    labId: newLab.id,
+    phone: newLab.phone,
   });
 
   res.status(201).json({
@@ -51,22 +49,22 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
   });
 });
 
-// LOGIN - POST /hospital/login
+// LOGIN - POST /lab/login
 export const login: any = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  const hospital = await Hospital.findOne({ where: { email: email } });
-  if (!hospital) {
+  const lab = await Lab.findOne({ where: { email: email } });
+  if (!lab) {
     res.status(404).json({
       success: false,
-      message: "Hospital not found! Please register",
+      message: "Lab not found! Please register",
       data: null,
-      error: { code: "HOSPITAL_NOT_FOUND", details: null },
+      error: { code: "LAB_NOT_FOUND", details: null },
     });
     return;
   }
 
-  const checkPassword = await bcrypt.compare(password, hospital.password || "");
+  const checkPassword = await bcrypt.compare(password, lab.password || "");
   if (!checkPassword) {
     res.status(404).json({
       success: false,
@@ -89,12 +87,12 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Generate JWT tokens
-  const token = jwt.sign({ id: hospital.id, name: hospital.name }, jwtKey, {
+  const token = jwt.sign({ id: lab.id, name: lab.name }, jwtKey, {
     expiresIn: "15m",
   });
 
   const refreshToken = jwt.sign(
-    { id: hospital.id, name: hospital.name },
+    { id: lab.id, name: lab.name },
     jwtKey,
     { expiresIn: "7d" }
   );
@@ -113,20 +111,20 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     success: true,
     message: "Loggedin successfully",
     status: 200,
-    data: hospital,
+    data: lab,
     error: null,
   });
 });
 
-// GET ONE - GET /hospital/:id
-export const getanHospital : any = asyncHandler(async (req: Request, res: Response) => {
-  const hospital = await  Hospital.findByPk(req.params.id);
-  if (!hospital) {
+// GET ONE - GET /lab/:id
+export const getanLab : any = asyncHandler(async (req: Request, res: Response) => {
+  const lab = await  Lab.findByPk(req.params.id);
+  if (!lab) {
     res.status(404).json({
       success: false,
-      message: "Hospital not found",
+      message: "Lab not found",
       data: null,
-      error: { code: "HOSPITAL_NOT_FOUND", details: null },
+      error: { code: "LAB_NOT_FOUND", details: null },
     });
     return;
   }
@@ -134,62 +132,62 @@ export const getanHospital : any = asyncHandler(async (req: Request, res: Respon
   res.status(200).json({
     success: true,
     status: "Success",
-    data: hospital,
+    data: lab,
     error: null,
   });
 });
 
-// UPDATE - PUT /hospital/:id
+// UPDATE - PUT /lab/:id
 export const updateData: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const updatePayload = req.body;
 
-  const hospital = await Hospital.update(updatePayload, {
+  const lab = await Lab.update(updatePayload, {
     where: { id: id },
     returning: true,
   });
 
-  if (!hospital[1] || hospital[1].length === 0) {
+  if (!lab[1] || lab[1].length === 0) {
     res.status(404).json({
       success: false,
-      message: "Hospital not found",
+      message: "Lab not found",
       status: 200,
       data: null,
-      error: { code: "HOSPITAL_NOT_FOUND", details: null },
+      error: { code: "LAB_NOT_FOUND", details: null },
     });
     return;
   }
 
-  await publishEvent("hospital_events", "HOSPITAL_UPDATED", {
-    hospitalId: hospital[1][0].id,
+  await publishEvent("lab_events", "LAB_UPDATED", {
+    LabId: lab[1][0].id,
   });
 
   res.status(200).json({
     success: true,
     message: "successfully updated",
-    data: hospital[1][0],
+    data: lab[1][0],
     error: null,
   });
 });
 
-// DELETE - DELETE /hospital/:id
-export const hospitalDelete: any = asyncHandler(async (req: Request, res: Response) => {
+// DELETE - DELETE /lab/:id
+export const labDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const updatePayload = req.body;
 
-  const hospital = await Hospital.findByPk(id);
-  if (!hospital) {
+  const lab = await Lab.findByPk(id);
+  if (!lab) {
     res.status(404).json({
       success: false,
-      message: "Hospital not found",
+      message: "Lab not found",
       data: null,
-      error: { code: "HOSPITAL_NOT_FOUND", details: null },
+      error: { code: "LAB_NOT_FOUND", details: null },
     });
     return;
   }
 
 
-    await Hospital.update(updatePayload, {
+    await lab.update(updatePayload, {
     where: { id: id },
     returning: true,
   });
@@ -203,12 +201,12 @@ export const hospitalDelete: any = asyncHandler(async (req: Request, res: Respon
   });
 });
 
-// GET ALL - GET /hospital 
-export const getHospital: any = asyncHandler(async (req: Request, res: Response) => {
-  const hospital = await Hospital.findAll();
+// GET ALL - GET /lab 
+export const getLab: any = asyncHandler(async (req: Request, res: Response) => {
+  const lab = await Lab.findAll();
   
 
-  if (hospital.length === 0) {
+  if (lab.length === 0) {
     res.status(404).json({
       success: false,
       message: "No data found",
@@ -221,22 +219,22 @@ export const getHospital: any = asyncHandler(async (req: Request, res: Response)
   res.status(200).json({
     success: true,
     status: "Success",
-    data: hospital,
+    data: lab,
     error: null,
   });
 });
 
-// FORGET PASSWORD - POST /hospital/forgot
+// FORGET PASSWORD - POST /lab/forgot
 export const forgetpassword: any = asyncHandler(async (req: Request, res: Response) => {
   const { email } = req.body;
 
-  const hospital = await Hospital.findOne({ where: { email } });
-  if (!hospital) {
+  const lab = await Lab.findOne({ where: { email } });
+  if (!lab) {
     res.status(404).json({
       success: false,
       message: "No data found",
       data: null,
-      error: { code: "HOSPITAL_NOT_FOUND", details: null },
+      error: { code: "LAB_NOT_FOUND", details: null },
     });
     return;
   }
@@ -244,35 +242,35 @@ export const forgetpassword: any = asyncHandler(async (req: Request, res: Respon
   res.status(200).json({
     success: true,
     status: 200,
-    data: hospital,
+    data: lab,
     error: null,
   });
 });
 
-// CHANGE PASSWORD - PUT /hospital/changepassword
+// CHANGE PASSWORD - PUT /lab/changepassword
 export const changepassword: any = asyncHandler(async (req: Request, res: Response) => {
   const { password, email } = req.body;
 
-  const hospital = await Hospital.findOne({ where: { email } });
-  if (!hospital) {
+  const lab = await Lab.findOne({ where: { email } });
+  if (!lab) {
     res.status(404).json({
       success: false,
       message: "No data found",
       data: null,
-      error: { code: "HOSPITAL_NOT_FOUND", details: null },
+      error: { code: "LAB_NOT_FOUND", details: null },
     });
     return;
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  hospital.password = hashedPassword;
+  lab.password = hashedPassword;
 
-  await hospital.save();
+  await lab.save();
 
   res.status(200).json({
     success: true,
     status: 200,
-    data: hospital,
+    data: lab,
     error: null,
   });
 });
