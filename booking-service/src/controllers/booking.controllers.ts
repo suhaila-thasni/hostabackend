@@ -6,11 +6,11 @@ import { publishEvent } from "../events/publisher";
 // REGISTER - POST /boooking/register
 export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
   
-  const { patient_dob, patient_name, patient_place, patient_phone, patientId, hospitalId, doctorId, booking_date, booking_time, status } = req.body;
+  const { patient_dob, patient_name, patient_place, patient_phone, patientId, hospitalId, doctorId, booking_date, consulting_time, status } = req.body;
 
 
   const newbooking = await Booking.create({
-   patient_dob, patient_name, patient_place, patient_phone, patientId, hospitalId, doctorId, booking_date, booking_time, status
+   patient_dob, patient_name, patient_place, patient_phone, patientId, hospitalId, doctorId, booking_date, consulting_time, status
   });
 
 

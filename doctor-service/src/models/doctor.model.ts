@@ -24,6 +24,12 @@ interface IAddress {
   pincode: number;
 }
 
+interface IOutDoorConsulting {
+  time: IConsultingSession;
+  place: string;
+}
+
+
 interface IDoctor {
   id: number;
   firstName: string;
@@ -40,6 +46,7 @@ interface IDoctor {
   knowLanguages?: string[];
   qualification?: string;
   consulting?: IConsulting;
+  outDoorConsulting?: IOutDoorConsulting;
   bookingOpen: boolean;
   displayName:string;
   joiningDate?: Date;
@@ -56,7 +63,7 @@ interface IDoctor {
 
 type DoctorCreationAttributes = Optional<
   IDoctor,
-  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consulting" | "department" | "specialist" | "displayName" | "otp" | "otpExpiry"
+  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consulting" | "department" | "specialist" | "displayName" 
 >;
 
 /* =======================
@@ -88,6 +95,8 @@ class Doctor
   public todayBookingAcceptCount!: number;
   public otp!: string;
   public otpExpiry!: Date;
+  public outDoorConsulting?: IOutDoorConsulting;
+
 }
 
 /* =======================
@@ -175,6 +184,10 @@ Doctor.init(
     consulting: {
       type: DataTypes.JSONB,
     },
+      outDoorConsulting: {
+      type: DataTypes.JSON,
+    },
+
 
     bookingOpen: {
       type: DataTypes.BOOLEAN,
@@ -183,8 +196,10 @@ Doctor.init(
      joiningDate: {
       type: DataTypes.DATE,
     },
-    todayBookingAcceptCount: {
-      type: DataTypes.DECIMAL(10, 2),
+      todayBookingAcceptCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false,
     },
     isActive: {
       type: DataTypes.BOOLEAN,

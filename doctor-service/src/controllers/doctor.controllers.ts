@@ -19,7 +19,7 @@ const getTwilioClient = () => {
 
 // REGISTER - POST /doctor/register
 export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
-  const { firstName, lastName, phone, joiningDate,  email, password, fees, department, specialist, dob, gender, knowLanguages, consulting, bookingOpen, qualification, address, displayName } = req.body;
+  const { firstName, lastName, phone, joiningDate,  email, password, fees, department, specialist, dob, gender, knowLanguages, consulting, bookingOpen, qualification, address, displayName, outDoorConsulting } = req.body;
 
 
   const exist = await Doctor.findOne({ where: { phone: phone } });
@@ -50,7 +50,8 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
    qualification, 
    address, 
    displayName,
-   joiningDate
+   joiningDate,
+   outDoorConsulting
   });
 
   await publishEvent("doctor_events", "DOCTOR_REGISTERED", {

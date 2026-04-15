@@ -7,6 +7,7 @@ interface IPatient {
   id: number;
   patientId?: string; // Virtual ID
   profileImage?: any;
+  userId?:number;
 
   firstName: string;
   middleName?: string;
@@ -51,6 +52,7 @@ class Patient extends Model<IPatient> implements IPatient {
   public id!: number;
   public readonly patientId!: string;
   public profileImage!: any;
+  public userId!:number;
 
   public firstName!: string;
   public middleName!: string;
@@ -104,6 +106,17 @@ Patient.init(
         const id = this.getDataValue("id");
         return `#PAT${String(id).padStart(5, "0")}`;
       },
+    },
+    
+    userId:{
+      type:DataTypes.INTEGER,
+      allowNull: true,
+
+      references: {
+        model: "user",
+        key: "id",
+      },
+      onDelete: "CASCADE",
     },
 
     // 🔥 Image (JSONB)

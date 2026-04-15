@@ -19,7 +19,7 @@ const getTwilioClient = () => {
 
 // REGISTER - POST /hospital/register
 export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
-  const { name, type, address, phone, emergencyContact, email, password, latitude, longitude,  about,  working_hours_clinic, working_hours_general } = req.body;
+  const { name, type, address, phone, emergencyContact, email, password, latitude, longitude,  about,  working_hours_clinic, working_hours_general,  working_hours_clinic_nobreak } = req.body;
 
 
   const exist = await Hospital.findOne({ where: { phone: phone } });
@@ -46,6 +46,7 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
    working_hours_clinic,
    working_hours_general, 
    address, 
+   working_hours_clinic_nobreak
   });
 
   await publishEvent("hospital_events", "HOSPITAL_REGISTERED", {
