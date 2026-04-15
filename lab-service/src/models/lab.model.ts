@@ -7,23 +7,10 @@ import bcrypt from "bcrypt";
 ======================= */
 
 interface IConsultingSession {
+  day: string;
   open: string;
   close: string;
-}
-
-interface IWorkingHoursGeneral {
-  day: string;
-  opening_time?: string;
-  closing_time?: string;
   is_holiday?: boolean;
-}
-
-interface IWorkingHoursClinic {
-  day: string;
-  morning_session?: IConsultingSession;
-  evening_session?: IConsultingSession;
-  is_holiday?: boolean;
-  has_break?: boolean;
 }
 
 interface IAddress {
@@ -34,87 +21,94 @@ interface IAddress {
   pincode: number;
 }
 
-export interface IHospital {
+export interface ILab {
   id: number;
   name: string;
-  type: string;
   address: IAddress;
   phone: string;
   emergencyContact: string;
+
+  hospitalId: number; // ✅ fixed type
+
   email?: string;
   password?: string;
+
   latitude: number;
   longitude: number;
+
   about: string;
+
   deleteRequested?: boolean;
-  working_hours_general?: IWorkingHoursGeneral[];
-  working_hours_clinic?: IWorkingHoursClinic[];
-  working_hours_clinic_nobreak?: IWorkingHoursGeneral[];
-  web: string,
+  working_hours?: IConsultingSession[];
+
+  web?: string;
+
   deleteDate?: Date;
+
   isActive?: boolean;
   isDelete?: boolean;
-  otp?: string;
-  otpExpiry?: Date;
 }
 
 /* =======================
    CREATION ATTRIBUTES
 ======================= */
 
-type HospitalCreationAttributes = Optional<
-  IHospital,
+type LabCreationAttributes = Optional<
+  ILab,
   | "id"
   | "email"
   | "password"
   | "deleteRequested"
-  | "working_hours_general"
-  | "working_hours_clinic"
-  | "working_hours_clinic_nobreak"
+  | "working_hours"
   | "web"
   | "deleteDate"
   | "isActive"
   | "isDelete"
-  | "otp"
-  | "otpExpiry"
 >;
 
 /* =======================
    MODEL CLASS
 ======================= */
 
-class Hospital
-  extends Model<IHospital, HospitalCreationAttributes>
-  implements IHospital
+class Lab
+  extends Model<ILab, LabCreationAttributes>
+  implements ILab
 {
   public id!: number;
   public name!: string;
-  public type!: string;
+
   public address!: IAddress;
+
   public phone!: string;
   public emergencyContact!: string;
+
+  public hospitalId!: number;
+
   public email?: string;
   public password?: string;
+
   public latitude!: number;
   public longitude!: number;
+
   public about!: string;
+
   public deleteRequested?: boolean;
-  public working_hours_general?: IWorkingHoursGeneral[];
-  public working_hours_clinic?: IWorkingHoursClinic[];
-  public working_hours_clinic_nobreak?: IWorkingHoursGeneral[];
-  public web: string; 
+
+  public working_hours?: IConsultingSession[];
+
+  public web?: string;
+
   public deleteDate?: Date;
+
   public isActive?: boolean;
   public isDelete?: boolean;
-  public otp!: string;
-  public otpExpiry!: Date;
 }
 
 /* =======================
    INIT MODEL
 ======================= */
 
-Hospital.init(
+Lab.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -127,13 +121,9 @@ Hospital.init(
       allowNull: false,
     },
 
-    type: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
 
     address: {
-      type: DataTypes.JSONB,
+      type: DataTypes.JSONB, // PostgreSQL
       allowNull: false,
     },
 
@@ -151,10 +141,16 @@ Hospital.init(
       allowNull: false,
     },
 
+    hospitalId: {
+  type: DataTypes.INTEGER,
+  allowNull: true,
+},
+
     email: {
       type: DataTypes.STRING,
-      unique: true,
       allowNull: true,
+      unique: true,
+
       validate: {
         isEmail: true,
       },
@@ -162,9 +158,12 @@ Hospital.init(
 
     password: {
       type: DataTypes.STRING,
+      allowNull: true,
     },
-      web: {
+
+    web: {
       type: DataTypes.STRING,
+      allowNull: true,
     },
 
     latitude: {
@@ -182,17 +181,7 @@ Hospital.init(
       allowNull: false,
     },
 
-    working_hours_general: {
-      type: DataTypes.JSONB,
-      allowNull: true,
-    },
-
-    working_hours_clinic: {
-      type: DataTypes.JSONB,
-      allowNull: true,
-    },
-
-    working_hours_clinic_nobreak:  {
+    working_hours: {
       type: DataTypes.JSONB,
       allowNull: true,
     },
@@ -204,6 +193,7 @@ Hospital.init(
 
     deleteDate: {
       type: DataTypes.DATE,
+      allowNull: true,
     },
 
     isActive: {
@@ -215,30 +205,27 @@ Hospital.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-    otp: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    otpExpiry: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
   },
+
   {
     sequelize,
-    modelName: "Hospital",
-    tableName: "hospital",
+
+    modelName: "Lab",
+    tableName: "lab",
+
     timestamps: true,
-    paranoid: true, // 🔥 Enables Soft Delete
 
     defaultScope: {
-      attributes: { exclude: ["password", "otp", "otpExpiry"] },
+      attributes: {
+        exclude: ["password"],
+      },
     },
-
 
     scopes: {
       withPassword: {
-        attributes: { include: ["password", "otp", "otpExpiry"] },
+        attributes: {
+          include: ["password"],
+        },
       },
     },
 
@@ -259,18 +246,16 @@ Hospital.init(
    HOOKS (SECURITY)
 ======================= */
 
-Hospital.beforeCreate(async (hospital: Hospital) => {
-  if (hospital.password) {
-    hospital.password = await bcrypt.hash(hospital.password, 10);
+Lab.beforeCreate(async (lab: Lab) => {
+  if (lab.password) {
+    lab.password = await bcrypt.hash(lab.password, 10);
   }
 });
 
-Hospital.beforeUpdate(async (hospital: Hospital) => {
-  if (hospital.changed("password")) {
-    hospital.password = await bcrypt.hash(hospital.password!, 10);
+Lab.beforeUpdate(async (lab: Lab) => {
+  if (lab.changed("password")) {
+    lab.password = await bcrypt.hash(lab.password!, 10);
   }
 });
 
-
-
-export default Hospital;
+export default Lab;

@@ -19,7 +19,7 @@ const getTwilioClient = () => {
 
 // REGISTER - POST /hospital/register
 export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
-  const { name, type, address, phone, emergencyContact, email, password, latitude, longitude,  about,  working_hours_clinic, working_hours_general,  working_hours_clinic_nobreak } = req.body;
+  const { name, type, address, phone, emergencyContact, email, password, latitude, longitude,  about,  working_hours_clinic, working_hours_general,  working_hours_clinic_nobreak, web } = req.body;
 
 
   const exist = await Hospital.findOne({ where: { phone: phone } });
@@ -46,11 +46,12 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
    working_hours_clinic,
    working_hours_general, 
    address, 
-   working_hours_clinic_nobreak
+   working_hours_clinic_nobreak,
+   web
   });
 
   await publishEvent("hospital_events", "HOSPITAL_REGISTERED", {
-    doctorId: newHospital.id,
+    hospitalId: newHospital.id,
     phone: newHospital.phone,
   });
 
@@ -199,8 +200,8 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
 
 // GET ONE - GET /hospital/:id
 export const getanHospital : any = asyncHandler(async (req: Request, res: Response) => {
-  const doctor = await  Hospital.findByPk(req.params.id);
-  if (!doctor) {
+  const hospital = await  Hospital.findByPk(req.params.id);
+  if (!hospital) {
     res.status(404).json({
       success: false,
       message: "Hospital not found",
@@ -213,7 +214,7 @@ export const getanHospital : any = asyncHandler(async (req: Request, res: Respon
   res.status(200).json({
     success: true,
     status: "Success",
-    data: doctor,
+    data: hospital,
     error: null,
   });
 });
