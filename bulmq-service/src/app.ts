@@ -3,7 +3,9 @@ import cors from "cors";
 
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import medicinremainderRoutes from "./routes/medicinremainder.routes";
+import bookingRoutes from "./routes/booking-remainder.routes";
+import medcinRemainerRoutes from "./routes/medicin-remainder.routes";
+
 import { requestLogger } from "./middleware/logger.middleware";
 import { logger } from "./utils/logger";
 import { env } from "./config/env";
@@ -37,7 +39,9 @@ const loginLimiter = rateLimit({
     max: 5,
     message: "Too many login attempts, please try again after 15 minutes."
 });
-app.use("/medicinremainder/login", loginLimiter); // can be changed if logic changes
+app.use("/medicing-remainder/login", loginLimiter); // can be changed if logic changes
+app.use("/booking/login", loginLimiter); // can be changed if logic changes
+
 
 // CORS
 app.use(cors({
@@ -50,8 +54,10 @@ app.use(cors({
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
+
 // ROUTES
-app.use("/", medicinremainderRoutes);
+app.use("/", medcinRemainerRoutes);
+app.use("/", bookingRoutes);
 
 
 
@@ -59,7 +65,7 @@ app.use("/", medicinremainderRoutes);
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({
     status: "healthy",
-    service: "medicinremainder-service",
+    service: "bulmq-service",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: env.NODE_ENV
@@ -71,7 +77,7 @@ app.get("/health", (req: Request, res: Response) => {
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.status(404).json({
     status: 404,
-    message: "Requested doctor-related resource not found",
+    message: "Requested booking-related resource not found",
 
   });
 });

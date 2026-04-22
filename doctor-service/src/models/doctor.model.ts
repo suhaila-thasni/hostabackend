@@ -195,7 +195,7 @@ Doctor.init(
       todayBookingAcceptCount: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
-      allowNull: false,
+      allowNull: true,
     },
     isActive: {
       type: DataTypes.BOOLEAN,

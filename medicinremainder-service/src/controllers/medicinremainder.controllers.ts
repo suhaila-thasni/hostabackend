@@ -2,12 +2,15 @@ import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import Medicinremainder from "../models/medicinremainder.model";
 import { publishEvent } from "../events/publisher";
+import axios from "axios";
+
 
 // REGISTER - POST /medicinremainder/register
 export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
   
   const { patientId, medicineName, dosage, days, timeSlots, startDate, endDate } = req.body;
 
+  
 
   const newMedicinremainder = await Medicinremainder.create({
    patientId,
@@ -19,12 +22,20 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
    endDate
   });
 
-
+  
 
   await publishEvent("medicinremainder_events", "MEDICINREMAINDER_REGISTERED", {
     MedicinremainderId: newMedicinremainder.id,
     // phone: newStaff.phone,
   });
+
+
+    await axios.post('http://localhost:3008/medicin-task', {
+   patientId, medicineName, dosage, days, timeSlots, startDate, endDate, 
+    message: "This time your medicing time"
+   })
+
+
 
   res.status(201).json({
     success: true,
@@ -141,5 +152,16 @@ export const getMedicinremainder: any = asyncHandler(async (req: Request, res: R
     error: null,
   });
 });
+
+
+
+
+
+
+
+
+
+
+
 
 

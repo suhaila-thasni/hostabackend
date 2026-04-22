@@ -2,15 +2,16 @@ import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import Booking from "../models/booking.model";
 import { publishEvent } from "../events/publisher";
+import axios from "axios";
 
 // REGISTER - POST /boooking/register
 export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
   
-  const { patient_dob, patient_name, patient_place, patient_phone, patientId, hospitalId, doctorId, booking_date, consulting_time, status } = req.body;
+  const { patient_dob, patient_name, patient_place, patient_phone, patientId, hospitalId, doctorId, booking_date } = req.body;
 
 
   const newbooking = await Booking.create({
-   patient_dob, patient_name, patient_place, patient_phone, patientId, hospitalId, doctorId, booking_date, consulting_time, status
+   patient_dob, patient_name, patient_place, patient_phone, patientId, hospitalId, doctorId, booking_date,  
   });
 
 
@@ -19,6 +20,8 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
     bookingId: newbooking.id,
     // phone: newStaff.phone,
   });
+
+
 
   res.status(201).json({
     success: true,
@@ -61,6 +64,7 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
     returning: true,
   });
 
+
   if (!booking[1] || booking[1].length === 0) {
     res.status(404).json({
       success: false,
@@ -72,14 +76,26 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
     return;
   }
 
+  // ✅ Get updated booking object
+  const updatedBooking = booking[1][0];
+
   await publishEvent("booking_events", "BOOKING_UPDATED", {
-    staffId: booking[1][0].id,
+    bookingId: updatedBooking.id,
+  });
+
+  // ✅ Use correct values
+  await axios.post('http://localhost:3008/booking-task', {
+    patient_phone: updatedBooking.patient_phone,
+    doctorId: updatedBooking.doctorId,
+    status: updatedBooking.status,
+    consulting_time: updatedBooking.consulting_time,
+    message: `Booking ${updatedBooking.status}`
   });
 
   res.status(200).json({
     success: true,
     message: "successfully updated",
-    data: booking[1][0],
+    data: updatedBooking,
     error: null,
   });
 });
