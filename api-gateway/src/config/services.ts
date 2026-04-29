@@ -15,6 +15,8 @@ export const SERVICES = {
   NOTIFICATION_SERVICE: env.NOTIFICATION_SERVICE_URL,
   REVIEW_SERVICE: env.REVIEW_SERVICE_URL,
   LAB_SERVICE: env.LAB_SERVICE_URL,
+  ADS_SERVICE: env.ADS_SERVICE_URL, 
+  ROLE_SERVICE: env.ROLE_SERVICE_URL, 
 };
 
 
@@ -78,3 +80,12 @@ if (!SERVICES.REVIEW_SERVICE) {
 if (!SERVICES.LAB_SERVICE) {
   throw new Error("LAB_SERVICE_URL not defined");
 }
+
+if (  !SERVICES.ADS_SERVICE) {
+  throw new Error("ADS_SERVICE_URL not defined");
+}
+
+if (!SERVICES.ROLE_SERVICE) {
+  throw new Error("ROLE_SERVICE_URL not defined");
+}
+

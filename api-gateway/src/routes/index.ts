@@ -14,6 +14,8 @@ import medicineReminderRoutes from "./medicinereminder.routes";
 import notificationRoutes from "./notification.routes";
 import reviewRatingRoutes from "./review.routes"; 
 import labRoutes from "./lab.routes";
+import adsRoutes from "./ads.routes";
+import roleRoutes from "./role.routes"; 
 
 
 const router = express.Router();
@@ -33,5 +35,7 @@ router.use("/", medicineReminderRoutes);
 router.use("/", notificationRoutes);
 router.use("/", reviewRatingRoutes);  
 router.use("/", labRoutes);
+router.use("/", adsRoutes); 
+router.use("/", roleRoutes);        
 export default router;
 

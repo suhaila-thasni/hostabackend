@@ -13,6 +13,8 @@ import {
   labDelete,
   getLabs,
 } from "../controllers/lab.controllers";
+
+
 import { validate, validateParams } from "../middleware/validate.middleware";
 import {
   registerSchema,
@@ -26,6 +28,8 @@ import {
   idParamSchema,
 } from "../validators/lab.validator";
 import { authenticate } from "../middleware/authenticate";
+import { checkPermission } from "../middleware/role.middleware";
+
 
 const router = Router();
 
@@ -42,9 +46,10 @@ router.post("/lab/auth/reset-password", validate(resetPasswordSchema), resetPass
 router.put("/lab/auth/change-password", authenticate, validate(changePasswordSchema), changePassword);
 
 // CRUD
-router.get("/lab", authenticate, getLabs);
-router.get("/lab/:id", validateParams(idParamSchema), getanLab);
-router.put("/lab/:id", validateParams(idParamSchema), validate(updateSchema), updateData);
-router.delete("/lab/:id", authenticate, validateParams(idParamSchema), labDelete);
+router.get("/lab", authenticate, checkPermission("lab", "view"), getLabs);
+router.get("/lab/:id", validateParams(idParamSchema), checkPermission("lab", "view"), getanLab);
+router.put("/lab/:id", validateParams(idParamSchema), validate(updateSchema), checkPermission("lab", "edit"), updateData);
+router.delete("/lab/:id", authenticate, validateParams(idParamSchema), checkPermission("lab", "delete"), labDelete);
+
 
 export default router;

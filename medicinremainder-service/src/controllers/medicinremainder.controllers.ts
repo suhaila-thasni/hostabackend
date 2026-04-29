@@ -4,6 +4,7 @@ import Medicinremainder from "../models/medicinremainder.model";
 import { publishEvent } from "../events/publisher";
 import axios from "axios";
 
+
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "http://user-service:3002";
 
 // Helper: validate userId exists in user-service (forward the token so auth passes)
@@ -47,10 +48,21 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
     endDate,
   });
 
+
+  
+
   await publishEvent("medicinremainder_events", "MEDICINREMAINDER_REGISTERED", {
     MedicinremainderId: newMedicinremainder.id,
     userId: newMedicinremainder.userId,
   });
+
+
+    await axios.post('http://localhost:3008/medicin-task', {
+   userId, medicineName, dosage, days, timeSlots, startDate, endDate, 
+    message: "This time your medicing time"
+   })
+
+
 
   res.status(201).json({
     success: true,
@@ -60,30 +72,6 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
   });
 });
 
-// GET ALL - GET /medicinremainder
-export const getMedicinremainder: any = asyncHandler(async (req: any, res: Response) => {
-  const userId = req.user.id;
-  const medicinremainder = await Medicinremainder.findAll({
-    where: { userId },
-  });
-
-  if (medicinremainder.length === 0) {
-    res.status(404).json({
-      success: false,
-      message: "No medicine reminders found",
-      data: null,
-      error: { code: "NO_DATA_FOUND" },
-    });
-    return;
-  }
-
-  res.status(200).json({
-    success: true,
-    message: "Medicine reminders fetched successfully",
-    data: medicinremainder,
-    error: null,
-  });
-});
 
 // GET ONE - GET /medicinremainder/:id
 export const getanMedicinremainder: any = asyncHandler(async (req: any, res: Response) => {
@@ -171,3 +159,38 @@ export const medicinremainderDelete: any = asyncHandler(async (req: any, res: Re
     error: null,
   });
 });
+
+// GET ALL - GET /medicinremainder
+export const getMedicinremainder: any = asyncHandler(async (req: Request, res: Response) => {
+  const medicinremainder = await Medicinremainder.findAll();
+
+  if (medicinremainder.length === 0) {
+    res.status(404).json({
+      success: false,
+      message: "No data found",
+      data: null,
+      error: { code: "NO_DATA_FOUND", details: null },
+    });
+    return;
+  }
+
+  res.status(200).json({
+    success: true,
+    status: "Success",
+    data: medicinremainder,
+    error: null,
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+

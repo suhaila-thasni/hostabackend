@@ -3,15 +3,16 @@ import asyncHandler from "express-async-handler";
 import Booking from "../models/booking.model";
 import { publishEvent } from "../events/publisher";
 import { httpClient } from "../utils/httpClient";
+import axios from "axios";
 
 // REGISTER - POST /boooking/register
 export const Registeration: any = asyncHandler(async (req: any, res: Response) => {
-  const { 
-    patient_dob, patient_name, patient_place, patient_phone, 
-    userId: bodyUserId, hospitalId, doctorId, 
-    booking_date, consulting_time, status 
+  const {
+    patient_dob, patient_name, patient_place, patient_phone,
+    userId: bodyUserId, hospitalId, doctorId,
+    booking_date, consulting_time, status
   } = req.body;
-  
+
   const tokenUserId = req.user.id;
   const authHeader = req.headers.authorization;
 
@@ -72,14 +73,16 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
   }
 
   const newbooking = await Booking.create({
-    patient_dob, patient_name, patient_place, patient_phone, 
-    userId, hospitalId, doctorId, 
+    patient_dob, patient_name, patient_place, patient_phone,
+    userId, hospitalId, doctorId,
     booking_date, consulting_time, status
   });
 
   await publishEvent("booking_events", "BOOKING_REGISTERED", {
     bookingId: newbooking.id,
   });
+
+
 
   res.status(201).json({
     success: true,
@@ -92,7 +95,7 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
 
 
 // GET ONE - GET /booking/:id
-export const getanBooking : any = asyncHandler(async (req: Request, res: Response) => {
+export const getanBooking: any = asyncHandler(async (req: Request, res: Response) => {
   const booking = await Booking.findByPk(req.params.id);
   if (!booking) {
     res.status(404).json({
@@ -122,6 +125,7 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
     returning: true,
   });
 
+
   if (!booking[1] || booking[1].length === 0) {
     res.status(404).json({
       success: false,
@@ -133,14 +137,26 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
     return;
   }
 
+  // ✅ Get updated booking object
+  const updatedBooking = booking[1][0];
+
   await publishEvent("booking_events", "BOOKING_UPDATED", {
-    staffId: booking[1][0].id,
+    bookingId: updatedBooking.id,
+  });
+
+  // ✅ Use correct values
+  await axios.post('http://localhost:3008/booking-task', {
+    patient_phone: updatedBooking.patient_phone,
+    doctorId: updatedBooking.doctorId,
+    status: updatedBooking.status,
+    consulting_time: updatedBooking.consulting_time,
+    message: `Booking ${updatedBooking.status}`
   });
 
   res.status(200).json({
     success: true,
     message: "successfully updated",
-    data: booking[1][0],
+    data: updatedBooking,
     error: null,
   });
 });

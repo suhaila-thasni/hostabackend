@@ -26,11 +26,14 @@ import {
   hospitalDelete 
 } from "../controllers/hospital.controllers";
 import { authenticate } from "../middleware/authenticate";
+import { checkPermission } from "../middleware/role.middleware";
+
+
 
 const router = Router();
 
 // Auth & Password Flow
-router.post("/hospital/register", validate(registerHospitalSchema), Registeration);
+router.post("/hospital/register", validate(registerHospitalSchema), checkPermission("hospital", "create"), Registeration);
 router.post("/hospital/login", validate(loginHospitalSchema), login);
 router.post("/hospital/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
 router.post("/hospital/otp",validate(verifyOtpSchema),verifyLoginOtp)
@@ -47,10 +50,10 @@ router.post("/hospital/notify/email", authenticate, validate(sendCustomEmailSche
 
 // CRUD
 
-router.get("/hospital",authenticate, getHospital);
-router.get("/hospital/:id", getanHospital);
-router.put("/hospital/:id",authenticate, updateData);
-router.delete("/hospital/:id",authenticate, hospitalDelete);
+router.get("/hospital",authenticate,checkPermission("hospital", "view"), getHospital);
+router.get("/hospital/:id", checkPermission("hospital", "view"), getanHospital);
+router.put("/hospital/:id",authenticate, checkPermission("hospital", "edit"), updateData);
+router.delete("/hospital/:id",authenticate, checkPermission("hospital", "delete"), hospitalDelete);
 
 export default router;
 

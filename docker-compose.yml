@@ -21,6 +21,8 @@ services:
       - notification-service
       - review-service
       - lab-service
+      - ads-service 
+      - role-service  
     networks:
       - hosta-network
 
@@ -170,6 +172,26 @@ services:
     env_file: ./lab-service/.env
     networks:
       - hosta-network 
+
+  ads-service:
+    container_name: ads-service
+    build: ./ads-service
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    env_file: ./ads-service/.env
+    networks:
+      - hosta-network 
+
+  role-service:
+    container_name: role-service
+    build: ./role-service
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    env_file: ./role-service/.env
+    networks:
+      - hosta-network   
 
 networks:
   hosta-network:

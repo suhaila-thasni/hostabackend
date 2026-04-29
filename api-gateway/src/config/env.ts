@@ -21,6 +21,8 @@ const envSchema = z.object({
   NOTIFICATION_SERVICE_URL: z.string().url(),
   REVIEW_SERVICE_URL: z.string().url(),
   LAB_SERVICE_URL: z.string().url(),
+  ADS_SERVICE_URL: z.string().url(), 
+  ROLE_SERVICE_URL: z.string().url(), 
 });
 
 

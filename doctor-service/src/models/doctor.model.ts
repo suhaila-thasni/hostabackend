@@ -52,6 +52,7 @@ interface IDoctor {
   displayName:string;
   joiningDate?: Date;
   todayBookingAcceptCount: number;
+  roleId: number;
   isActive?: boolean;
   isDelete?: boolean;
   otp?: string;
@@ -99,6 +100,7 @@ class Doctor
   public otpExpiry!: Date;
   public outDoorConsulting?: IOutDoorConsulting;
   public hospitalId?: number;
+  public roleId: number;
 
 }
 
@@ -206,7 +208,12 @@ Doctor.init(
       todayBookingAcceptCount: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
-      allowNull: false,
+      allowNull: true,
+    },
+      roleId: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: true,
     },
     isActive: {
       type: DataTypes.BOOLEAN,
