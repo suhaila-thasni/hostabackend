@@ -145,7 +145,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: hospital.id, name: hospital.name }, jwtKey, {
+  const token = jwt.sign({ id: hospital.id, name: hospital.name, roleId: hospital.roleId }, jwtKey, {
     expiresIn: "24h",
   });
 
@@ -181,6 +181,17 @@ export const loginWithPhone: any = asyncHandler(async (req: Request, res: Respon
     });
     return;
   }
+
+  // Generate JWT tokens
+  const token = jwt.sign({ id: hospital.id, name: hospital.name, roleId: hospital.roleId, }, process.env.JWT_SECRET, {
+    expiresIn: "15m",
+  });
+
+  const refreshToken = jwt.sign(
+    { id: hospital.id, name: hospital.name, roleId: hospital.roleId },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
   // Generate 6-digit OTP
   const otp = numericPhone === APPLE_TEST_NUMBER 
@@ -222,6 +233,10 @@ export const loginWithPhone: any = asyncHandler(async (req: Request, res: Respon
 
   res.status(200).json({
     success: true,
+    status: 200,
+    refreshToken,
+    token,
+    error: null,
     message: numericPhone === APPLE_TEST_NUMBER ? "OTP sent (TEST ACCOUNT)" : "OTP sent to your registered phone and email",
     data: numericPhone === APPLE_TEST_NUMBER ? { otp: APPLE_TEST_OTP } : null,
   });
@@ -367,6 +382,8 @@ export const sendCustomEmail: any = asyncHandler(async (req: Request, res: Respo
 // GET ONE - GET /hospital/:id
 export const getanHospital : any = asyncHandler(async (req: Request, res: Response) => {
   const hospital = await  Hospital.findByPk(req.params.id);
+  
+  
   if (!hospital) {
     res.status(404).json({
       success: false,

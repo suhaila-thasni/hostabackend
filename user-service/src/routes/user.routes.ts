@@ -39,7 +39,7 @@ import { checkPermission } from "../middleware/role.middleware";
 const router = Router();                              
 
 // User Routes
-router.post("/users/register", validate(registerSchema), registerUser);
+router.post("/users", validate(registerSchema), registerUser);
 router.post("/users/login", validate(loginSchema), loginUser);
 router.post("/users/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
 router.post("/users/otp", validate(verifyOtpSchema), verifyOtp);

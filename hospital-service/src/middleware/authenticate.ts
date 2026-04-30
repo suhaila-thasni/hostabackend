@@ -4,6 +4,7 @@ import { env } from "../config/env";
 
 export const authenticate = (req: any, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
+  
 
   if (!authHeader) {
     return res.status(401).json({ message: "No token provided" });
