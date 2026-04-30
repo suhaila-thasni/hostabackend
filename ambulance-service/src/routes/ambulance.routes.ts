@@ -27,8 +27,8 @@ router.post("/ambulance/login/phone", validate(loginWithPhoneSchema), loginWithP
 router.post("/ambulance/otp", validate(verifyOtpSchema), verifyOtp);
 
 // CRUD
-router.get("/ambulance",checkPermission("ambulance", "view"), getAmbulaces);
-router.get("/ambulance/:id", validateParams(idParamSchema),checkPermission("ambulance", "view"), getanAmbulace);
+router.get("/ambulance", getAmbulaces);
+router.get("/ambulance/:id", authenticate, validateParams(idParamSchema),checkPermission("ambulance", "view"), getanAmbulace);
 router.put("/ambulance/:id", authenticate, validateParams(idParamSchema), validate(updateSchema),checkPermission("ambulance", "edit"), updateData);
 router.delete("/ambulance/:id", authenticate, validateParams(idParamSchema),checkPermission("ambulance", "delete"), ambulanceDelete);
 

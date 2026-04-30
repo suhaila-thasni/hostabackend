@@ -211,7 +211,7 @@ Hospital.init(
     },
       roleId: {
       type: DataTypes.INTEGER,
-      defaultValue: 6,
+      defaultValue: 2,
       allowNull: true,
     },
 

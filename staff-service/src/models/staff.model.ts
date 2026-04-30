@@ -35,6 +35,7 @@ interface IStaff {
   isDelete?: boolean;
   otp?: string;
   otpExpiry?: Date;
+  roleId: number;
 }
 
 /* =======================
@@ -89,6 +90,7 @@ class Staff
   public isDelete?: boolean;
   public otp?: string;
   public otpExpiry?: Date;
+  public roleId: number;
 
   // timestamps
   public readonly createdAt!: Date;
@@ -187,6 +189,11 @@ Staff.init(
 
     knowLanguages: {
       type: DataTypes.JSONB, // safer for PostgreSQL
+    },
+        roleId: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: true,
     },
 
     address: {

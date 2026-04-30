@@ -13,6 +13,14 @@ const startServer = async () => {
     await connectDB();
     await connectRabbitMQ();
 
+       const { default: Role } = await import("./models/role.model");
+        const { default: Rolepermission } = await import("./models/rolepermission.model");
+        const { default: Permission } = await import("./models/permission.model");
+
+        await Role.sync({ alter: true });
+        await Rolepermission.sync({ alter: true });
+        await Permission.sync({ alter: true });
+
     app.listen(PORT, () => {
       logger.info(`🚀 Role Service is running on port ${PORT}`);
     });

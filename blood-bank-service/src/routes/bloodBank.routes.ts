@@ -8,15 +8,16 @@ import {
   deleteStockById,
 } from "../controllers/bloodBank.controller";
 import { authenticate } from "../middleware/authenticate";
+import { checkPermission } from "../middleware/role.middleware";
 
 const router = Router();
 
 // CRUD — all routes require authentication
-router.post("/stocks", authenticate, createOrUpdateStock);
-router.get("/stocks", authenticate, getAllStock);
-router.get("/stocks/hospital/:hospitalId", authenticate, getStocksByHospitalId);
-router.get("/stocks/:id", authenticate, getStockById);
-router.put("/stocks/:id", authenticate, updateStockById);
-router.delete("/stocks/:id", authenticate, deleteStockById);
+router.post("/blood-banks", authenticate, checkPermission("blood_bank", "create"), createOrUpdateStock);
+router.get("/blood-banks", authenticate,  checkPermission("blood_bank", "create"), getAllStock);
+router.get("/blood-banks/hospital/:hospitalId",  checkPermission("blood_bank", "create"), authenticate, getStocksByHospitalId);
+router.get("/blood-banks/:id", authenticate,  checkPermission("blood_bank", "create"), getStockById);
+router.put("/blood-banks/:id", authenticate,  checkPermission("blood_bank", "create"), updateStockById);
+router.delete("/blood-banks/:id", authenticate,  checkPermission("blood_bank", "create"), deleteStockById);
 
 export default router;

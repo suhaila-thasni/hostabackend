@@ -47,6 +47,8 @@ export interface ILab {
 
   isActive?: boolean;
   isDelete?: boolean;
+  
+  roleId: number;
 
   otp?: string;
   otpExpiry?: Date;
@@ -108,6 +110,8 @@ class Lab
 
   public otp?: string;
   public otpExpiry?: Date;
+
+  public roleId: number;
 }
 
 /* =======================
@@ -180,6 +184,11 @@ Lab.init(
     longitude: {
       type: DataTypes.DOUBLE,
       allowNull: false,
+    },
+        roleId: {
+      type: DataTypes.INTEGER,
+      defaultValue: 4,
+      allowNull: true,
     },
 
     about: {

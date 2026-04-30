@@ -34,7 +34,7 @@ import { checkPermission } from "../middleware/role.middleware";
 const router = Router();
 
 // Auth & Password Flow
-router.post("/lab/register", validate(registerSchema), Registeration);
+router.post("/lab", validate(registerSchema),  Registeration);
 router.post("/lab/login", validate(loginSchema), login);
 router.post("/lab/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
 router.post("/lab/otp", validate(verifyOtpSchema), verifyLoginOtp);
