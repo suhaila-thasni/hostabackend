@@ -9,14 +9,21 @@ import {
 } from "../controllers/test.controllers";
 
 import { authenticate, restrictTo } from "../middleware/authenticate";
+import { checkPermission } from "../middleware/role.middleware";
 
 const router = Router();
 
 // CRUD
-router.post("/test/register", authenticate, restrictTo("staff"), create);
-router.get("/test", authenticate, restrictTo("staff"), getTest);
-router.get("/test/:id", authenticate, restrictTo("staff"), getanTest);
-router.put("/test/:id", authenticate, restrictTo("staff"), updateData);
-router.delete("/test/:id", authenticate, restrictTo("staff"), testDelete);
+router.post("/test/register", authenticate,checkPermission("test", "create"), create);
+router.get("/test", authenticate, checkPermission("test", "view"), getTest);
+router.get("/test/:id", authenticate, checkPermission("test", "view"), getanTest);
+router.put("/test/:id", authenticate, checkPermission("test", "edit"), updateData);
+router.delete("/test/:id", authenticate, checkPermission("test", "delete"), testDelete);
 
 export default router;
+
+
+
+
+
+

@@ -50,8 +50,8 @@ router.post("/hospital/notify/email", authenticate, validate(sendCustomEmailSche
 
 // CRUD
 
-router.get("/hospital",authenticate,checkPermission("hospital", "view"), getHospital);
-router.get("/hospital/:id", checkPermission("hospital", "view"), getanHospital);
+router.get("/hospital", authenticate,  checkPermission("hospital", "view"), getHospital);
+router.get("/hospital/:id", authenticate, checkPermission("hospital", "view"), getanHospital);
 router.put("/hospital/:id",authenticate, checkPermission("hospital", "edit"), updateData);
 router.delete("/hospital/:id",authenticate, checkPermission("hospital", "delete"), hospitalDelete);
 

@@ -34,6 +34,7 @@ import {
 import { validate, validateParams } from "../middleware/validate.middleware";
 import { registerSchema, loginSchema, idParamSchema, loginWithPhoneSchema, verifyOtpSchema, updateUserSchema, sendOtpEmailSchema, verifyOtpEmailSchema, resetPasswordEmailSchema, changePasswordSchema } from "../validators/user.validator";
 import { authenticate, restrictTo } from "../middleware/authenticate";
+import { checkPermission } from "../middleware/role.middleware";
 
 const router = Router();                              
 
@@ -61,21 +62,21 @@ router.delete("/users/:id", authenticate, validateParams(idParamSchema), deleteU
 
 
 // Patient Routes
-router.post("/patients", authenticate, restrictTo("staff"), createPatient);
-router.get("/patients", authenticate, restrictTo("staff", "user"), getPatients);
-router.get("/patients/:id", authenticate, restrictTo("staff", "user"), validateParams(idParamSchema), getPatient);
-router.put("/patients/:id", authenticate, restrictTo("staff"), validateParams(idParamSchema), updatePatient);
-router.delete("/patients/:id", authenticate, restrictTo("staff"), validateParams(idParamSchema), deletePatient);
+router.post("/patients", authenticate,checkPermission("patient", "create"), createPatient);
+router.get("/patients", authenticate, checkPermission("patient", "view")  , getPatients);
+router.get("/patients/:id", authenticate, checkPermission("patient", "view"), validateParams(idParamSchema), getPatient);
+router.put("/patients/:id", authenticate, checkPermission("patient", "edit"), validateParams(idParamSchema), updatePatient);
+router.delete("/patients/:id", authenticate, checkPermission("patient", "delete"), validateParams(idParamSchema), deletePatient);
 
 
 
 // Prescription
 
-router.post("/prescription", authenticate, createPrescription);
-router.get("/prescription", authenticate, getPrescription);
-router.get("/prescription/:id", authenticate, getAPrescription);
-router.put("/prescription/:id", authenticate, updateData);
-router.delete("/prescription/:id", authenticate, deletePrescription);
+router.post("/prescription", authenticate, checkPermission("prescription", "create"), createPrescription);
+router.get("/prescription", authenticate, checkPermission("prescription", "view"), getPrescription);
+router.get("/prescription/:id", authenticate, checkPermission("prescription", "view"), getAPrescription);
+router.put("/prescription/:id", authenticate, checkPermission("prescription", "edit"), updateData);
+router.delete("/prescription/:id", authenticate, checkPermission("prescription", "delete"), deletePrescription);
 
 
 export default router;

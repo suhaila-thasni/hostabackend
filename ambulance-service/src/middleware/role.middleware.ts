@@ -13,7 +13,7 @@ export const checkPermission =
       
 
       const response = await axios.post(
-         `${process.env.ROLE_API_URL}/check-permission`,
+        `${process.env.ROLE_API_URL}/check-permission`,
         {
           roleId,
           module,

@@ -12,29 +12,53 @@ export const createRole: any = asyncHandler(async (req: Request, res: Response) 
   const { name, description,  hospitalId, labId } = req.body;
 
   if(hospitalId){
-     const hospital = await axios.get(`${process.env.HOSPITAL_SERVICE_API}/hospital/${hospitalId}`)
-     if(!hospital) {
-         res.status(404).json({
-      success: false,
-      message: "Hospital not found",
-      data: null,
-      error: { code: "HOSPITAL_NOT_FOUND", details: null },
-    });
-    return;
+     try {
+       const hospital = await axios.get(`${process.env.HOSPITAL_SERVICE_API}/hospital/${hospitalId}`, {
+         headers: { Authorization: req.headers.authorization }
+       })
+       if(!hospital || !hospital.data) {
+           res.status(404).json({
+             success: false,
+             message: "Hospital not found",
+             data: null,
+             error: { code: "HOSPITAL_NOT_FOUND", details: null },
+           });
+           return;
+       }
+     } catch (error: any) {
+         res.status(error.response?.status || 500).json({
+           success: false,
+           message: "Failed to validate hospital",
+           data: null,
+           error: { code: "HOSPITAL_VALIDATION_ERROR", details: error.message },
+         });
+         return;
      }
   }
 
 
     if(labId){
-     const lab = await axios.get(`${process.env.LAB_SERVICE_API}/lab/${labId}`)
-     if(!lab) {
-         res.status(404).json({
-      success: false,
-      message: "Lab not found",
-      data: null,
-      error: { code: "LAB_NOT_FOUND", details: null },
-    });
-    return;
+     try {
+       const lab = await axios.get(`${process.env.LAB_SERVICE_API}/lab/${labId}`, {
+         headers: { Authorization: req.headers.authorization }
+       })
+       if(!lab || !lab.data) {
+           res.status(404).json({
+             success: false,
+             message: "Lab not found",
+             data: null,
+             error: { code: "LAB_NOT_FOUND", details: null },
+           });
+           return;
+       }
+     } catch (error: any) {
+         res.status(error.response?.status || 500).json({
+           success: false,
+           message: "Failed to validate lab",
+           data: null,
+           error: { code: "LAB_VALIDATION_ERROR", details: error.message },
+         });
+         return;
      }
   }
  

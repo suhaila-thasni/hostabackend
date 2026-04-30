@@ -4,9 +4,8 @@ services:
     build: ./api-gateway
     ports:
       - "3000:3000"
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file:
       - ./api-gateway/.env
     depends_on:
@@ -29,9 +28,8 @@ services:
   user-service:
     container_name: user-service
     build: ./user-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file:
       - ./user-service/.env
     networks:
@@ -40,9 +38,8 @@ services:
   ambulance-service:
     container_name: ambulance-service
     build: ./ambulance-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file:
       - ./ambulance-service/.env
     networks:
@@ -51,9 +48,8 @@ services:
   blood-service:
     container_name: blood-service
     build: ./bloodDonor-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file:
       - ./bloodDonor-service/.env
     networks:
@@ -62,9 +58,8 @@ services:
   blood-bank-service:
     container_name: blood-bank-service
     build: ./blood-bank-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./blood-bank-service/.env
     networks:
       - hosta-network
@@ -72,9 +67,8 @@ services:
   pharmacy-service:
     container_name: pharmacy-service
     build: ./pharmacy-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./pharmacy-service/.env
     networks:
       - hosta-network 
@@ -82,9 +76,8 @@ services:
   staff-service:
     container_name: staff-service
     build: ./staff-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./staff-service/.env
     networks:
       - hosta-network
@@ -94,9 +87,8 @@ services:
   doctor-service:
     container_name: doctor-service
     build: ./doctor-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./doctor-service/.env
     networks:
       - hosta-network
@@ -106,9 +98,8 @@ services:
   speciality-service:
     container_name: speciality-service
     build: ./speciality-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./speciality-service/.env
     networks:
       - hosta-network 
@@ -116,9 +107,8 @@ services:
   hospital-service:
     container_name: hospital-service
     build: ./hospital-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./hospital-service/.env
     networks:
       - hosta-network
@@ -126,9 +116,8 @@ services:
   booking-service:
     container_name: booking-service
     build: ./booking-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./booking-service/.env
     networks:
       - hosta-network
@@ -136,9 +125,8 @@ services:
   medicine-reminder-service:
     container_name: medicine-reminder-service
     build: ./medicinremainder-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./medicinremainder-service/.env
     networks:
       - hosta-network
@@ -146,9 +134,8 @@ services:
   notification-service:
     container_name: notification-service
     build: ./notification-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./notification-service/.env
     networks:
       - hosta-network
@@ -156,9 +143,8 @@ services:
   review-service:
     container_name: review-service
     build: ./review-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./review-service/.env
     networks:
       - hosta-network
@@ -166,9 +152,8 @@ services:
   lab-service:
     container_name: lab-service
     build: ./lab-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./lab-service/.env
     networks:
       - hosta-network 
@@ -176,9 +161,8 @@ services:
   ads-service:
     container_name: ads-service
     build: ./ads-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./ads-service/.env
     networks:
       - hosta-network 
@@ -186,9 +170,8 @@ services:
   role-service:
     container_name: role-service
     build: ./role-service
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./role-service/.env
     networks:
       - hosta-network   
@@ -198,4 +181,4 @@ networks:
     name: hosta-network
     driver: bridge
     driver_opts:
-      com.docker.network.driver.mtu: 1400
+      com.docker.network.driver.mtu: "1400"
