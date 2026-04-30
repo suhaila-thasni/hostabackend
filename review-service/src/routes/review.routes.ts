@@ -6,8 +6,8 @@ import {
   reviewDelete,
   getReview,
 
- 
 } from "../controllers/review.controllers";
+import { authenticate } from "../middleware/authenticate";
 
 const router = Router();
 
@@ -16,11 +16,11 @@ const router = Router();
 
 // CRUD
 
-router.post("/review/register", Registeration);
+router.post("/review/register", authenticate, Registeration);
 router.get("/review", getReview);
 router.get("/review/:id", getanReview);
-router.put("/review/:id", updateData);
-router.delete("/review/:id", reviewDelete);
+router.put("/review/:id", authenticate, updateData);
+router.delete("/review/:id", authenticate, reviewDelete);
 
 
 

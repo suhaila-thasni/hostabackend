@@ -86,7 +86,7 @@ app.use((err: any, req: any, res: Response, next: NextFunction) => {
 
   res.status(err.status || 500).json({
     success: false,
-    message: "Internal Server Error in Blood Service",
+    message: "Internal Server Error in Doctor Service",
     error: env.NODE_ENV === "development" ? err : {}, // Still show object in dev, hide details in prod
 
   });

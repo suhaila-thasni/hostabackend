@@ -6,8 +6,8 @@ import {
   ratingDelete,
   getRating,
 
- 
 } from "../controllers/rating.controllers";
+import { authenticate } from "../middleware/authenticate";
 
 const router = Router();
 
@@ -16,12 +16,14 @@ const router = Router();
 
 // CRUD
 
-router.post("/rating/register", Registeration);
+router.post("/rating/register", authenticate, Registeration);
 router.get("/rating", getRating);
 router.get("/rating/:id", getanRating);
-router.put("/rating/:id", updateData);
-router.delete("/rating/:id", ratingDelete);
+router.put("/rating/:id", authenticate, updateData);
+router.delete("/rating/:id", authenticate, ratingDelete);
 
 
 
 export default router;
+
+

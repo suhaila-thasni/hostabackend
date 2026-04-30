@@ -3,14 +3,27 @@ import amqp from 'amqplib';
 import { env } from '../config/env';
 
 let channel: amqp.Channel;
+let connection: amqp.Connection;
 
 export const connectRabbitMQ = async () => {
     try {
-        const connection = await amqp.connect(env.RABBITMQ_URL);
+        connection = await amqp.connect(env.RABBITMQ_URL);
+
+        connection.on('error', (err) => {
+            console.error('❌ Lab Service RabbitMQ Connection Error:', err);
+        });
+
+        connection.on('close', () => {
+            console.warn('⚠️ Lab Service RabbitMQ Connection closed. Retrying...');
+            channel = null as any;
+            setTimeout(connectRabbitMQ, 5000);
+        });
+
         channel = await connection.createChannel();
         console.log('🐰 Lab Service connected to RabbitMQ');
     } catch (error) {
-        console.error('❌ RabbitMQ Error:', error);
+        console.error('❌ Lab Service RabbitMQ Error:', error);
+        setTimeout(connectRabbitMQ, 5000);
     }
 };
 

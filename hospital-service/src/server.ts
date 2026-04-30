@@ -13,13 +13,18 @@ const startServer = async () => {
         await connectDB();
         await connectRabbitMQ();
         
-        // Ensure table exists safely
-        const { default: Hospital } = await import("./models/hospital.model");
-        await Hospital.sync({ alter: true });
-        
-        // Starting blood Service
-        app.listen(PORT, () => {
+        // Starting Hospital Service
+        const server = app.listen(PORT, () => {
             logger.info(`🚀 Hospital Service is running on port ${PORT}`);
+        });
+
+        // Graceful Shutdown Handler
+        process.on("SIGTERM", async () => {
+            logger.info("SIGTERM received. Shutting down gracefully...");
+            server.close(() => {
+                logger.info("HTTP server closed.");
+            });
+            process.exit(0);
         });
     } catch (error) {
         logger.error("❌ Failed to start server:", { error });

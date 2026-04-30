@@ -1,13 +1,14 @@
 {
-  "name": "medicinremainder-service",
+  "name": "review-service",
   "version": "1.0.0",
-  "description": "Medicinremainder microservice for Hosta project",
+  "description": "Review and Rating microservice for Hosta project",
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc",
     "dev": "nodemon --exec ts-node src/server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "sequelize-cli db:migrate"
   },
   "dependencies": {
     "amqplib": "^1.0.2",
@@ -25,6 +26,8 @@
     "pg": "^8.20.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.8",
+    "sequelize-cli": "^6.6.5",
+    "twilio": "^5.0.0",
     "winston": "^3.19.0",
     "zod": "^4.3.6"
   },

@@ -1,44 +1,41 @@
 import { Sequelize } from "sequelize";
-import dotenv from "dotenv";
+import { env } from "./env";
 
-dotenv.config();
+const isProduction = env.NODE_ENV === "production";
 
-// Validate required environment variables
-const requiredEnvVars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST'];
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+const sequelize = new Sequelize(env.DATABASE_URL, {
+  dialect: "postgres",
 
-if (missingEnvVars.length > 0) {
-  throw new Error(`❌ Missing required DB environment variables: ${missingEnvVars.join(', ')}`);
-}
+  logging: !isProduction,
 
+  dialectOptions: isProduction
+    ? {
+        ssl: {
+          require: true,
+          rejectUnauthorized: true, // ✅ secure
+        },
+      }
+    : {},
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME!,
-  process.env.DB_USER!,
-  process.env.DB_PASSWORD!,
-  {
-    host: process.env.DB_HOST!,
-    dialect: "postgres",
-    logging: process.env.NODE_ENV === "development" ? console.log : false,
-
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false, 
-      },
-    },
-  }
-);
+  pool: {
+    max: 10,        // ✅ better for production
+    min: 2,
+    acquire: 30000,
+    idle: 10000,
+  },
+});
 
 export const connectDB = async () => {
   try {
     await sequelize.authenticate();
     console.log("✅ PostgreSQL Connected (Ambulance Service)");
 
-    // Note: In production, use migrations instead of sync
-    // if (env.NODE_ENV === "development") {
-    //   await sequelize.sync();
-    // }
+    // ❌ REMOVE THIS IN PRODUCTION
+    if (!isProduction) {
+      await sequelize.sync({ alter: true });
+      console.log("🚀 Database schema synchronized");
+    }
+
   } catch (error) {
     console.error("❌ DB Error:", error);
     process.exit(1);

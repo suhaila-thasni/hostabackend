@@ -12,10 +12,12 @@ interface IAddress {
   district?: string;
   place: string;
   pincode: number;
-}
+}                          
 
 interface IStaff {
   id: number;
+  hospitalId: number;
+  staffId?: string; // Virtual ID
   name: string;
   designation?: string;
   joiningDate?: Date;
@@ -31,6 +33,8 @@ interface IStaff {
   qualification?: string;
   isActive?: boolean;
   isDelete?: boolean;
+  otp?: string;
+  otpExpiry?: Date;
 }
 
 /* =======================
@@ -52,6 +56,8 @@ type StaffCreationAttributes = Optional<
   | "jobType"
   | "isActive"
   | "isDelete"
+  | "otp"
+  | "otpExpiry"
 >;
 
 /* =======================
@@ -63,6 +69,8 @@ class Staff
   implements IStaff
 {
   public id!: number;
+  public hospitalId!: number;
+  public readonly staffId!: string;
   public name!: string;
   public designation?: string;
   public joiningDate?: Date;
@@ -79,6 +87,8 @@ class Staff
   public bookingOpen!: boolean;
   public isActive?: boolean;
   public isDelete?: boolean;
+  public otp?: string;
+  public otpExpiry?: Date;
 
   // timestamps
   public readonly createdAt!: Date;
@@ -103,6 +113,21 @@ Staff.init(
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+    },
+   
+
+    hospitalId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+
+    staffId: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        const id = this.getDataValue("id");
+        if (!id) return null;
+        return `#STF${String(id).padStart(5, "0")}`;
+      },
     },
 
     name: {
@@ -178,12 +203,19 @@ Staff.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    otp: {
+      type: DataTypes.STRING,
+    },
+    otpExpiry: {
+      type: DataTypes.DATE,
+    },
   },
   {
     sequelize,
     modelName: "Staff",
     tableName: "staff",
     timestamps: true,
+    paranoid: true, // 🔥 Enables Soft Delete
 
     defaultScope: {
       attributes: { exclude: ["password"] },
@@ -227,3 +259,4 @@ Staff.beforeUpdate(async (staff: Staff) => {
 });
 
 export default Staff;
+

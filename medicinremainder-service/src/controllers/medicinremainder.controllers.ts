@@ -5,33 +5,60 @@ import { publishEvent } from "../events/publisher";
 import axios from "axios";
 
 
-// REGISTER - POST /medicinremainder/register
-export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
-  
-  const { patientId, medicineName, dosage, days, timeSlots, startDate, endDate } = req.body;
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "http://user-service:3002";
 
-  
+// Helper: validate userId exists in user-service (forward the token so auth passes)
+const validateUser = async (userId: number, authHeader: string): Promise<boolean> => {
+  try {
+    const res = await axios.get(`${USER_SERVICE_URL}/users/${userId}`, {
+      timeout: 5000,
+      headers: { Authorization: authHeader },
+    });
+    return res.status === 200 && res.data?.success === true;
+  } catch {
+    return false;
+  }
+};
+
+// REGISTER - POST /medicinremainder/register
+export const Registeration: any = asyncHandler(async (req: any, res: Response) => {
+  const { medicineName, dosage, days, timeSlots, startDate, endDate } = req.body;
+  const userId = req.user.id;
+  const authHeader = req.headers.authorization || "";
+
+  // Validate that the userId exists in the user-service
+  const userExists = await validateUser(userId, authHeader);
+  if (!userExists) {
+    res.status(404).json({
+      success: false,
+      message: `User with ID ${userId} does not exist`,
+      data: null,
+      error: { code: "USER_NOT_FOUND" },
+    });
+    return;
+  }
 
   const newMedicinremainder = await Medicinremainder.create({
-   patientId,
-   medicineName,
-   dosage,
-   days,
-   timeSlots,
-   startDate,
-   endDate
+    userId,
+    medicineName,
+    dosage,
+    days,
+    timeSlots,
+    startDate,
+    endDate,
   });
+
 
   
 
   await publishEvent("medicinremainder_events", "MEDICINREMAINDER_REGISTERED", {
     MedicinremainderId: newMedicinremainder.id,
-    // phone: newStaff.phone,
+    userId: newMedicinremainder.userId,
   });
 
 
     await axios.post('http://localhost:3008/medicin-task', {
-   patientId, medicineName, dosage, days, timeSlots, startDate, endDate, 
+   userId, medicineName, dosage, days, timeSlots, startDate, endDate, 
     message: "This time your medicing time"
    })
 
@@ -39,93 +66,95 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
 
   res.status(201).json({
     success: true,
-    message: "Registeration completed successfully",
-    data: null,
+    message: "Medicine reminder registered successfully",
+    data: newMedicinremainder,
     error: null,
   });
 });
 
 
-
 // GET ONE - GET /medicinremainder/:id
-export const getanMedicinremainder : any = asyncHandler(async (req: Request, res: Response) => {
-  const medicinremainder = await Medicinremainder.findByPk(req.params.id);
+export const getanMedicinremainder: any = asyncHandler(async (req: any, res: Response) => {
+  const userId = req.user.id;
+  const medicinremainder = await Medicinremainder.findOne({
+    where: { id: req.params.id, userId },
+  });
+
   if (!medicinremainder) {
     res.status(404).json({
       success: false,
-      message: "Medicinremainder not found",
+      message: "Medicine reminder not found or unauthorized",
       data: null,
-      error: { code: "MEDICINREMAINDER_NOT_FOUND", details: null },
+      error: { code: "MEDICINREMAINDER_NOT_FOUND" },
     });
     return;
   }
 
   res.status(200).json({
     success: true,
-    status: "Success",
+    message: "Medicine reminder fetched successfully",
     data: medicinremainder,
     error: null,
   });
 });
 
 // UPDATE - PUT /medicinremainder/:id
-export const updateData: any = asyncHandler(async (req: Request, res: Response) => {
+export const updateData: any = asyncHandler(async (req: any, res: Response) => {
   const { id } = req.params;
+  const userId = req.user.id;
   const updatePayload = req.body;
 
+  // Remove userId from payload to prevent ownership hijacking
+  delete updatePayload.userId;
+
   const medicinremainder = await Medicinremainder.update(updatePayload, {
-    where: { id: id },
+    where: { id, userId },
     returning: true,
   });
 
   if (!medicinremainder[1] || medicinremainder[1].length === 0) {
     res.status(404).json({
       success: false,
-      message: "Medicinremainder not found",
-      status: 200,
+      message: "Medicine reminder not found or unauthorized",
       data: null,
-      error: { code: "MEDICINREMAINDER_NOT_FOUND", details: null },
+      error: { code: "MEDICINREMAINDER_NOT_FOUND" },
     });
     return;
   }
 
   await publishEvent("medicinremainder_events", "MEDICINREMAINDER_UPDATED", {
-    staffId: medicinremainder[1][0].id,
+    id: medicinremainder[1][0].id,
   });
 
   res.status(200).json({
     success: true,
-    message: "successfully updated",
+    message: "Medicine reminder updated successfully",
     data: medicinremainder[1][0],
     error: null,
   });
 });
 
 // DELETE - DELETE /medicinremainder/:id
-export const medicinremainderDelete: any = asyncHandler(async (req: Request, res: Response) => {
+export const medicinremainderDelete: any = asyncHandler(async (req: any, res: Response) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
-  const staff = await Medicinremainder.findByPk(id);
-  if (!staff) {
+  const record = await Medicinremainder.findOne({ where: { id, userId } });
+  if (!record) {
     res.status(404).json({
       success: false,
-      message: "Medicinremainder not found",
+      message: "Medicine reminder not found or unauthorized",
       data: null,
-      error: { code: "MEDICINREMAINDER_NOT_FOUND", details: null },
+      error: { code: "MEDICINREMAINDER_NOT_FOUND" },
     });
     return;
   }
 
-
-  await Medicinremainder.destroy({
-    where: { id: id }
-  });
-
+  await Medicinremainder.destroy({ where: { id, userId } });
 
   res.status(200).json({
     success: true,
-    message: "Your account deleted successfully",
-    status: 200,
+    message: "Medicine reminder deleted successfully",
     data: null,
     error: null,
   });

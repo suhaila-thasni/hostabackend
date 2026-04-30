@@ -47,6 +47,9 @@ export interface ILab {
 
   isActive?: boolean;
   isDelete?: boolean;
+
+  otp?: string;
+  otpExpiry?: Date;
 }
 
 /* =======================
@@ -102,6 +105,9 @@ class Lab
 
   public isActive?: boolean;
   public isDelete?: boolean;
+
+  public otp?: string;
+  public otpExpiry?: Date;
 }
 
 /* =======================
@@ -205,6 +211,16 @@ Lab.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+
+    otp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    otpExpiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
 
   {
@@ -214,17 +230,18 @@ Lab.init(
     tableName: "lab",
 
     timestamps: true,
+    paranoid: true,
 
     defaultScope: {
       attributes: {
-        exclude: ["password"],
+        exclude: ["password", "otp", "otpExpiry"],
       },
     },
 
     scopes: {
       withPassword: {
         attributes: {
-          include: ["password"],
+          include: ["password", "otp", "otpExpiry"],
         },
       },
     },

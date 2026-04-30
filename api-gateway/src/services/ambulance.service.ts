@@ -38,7 +38,7 @@ export const proxyRequest = async (req: Request, res: Response) => {
             })(),
             "X-Request-ID": (req as any).id,
         },
-        validateStatus: (status: number) => status < 500, // Handle 4xxx manually
+        validateStatus: (status: number) => status < 600, // Handle 4xxx/5xxx manually
     };
 
     const response: any = await breaker.fire(options);

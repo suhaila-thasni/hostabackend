@@ -3,17 +3,15 @@ import asyncHandler from "express-async-handler";
 import Test from "../models/test.model";
 import { publishEvent } from "../events/publisher";
 
-// REGISTER - POST /test/create
+// CREATE - POST /test
 export const create: any = asyncHandler(async (req: Request, res: Response) => {
-  const {  test_name, test_no, discount, type } = req.body;
-
-
+  const { test_name, test_no, rate, discount, type } = req.body;
 
   const exist = await Test.findOne({ where: { test_name: test_name } });
   if (exist) {
-    res.status(404).json({
+    res.status(409).json({
       success: false,
-      message: "Test name is already exist",
+      message: "Test name already exists",
       data: null,
       error: { code: "TEST_ALREADY_EXISTS", details: null },
     });
@@ -21,10 +19,11 @@ export const create: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const newTest = await Test.create({
-   test_name,
-   test_no,
-   discount,
-   type
+    test_name,
+    test_no,
+    rate,
+    discount,
+    type,
   });
 
   await publishEvent("test_events", "TEST_REGISTERED", {
@@ -38,6 +37,7 @@ export const create: any = asyncHandler(async (req: Request, res: Response) => {
     error: null,
   });
 });
+
 
 
 

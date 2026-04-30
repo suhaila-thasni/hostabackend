@@ -69,7 +69,7 @@ app.get("/health", (req: Request, res: Response) => {
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.status(404).json({
     status: 404,
-    message: "Requested doctor-related resource not found",
+    message: "Requested hospital-related resource not found",
 
   });
 });
@@ -85,7 +85,7 @@ app.use((err: any, req: any, res: Response, next: NextFunction) => {
 
   res.status(err.status || 500).json({
     success: false,
-    message: "Internal Server Error in Blood Service",
+    message: "Internal Server Error in Hospital Service",
     error: env.NODE_ENV === "development" ? err : {}, // Still show object in dev, hide details in prod
 
   });

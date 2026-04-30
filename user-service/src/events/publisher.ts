@@ -4,12 +4,37 @@ import { env } from '../config/env';
 let channel: amqp.Channel;
 
 export const connectRabbitMQ = async () => {
-    try {
-        const connection = await amqp.connect(env.RABBITMQ_URL);
-        channel = await connection.createChannel();
-        console.log('🐰 User Service connected to RabbitMQ');
-    } catch (error) {
-        console.error('❌ RabbitMQ Error:', error);
+    let connected = false;
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    while (!connected && attempts < maxAttempts) {
+        try {
+            const connection = await amqp.connect(env.RABBITMQ_URL);
+            
+            connection.on('error', (err) => {
+                console.error('❌ User Service RabbitMQ Connection Error:', err);
+            });
+
+            connection.on('close', () => {
+                console.warn('⚠️ User Service RabbitMQ Connection closed. Retrying...');
+                channel = null as any;
+                setTimeout(connectRabbitMQ, 5000);
+            });
+
+            channel = await connection.createChannel();
+            console.log('🐰 User Service connected to RabbitMQ');
+            connected = true;
+        } catch (error) {
+            attempts++;
+            console.error(`❌ RabbitMQ Connection attempt ${attempts} failed:`, error instanceof Error ? error.message : error);
+            if (attempts < maxAttempts) {
+                console.log("Retrying in 5 seconds...");
+                await new Promise((resolve) => setTimeout(resolve, 5000));
+            } else {
+                console.error("Max RabbitMQ connection attempts reached.");
+            }
+        }
     }
 };
 

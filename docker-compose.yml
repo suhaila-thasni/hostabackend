@@ -1,41 +1,184 @@
-
 services:
   api-gateway:
+    container_name: api-gateway
     build: ./api-gateway
     ports:
       - "3000:3000"
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file:
       - ./api-gateway/.env
     depends_on:
       - user-service
       - ambulance-service
       - blood-service
+      - blood-bank-service
+      - pharmacy-service
+      - staff-service
+      - medicine-reminder-service
+      - booking-service
+      - notification-service
+      - review-service
+      - lab-service
+      - ads-service 
+      - role-service  
     networks:
       - hosta-network
 
   user-service:
+    container_name: user-service
     build: ./user-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file:
       - ./user-service/.env
     networks:
       - hosta-network
 
   ambulance-service:
+    container_name: ambulance-service
     build: ./ambulance-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file:
       - ./ambulance-service/.env
     networks:
       - hosta-network
 
   blood-service:
-    build: ./blood-service
+    container_name: blood-service
+    build: ./bloodDonor-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file:
-      - ./blood-service/.env
+      - ./bloodDonor-service/.env
     networks:
       - hosta-network
 
+  blood-bank-service:
+    container_name: blood-bank-service
+    build: ./blood-bank-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./blood-bank-service/.env
+    networks:
+      - hosta-network
+
+  pharmacy-service:
+    container_name: pharmacy-service
+    build: ./pharmacy-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./pharmacy-service/.env
+    networks:
+      - hosta-network 
+
+  staff-service:
+    container_name: staff-service
+    build: ./staff-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./staff-service/.env
+    networks:
+      - hosta-network
+    depends_on:
+      - hospital-service
+
+  doctor-service:
+    container_name: doctor-service
+    build: ./doctor-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./doctor-service/.env
+    networks:
+      - hosta-network
+    depends_on:
+      - hospital-service
+
+  speciality-service:
+    container_name: speciality-service
+    build: ./speciality-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./speciality-service/.env
+    networks:
+      - hosta-network 
+
+  hospital-service:
+    container_name: hospital-service
+    build: ./hospital-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./hospital-service/.env
+    networks:
+      - hosta-network
+
+  booking-service:
+    container_name: booking-service
+    build: ./booking-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./booking-service/.env
+    networks:
+      - hosta-network
+
+  medicine-reminder-service:
+    container_name: medicine-reminder-service
+    build: ./medicinremainder-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./medicinremainder-service/.env
+    networks:
+      - hosta-network
+
+  notification-service:
+    container_name: notification-service
+    build: ./notification-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./notification-service/.env
+    networks:
+      - hosta-network
+
+  review-service:
+    container_name: review-service
+    build: ./review-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./review-service/.env
+    networks:
+      - hosta-network
+
+  lab-service:
+    container_name: lab-service
+    build: ./lab-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./lab-service/.env
+    networks:
+      - hosta-network 
+
+  ads-service:
+    container_name: ads-service
+    build: ./ads-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./ads-service/.env
+    networks:
+      - hosta-network 
+
+  role-service:
+    container_name: role-service
+    build: ./role-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./role-service/.env
+    networks:
+      - hosta-network   
+
 networks:
   hosta-network:
+    name: hosta-network
     driver: bridge
-
-
+    driver_opts:
+      com.docker.network.driver.mtu: "1400"

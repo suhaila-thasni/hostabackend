@@ -11,7 +11,7 @@ const callBloodService = async (options: any) => {
 const breaker = new CircuitBreaker(callBloodService, {
   timeout: 10000, 
   errorThresholdPercentage: 50, 
-  resetTimeout: 10000, 
+  resetTimeout: 10000,
 });
 
 breaker.fallback(() => {
@@ -34,7 +34,7 @@ export const proxyRequest = async (req: Request, res: Response, next: NextFuncti
         })(),
         "X-Request-ID": (req as any).id,
       },
-      validateStatus: (status: number) => status < 500, 
+      validateStatus: (status: number) => status < 600, 
     };
 
     const response: any = await breaker.fire(options);

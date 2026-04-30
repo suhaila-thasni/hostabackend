@@ -7,21 +7,14 @@ import sequelize from "../config/db";
 
 interface IMedicineSchedule {
   id: number;
-
-  patientId: number;
-
+  scheduleId?: string; // Virtual ID
+  userId: number; // Owner — references users table in user-service DB
   medicineName: string;
-
-  dosage: string; // 500mg
-
+  dosage: string; // e.g. 500mg
   days: string[]; // ["Monday","Wednesday"]
-
   timeSlots: string[]; // ["08:00","14:00"]
-
   startDate: Date;
-
   endDate?: Date;
-
   isActive?: boolean;
 }
 
@@ -32,7 +25,7 @@ interface IMedicineSchedule {
 type MedicineScheduleCreationAttributes =
   Optional<
     IMedicineSchedule,
-    "id" | "endDate" | "isActive"
+    "id" | "endDate" | "isActive" | "scheduleId"
   >;
 
 class MedicineSchedule
@@ -43,21 +36,14 @@ class MedicineSchedule
   implements IMedicineSchedule
 {
   public id!: number;
-
-  public patientId!: number;
-
+  public readonly scheduleId!: string;
+  public userId!: number;
   public medicineName!: string;
-
   public dosage!: string;
-
   public days!: string[];
-
   public timeSlots!: string[];
-
   public startDate!: Date;
-
   public endDate?: Date;
-
   public isActive?: boolean;
 }
 
@@ -69,8 +55,16 @@ MedicineSchedule.init(
       primaryKey: true,
     },
 
-  
-    patientId: {
+    scheduleId: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        const id = this.getDataValue("id");
+        if (!id) return null;
+        return `#MED${String(id).padStart(5, "0")}`;
+      },
+    },
+
+    userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
@@ -113,7 +107,10 @@ MedicineSchedule.init(
     tableName: "medicine_schedules",
     modelName: "MedicineSchedule",
     timestamps: true,
+    paranoid:true
   }
 );
 
 export default MedicineSchedule;
+
+

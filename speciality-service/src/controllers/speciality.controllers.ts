@@ -3,11 +3,44 @@ import asyncHandler from "express-async-handler";
 import Speciality from "../models/speciality.model";
 import { publishEvent } from "../events/publisher";
 
-// REGISTER - POST /speciality/register
-export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
+import { httpClient } from "../utils/httpClient";
 
-  
-  const { name } = req.body;
+// REGISTER - POST /speciality/register
+export const Registeration: any = asyncHandler(async (req: any, res: Response) => {
+  const { name, hospitalId: bodyHospitalId } = req.body;
+  const tokenHospitalId = req.user?.id;
+  const authHeader = req.headers.authorization;
+
+  // 1. Security Check: If hospitalId is provided in body, it must match the token ID
+  if (bodyHospitalId && Number(bodyHospitalId) !== Number(tokenHospitalId)) {
+    res.status(403).json({
+      success: false,
+      message: "Security violation: The provided hospitalId does not match your authenticated account.",
+      error: { code: "HOSPITAL_ID_MISMATCH" }
+    });
+    return;
+  }
+
+  const hospitalId = tokenHospitalId; // Source of truth
+
+  if (!hospitalId) {
+    res.status(400).json({ success: false, message: "Hospital ID is required" });
+    return;
+  }
+
+  // 2. Validate Hospital Existence via Hospital Service
+  try {
+    await httpClient.get(`http://hospital-service:3009/hospital/${hospitalId}`, {
+      headers: { Authorization: authHeader }
+    });
+  } catch (error: any) {
+    res.status(404).json({
+      success: false,
+      message: `Hospital with ID ${hospitalId} does not exist in the hospital service.`,
+      error: { code: "HOSPITAL_NOT_FOUND" }
+    });
+    return;
+  }
 
 
   const exist = await Speciality.findOne({ where: { name: name } });
@@ -23,11 +56,13 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
 
   const newSpeciality = await Speciality.create({
    name, 
+   hospitalId,
   });
 
   await publishEvent("speciality_events", "SPECIALITY_REGISTERED", {
     specialityId: newSpeciality.id,
     name: newSpeciality.name,
+    hospitalId: newSpeciality.hospitalId,
   });
 
   res.status(201).json({
@@ -96,7 +131,6 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 // DELETE - DELETE /speciality/:id
 export const specialityDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const updatePayload = req.body;
 
   const speciality = await Speciality.findByPk(id);
   if (!speciality) {
@@ -109,15 +143,12 @@ export const specialityDelete: any = asyncHandler(async (req: Request, res: Resp
     return;
   }
 
-
-    await speciality.update(updatePayload, {
-    where: { id: id },
-    returning: true,
-  });
+  // 🔥 Perform Soft Delete (requires paranoid: true in model)
+  await speciality.destroy();
 
   res.status(200).json({
     success: true,
-    message: "Your account deleted successfully",
+    message: "Speciality soft-deleted successfully",
     status: 200,
     data: null,
     error: null,

@@ -1,9 +1,14 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/db";
+import PatientVitals from "./patientVitals.model";
+import User from "./user.model";
+
 
 interface IPatient {
   id: number;
+  patientId?: string; // Virtual ID
   profileImage?: any;
+  userId?:number;
 
   firstName: string;
   middleName?: string;
@@ -39,11 +44,16 @@ interface IPatient {
 
   email?: string;
   password?: string;
+
+  vitals?: any[]; // Array of PatientVitals
 }
+
 
 class Patient extends Model<IPatient> implements IPatient {
   public id!: number;
+  public readonly patientId!: string;
   public profileImage!: any;
+  public userId!:number;
 
   public firstName!: string;
   public middleName!: string;
@@ -79,7 +89,10 @@ class Patient extends Model<IPatient> implements IPatient {
 
   public email!: string;
   public password!: string;
+
+  public readonly vitals?: any[];
 }
+
 
 Patient.init(
   {
@@ -87,6 +100,24 @@ Patient.init(
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+    },
+    patientId: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        const id = this.getDataValue("id");
+        return `#PAT${String(id).padStart(5, "0")}`;
+      },
+    },
+    
+    userId:{
+      type:DataTypes.INTEGER,
+      allowNull: true,
+
+      references: {
+        model: "users",
+        key: "id",
+      },
+      onDelete: "CASCADE",
     },
 
     // 🔥 Image (JSONB)
@@ -167,6 +198,8 @@ Patient.init(
       },
     },
 
+    
+
     password: DataTypes.STRING,
   },
   {
@@ -174,7 +207,19 @@ Patient.init(
     modelName: "Patient",
     tableName: "patients",
     timestamps: true,
+    paranoid: true,
   }
 );
+
+// 🔗 Associations: One User → Many Patients
+User.hasMany(Patient, {
+  foreignKey: "userId",
+  as: "patients",
+});
+
+Patient.belongsTo(User, {
+  foreignKey: "userId",
+  as: "user",
+});
 
 export default Patient;

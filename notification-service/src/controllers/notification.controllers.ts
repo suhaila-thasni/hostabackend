@@ -3,40 +3,33 @@ import asyncHandler from "express-async-handler";
 import Notification from "../models/notification.model";
 import { publishEvent } from "../events/publisher";
 
-// REGISTER - POST /notification/register
-export const Registeration: any = asyncHandler(async (req: Request, res: Response) => {
-  
+// CREATE - POST /notification/register
+export const createNotification: any = asyncHandler(async (req: Request, res: Response) => {
   const { userId, hospitalId, labId, staffId, pharmacyId, doctorId, message } = req.body;
 
-
   const newNotification = await Notification.create({
-   userId, hospitalId, labId, staffId, pharmacyId, doctorId, message
+    userId, hospitalId, labId, staffId, pharmacyId, doctorId, message
   });
 
-
-
-  await publishEvent("notification_events", "NOTIFICATION_REGISTERED", {
+  await publishEvent("notification_events", "NOTIFICATION_CREATED", {
     notificationId: newNotification.id,
-    // phone: newStaff.phone,
   });
 
   res.status(201).json({
     success: true,
-    message: "Notification created  successfully",
-    data: null,
+    message: "Notification created successfully",
+    data: newNotification,
     error: null,
   });
 });
 
-
-
 // GET ONE - GET /notification/:id
-export const getanNotification : any = asyncHandler(async (req: Request, res: Response) => {
+export const getanNotification: any = asyncHandler(async (req: Request, res: Response) => {
   const notification = await Notification.findByPk(req.params.id);
   if (!notification) {
     res.status(404).json({
       success: false,
-      message: "notification not found",
+      message: "Notification not found",
       data: null,
       error: { code: "NOTIFICATION_NOT_FOUND", details: null },
     });
@@ -51,176 +44,112 @@ export const getanNotification : any = asyncHandler(async (req: Request, res: Re
   });
 });
 
+// GET ALL UNREAD - GET /notification/unread/:id/:role
+export const getAllUnreadNotifications: any = asyncHandler(async (req: Request, res: Response) => {
+  const { id, role } = req.params;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const offset = (page - 1) * limit;
 
-// GET ONE all un read notifications - GET /notification/unread/:id/:role
-export const getAllUnreadNotifications: any =
-  asyncHandler(async (req: Request, res: Response) => {
+  let whereCondition: any = {};
 
-    const { id, role } = req.params;
+  switch (role) {
+    case "user": whereCondition = { userId: id, userIsRead: false }; break;
+    case "doctor": whereCondition = { doctorId: id, doctorIsRead: false }; break;
+    case "staff": whereCondition = { staffId: id, staffIsRead: false }; break;
+    case "lab": whereCondition = { labId: id, labIsRead: false }; break;
+    case "pharmacy": whereCondition = { pharmacyId: id, pharmacyIsRead: false }; break;
+    case "hospital": whereCondition = { hospitalId: id, hospitalIsRead: false }; break;
+    default:
+      res.status(400).json({ success: false, message: "Invalid role" });
+      return;
+  }
 
-    let whereCondition: any = {};
-
-    switch (role) {
-
-      case "user":
-        whereCondition = {
-          userId: id,
-          userIsRead: false
-        };
-        break;
-
-      case "doctor":
-        whereCondition = {
-          doctorId: id,
-          doctorIsRead: false
-        };
-        break;
-
-      case "staff":
-        whereCondition = {
-          staffId: id,
-          staffIsRead: false
-        };
-        break;
-
-      case "lab":
-        whereCondition = {
-          labId: id,
-          labIsRead: false
-        };
-        break;
-
-      case "pharmacy":
-        whereCondition = {
-          pharmacyId: id,
-          pharmacyIsRead: false
-        };
-        break;
-
-      case "hospital":
-        whereCondition = {
-          hospitalId: id,
-          hospitalIsRead: false
-        };
-        break;
-
-      default:
-        res.status(400).json({
-          success: false,
-          message: "Invalid role",
-        });
-        return;
-
-    }
-
-    const notifications = await Notification.findAll({
-      where: whereCondition,
-      order: [["createdAt", "DESC"]],
-    });
-
-    res.status(200).json({
-      success: true,
-      status: "Success",
-      data: notifications,
-      error: null,
-    });
-
+  const { count, rows: notifications } = await Notification.findAndCountAll({
+    where: whereCondition,
+    order: [["createdAt", "DESC"]],
+    limit,
+    offset,
   });
 
+  res.status(200).json({
+    success: true,
+    status: "Success",
+    data: notifications,
+    pagination: {
+      total: count,
+      page,
+      pages: Math.ceil(count / limit),
+      limit
+    },
+    error: null,
+  });
+});
 
-  // GET ONE all  read notifications - GET /notification/read/:id/:role
-export const getAllReadNotifications: any =
-  asyncHandler(async (req: Request, res: Response) => {
+// GET ALL READ - GET /notification/read/:id/:role
+export const getAllReadNotifications: any = asyncHandler(async (req: Request, res: Response) => {
+  const { id, role } = req.params;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const offset = (page - 1) * limit;
 
-    const { id, role } = req.params;
+  let whereCondition: any = {};
 
-    let whereCondition: any = {};
+  switch (role) {
+    case "user": whereCondition = { userId: id, userIsRead: true }; break;
+    case "doctor": whereCondition = { doctorId: id, doctorIsRead: true }; break;
+    case "staff": whereCondition = { staffId: id, staffIsRead: true }; break;
+    case "lab": whereCondition = { labId: id, labIsRead: true }; break;
+    case "pharmacy": whereCondition = { pharmacyId: id, pharmacyIsRead: true }; break;
+    case "hospital": whereCondition = { hospitalId: id, hospitalIsRead: true }; break;
+    default:
+      res.status(400).json({ success: false, message: "Invalid role" });
+      return;
+  }
 
-    switch (role) {
-
-      case "user":
-        whereCondition = {
-          userId: id,
-          userIsRead: true
-        };
-        break;
-
-      case "doctor":
-        whereCondition = {
-          doctorId: id,
-          doctorIsRead: true
-        };
-        break;
-
-      case "staff":
-        whereCondition = {
-          staffId: id,
-          staffIsRead: true
-        };
-        break;
-
-      case "lab":
-        whereCondition = {
-          labId: id,
-          labIsRead: true
-        };
-        break;
-
-      case "pharmacy":
-        whereCondition = {
-          pharmacyId: id,
-          pharmacyIsRead: true
-        };
-        break;
-
-      case "hospital":
-        whereCondition = {
-          hospitalId: id,
-          hospitalIsRead: true
-        };
-        break;
-
-      default:
-        res.status(400).json({
-          success: false,
-          message: "Invalid role",
-        });
-        return;
-
-    }
-
-    const notifications = await Notification.findAll({
-      where: whereCondition,
-      order: [["createdAt", "DESC"]],
-    });
-
-    res.status(200).json({
-      success: true,
-      status: "Success",
-      data: notifications,
-      error: null,
-    });
-
+  const { count, rows: notifications } = await Notification.findAndCountAll({
+    where: whereCondition,
+    order: [["createdAt", "DESC"]],
+    limit,
+    offset,
   });
 
-
-
+  res.status(200).json({
+    success: true,
+    status: "Success",
+    data: notifications,
+    pagination: {
+      total: count,
+      page,
+      pages: Math.ceil(count / limit),
+      limit
+    },
+    error: null,
+  });
+});
 
 // UPDATE - PUT /notification/:id
 export const updateData: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const updatePayload = req.body;
 
-  const notification = await Notification.update(updatePayload, {
+  // Prevent updating restricted fields
+  delete updatePayload.userId;
+  delete updatePayload.hospitalId;
+  delete updatePayload.doctorId;
+  delete updatePayload.labId;
+  delete updatePayload.staffId;
+  delete updatePayload.pharmacyId;
+
+  const [affectedCount, updatedNotifications] = await Notification.update(updatePayload, {
     where: { id: id },
     returning: true,
   });
 
-  if (!notification[1] || notification[1].length === 0) {
+  if (affectedCount === 0) {
     res.status(404).json({
       success: false,
-      message: "notification not found",
-      status: 200,
+      message: "Notification not found",
       data: null,
       error: { code: "NOTIFICATION_NOT_FOUND", details: null },
     });
@@ -228,13 +157,13 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
   }
 
   await publishEvent("notification_events", "NOTIFICATION_UPDATED", {
-    staffId: notification[1][0].id,
+    notificationId: updatedNotifications[0].id,
   });
 
   res.status(200).json({
     success: true,
-    message: "successfully updated",
-    data: notification[1][0],
+    message: "Successfully updated",
+    data: updatedNotifications[0],
     error: null,
   });
 });
@@ -243,27 +172,23 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 export const notificationDelete: any = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const notification = await Notification.findByPk(id);
-  if (!notification) {
+  const deleted = await Notification.destroy({
+    where: { id: id }
+  });
+
+  if (!deleted) {
     res.status(404).json({
       success: false,
-      message: "notification not found",
+      message: "Notification not found",
       data: null,
       error: { code: "NOTIFICATION_NOT_FOUND", details: null },
     });
     return;
   }
 
-
-  await Notification.destroy({
-    where: { id: id }
-  });
-
-
   res.status(200).json({
     success: true,
-    message: "Your account deleted successfully",
-    status: 200,
+    message: "Notification deleted successfully",
     data: null,
     error: null,
   });
@@ -271,22 +196,26 @@ export const notificationDelete: any = asyncHandler(async (req: Request, res: Re
 
 // GET ALL - GET /notification
 export const getNotification: any = asyncHandler(async (req: Request, res: Response) => {
-  const notification = await Notification.findAll();
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const offset = (page - 1) * limit;
 
-  if (notification.length === 0) {
-    res.status(404).json({
-      success: false,
-      message: "No data found",
-      data: null,
-      error: { code: "NO_DATA_FOUND", details: null },
-    });
-    return;
-  }
+  const { count, rows: notifications } = await Notification.findAndCountAll({
+    limit,
+    offset,
+    order: [["createdAt", "DESC"]]
+  });
 
   res.status(200).json({
     success: true,
     status: "Success",
-    data: notification,
+    data: notifications,
+    pagination: {
+      total: count,
+      page,
+      pages: Math.ceil(count / limit),
+      limit
+    },
     error: null,
   });
 });

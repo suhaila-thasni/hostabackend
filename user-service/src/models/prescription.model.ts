@@ -22,7 +22,7 @@ interface IPrescription {
 
   id: number;
 
-  appointmentId: number; // 🔥 important
+  bookingId: number; // 🔥 important
   patientId: number;
   doctorId: number;
   hospitalId: number;
@@ -68,7 +68,7 @@ class Prescription
 
   public id!: number;
 
-  public appointmentId!: number;
+  public bookingId!: number;
   public patientId!: number;
   public doctorId!: number;
   public hospitalId!: number;
@@ -98,7 +98,7 @@ Prescription.init(
       primaryKey: true,
     },
 
-    appointmentId: {
+    bookingId: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
@@ -155,6 +155,7 @@ Prescription.init(
     modelName: "Prescription",
     tableName: "prescriptions",
     timestamps: true,
+    paranoid: true, // Enables soft deletes
   }
 );
 

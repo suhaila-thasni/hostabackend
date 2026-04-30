@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import routes from "./routes";
-import { errorHandler } from "./middlewares/error.middleware";
+import { errorHandler } from "./middleware/error.middleware";
 import { env } from "./config/env";
 import { requestLogger } from "./middleware/logger.middleware";
 

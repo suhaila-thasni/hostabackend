@@ -13,7 +13,7 @@ interface IBooking {
   patient_place?: string;
   patient_dob?: string;
 
-  patientId: number;      // Patient
+  userId: number;      // User account
   doctorId: number;    // Doctor
   hospitalId: number;  // Hospital
 
@@ -49,7 +49,7 @@ class Booking
   public patient_place?: string;
   public patient_dob?: string;
 
-  public patientId!: number;
+  public userId!: number;
   public doctorId!: number;
   public hospitalId!: number;
 
@@ -92,7 +92,7 @@ Booking.init(
       type: DataTypes.STRING,
     },
 
-    patientId: {
+    userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },

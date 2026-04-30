@@ -32,6 +32,7 @@ interface IOutDoorConsulting {
 
 interface IDoctor {
   id: number;
+  
   firstName: string;
   lastName: string;
   department?: string;
@@ -54,6 +55,9 @@ interface IDoctor {
   roleId: number;
   isActive?: boolean;
   isDelete?: boolean;
+  otp?: string;
+  otpExpiry?: Date;
+  hospitalId?: number;
 }
 
 /* =======================
@@ -62,7 +66,7 @@ interface IDoctor {
 
 type DoctorCreationAttributes = Optional<
   IDoctor,
-  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consulting" | "department" | "specialist" | "displayName" | "outDoorConsulting"
+  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consulting" | "department" | "specialist" | "displayName" | "hospitalId"
 >;
 
 /* =======================
@@ -92,7 +96,10 @@ class Doctor
   public displayName!: string;
   public joiningDate?: Date;
   public todayBookingAcceptCount!: number;
+  public otp!: string;
+  public otpExpiry!: Date;
   public outDoorConsulting?: IOutDoorConsulting;
+  public hospitalId?: number;
   public roleId: number;
 
 }
@@ -107,6 +114,10 @@ Doctor.init(
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+    },
+    hospitalId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
 
     firstName: {
@@ -212,6 +223,14 @@ Doctor.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    otp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    otpExpiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
 
 
   },
@@ -220,14 +239,16 @@ Doctor.init(
     modelName: "Doctor",
     tableName: "doctor",
     timestamps: true,
+    paranoid: true, // 🔥 Enables Soft Delete
 
     defaultScope: {
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["password", "otp", "otpExpiry"] },
     },
+
 
     scopes: {
       withPassword: {
-        attributes: { include: ["password"] },
+        attributes: { include: ["password", "otp", "otpExpiry"] },
       },
     },
 
