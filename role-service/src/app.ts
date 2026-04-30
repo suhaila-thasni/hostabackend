@@ -53,10 +53,10 @@ app.use(cors({
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-// ROUTES
-app.use("/", roleRoutes);
-app.use("/", permissionRoutes);
-app.use("/", rolepermissionRoutes);
+// 🚀 PRODUCTION ROUTES
+app.use("/api/v1/roles", roleRoutes);
+app.use("/api/v1/permissions", permissionRoutes);
+app.use("/api/v1/role-permissions", rolepermissionRoutes);
 
 
 // Health check endpoint

@@ -57,6 +57,7 @@ export interface IHospital {
   isDelete?: boolean;
   otp?: string;
   otpExpiry?: Date;
+  roleId: number; 
 }
 
 /* =======================
@@ -110,6 +111,7 @@ class Hospital
   public isDelete?: boolean;
   public otp!: string;
   public otpExpiry!: Date;
+  public roleId!: number;   
 }
 
 /* =======================
@@ -233,6 +235,10 @@ Hospital.init(
     otpExpiry: {
       type: DataTypes.DATE,
       allowNull: true,
+    },
+     roleId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
   },
   {

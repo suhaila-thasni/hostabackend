@@ -14,6 +14,7 @@ interface IUser {
    relationType?:string;
   otp?: string;
   otpExpiry?: Date;
+  roleId?: number;
 }
 
 class User extends Model<IUser> implements IUser {
@@ -29,6 +30,7 @@ class User extends Model<IUser> implements IUser {
   public relationType!:string;
   public otp?: string;
   public otpExpiry?: Date;
+  public roleId: number;
 }
 
 User.init(
@@ -102,6 +104,10 @@ User.init(
 
     otpExpiry: {
       type: DataTypes.DATE,
+    },
+   roleId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
   },
   {

@@ -12,6 +12,7 @@ interface IBloodBank {
   bloodGroup: string;
   count: number;
   isDelete?: boolean;
+  roleId: number; 
 }
 
 /* =======================
@@ -37,6 +38,7 @@ class BloodBank
   public bloodGroup!: string;
   public count!: number;
   public isDelete?: boolean;
+  public roleId!: number;   
 
   // timestamps
   public readonly createdAt!: Date;
@@ -77,7 +79,12 @@ BloodBank.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    roleId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
   },
+
   {
     sequelize,
     modelName: "BloodBank",

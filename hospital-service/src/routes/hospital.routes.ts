@@ -28,32 +28,52 @@ import {
 import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
 
-
-
 const router = Router();
 
-// Auth & Password Flow
-router.post("/hospital/register", validate(registerHospitalSchema), checkPermission("hospital", "create"), Registeration);
-router.post("/hospital/login", validate(loginHospitalSchema), login);
-router.post("/hospital/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
-router.post("/hospital/otp",validate(verifyOtpSchema),verifyLoginOtp)
+/**
+ * @route   POST /api/v1/hospitals/register
+ * @desc    Register a new hospital
+ * @access  Public
+ */
+router.post("/register", validate(registerHospitalSchema), Registeration);
 
+/**
+ * @route   POST /api/v1/hospitals/login
+ * @desc    Login via email/password
+ * @access  Public
+ */
+router.post("/login", validate(loginHospitalSchema), login);
 
-// Production Auth Routes
-router.post("/hospital/auth/send-otp", validate(loginWithEmailSchema), sendOtp);
-router.post("/hospital/auth/verify-otp", validate(verifyOtpSchema), verifyOtp);
-router.post("/hospital/auth/reset-password", validate(resetPasswordSchema), resetPassword);
-router.put("/hospital/auth/change-password", authenticate, validate(changePasswordSchema), changePassword);
+/**
+ * @route   POST /api/v1/hospitals/login/phone
+ * @desc    Login via phone
+ * @access  Public
+ */
+router.post("/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
 
-// Notifications
-router.post("/hospital/notify/email", authenticate, validate(sendCustomEmailSchema), sendCustomEmail);
+/**
+ * @route   POST /api/v1/hospitals/otp
+ * @desc    Verify login OTP
+ * @access  Public
+ */
+router.post("/otp", validate(verifyOtpSchema), verifyLoginOtp);
 
-// CRUD
+// --- Auth & Password Flow ---
+router.post("/auth/send-otp", validate(loginWithEmailSchema), sendOtp);
+router.post("/auth/verify-otp", validate(verifyOtpSchema), verifyOtp);
+router.post("/auth/reset-password", validate(resetPasswordSchema), resetPassword);
+router.put("/auth/change-password", authenticate, validate(changePasswordSchema), changePassword);
 
-router.get("/hospital", authenticate,  checkPermission("hospital", "view"), getHospital);
-router.get("/hospital/:id", authenticate, checkPermission("hospital", "view"), getanHospital);
-router.put("/hospital/:id",authenticate, checkPermission("hospital", "edit"), updateData);
-router.delete("/hospital/:id",authenticate, checkPermission("hospital", "delete"), hospitalDelete);
+// --- Notifications ---
+router.post("/notify/email", authenticate, validate(sendCustomEmailSchema), sendCustomEmail);
+
+// --- CRUD Operations ---
+router.get("/", authenticate, checkPermission("hospital", "view"), getHospital);
+router.get("/:id", authenticate, checkPermission("hospital", "view"), getanHospital);
+router.put("/:id", authenticate, checkPermission("hospital", "edit"), updateData);
+router.delete("/:id", authenticate, checkPermission("hospital", "delete"), hospitalDelete);
 
 export default router;
+
+
 

@@ -15,10 +15,10 @@ const router = Router();
 
 
 // CRUD - Accessible by authenticated Users and Staff
-router.post("/booking/register", authenticate, restrictTo("user", "staff"), Registeration);
-router.get("/booking", authenticate, restrictTo("user", "staff"), getBooking);
-router.get("/booking/:id", authenticate, restrictTo("user", "staff"), getanBooking);
-router.put("/booking/:id", authenticate, restrictTo("user", "staff"), updateData);
-router.delete("/booking/:id", authenticate, restrictTo("user", "staff"), bookingDelete);
+router.post("/booking/register", authenticate, Registeration);
+router.get("/booking", authenticate, getBooking);
+router.get("/booking/:id", authenticate, getanBooking);
+router.put("/booking/:id", authenticate, updateData);
+router.delete("/booking/:id", authenticate, bookingDelete);
 
 export default router;

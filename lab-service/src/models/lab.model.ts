@@ -50,6 +50,7 @@ export interface ILab {
 
   otp?: string;
   otpExpiry?: Date;
+  roleId: number; 
 }
 
 /* =======================
@@ -108,6 +109,7 @@ class Lab
 
   public otp?: string;
   public otpExpiry?: Date;
+   public roleId!: number; 
 }
 
 /* =======================
@@ -220,6 +222,10 @@ Lab.init(
     otpExpiry: {
       type: DataTypes.DATE,
       allowNull: true,
+    },
+    roleId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
   },
 

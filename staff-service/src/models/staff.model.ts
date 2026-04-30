@@ -35,6 +35,7 @@ interface IStaff {
   isDelete?: boolean;
   otp?: string;
   otpExpiry?: Date;
+  roleId: number; 
 }
 
 /* =======================
@@ -89,6 +90,7 @@ class Staff
   public isDelete?: boolean;
   public otp?: string;
   public otpExpiry?: Date;
+  public roleId!: number;   
 
   // timestamps
   public readonly createdAt!: Date;
@@ -208,6 +210,10 @@ Staff.init(
     },
     otpExpiry: {
       type: DataTypes.DATE,
+    },
+    roleId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
   },
   {
