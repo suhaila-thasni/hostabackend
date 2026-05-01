@@ -1,6 +1,7 @@
 import express from "express";
 import ambulanceRoutes from "./ambulance.routes";
 import userRoutes from "./user.routes";
+
 import bloodRoutes from "./blood.routes";
 import bloodBankRoutes from "./bloodBank.routes";
 import pharmacyRoutes from "./pharmacy.routes";
@@ -16,26 +17,25 @@ import labRoutes from "./lab.routes";
 import adsRoutes from "./ads.routes";
 import roleRoutes from "./role.routes"; 
 
+
 const router = express.Router();
 
-// 🚀 PRODUCTION READY: Versioned API Routes
-router.use("/api/v1", [
-  bloodRoutes,
-  bloodBankRoutes,
-  ambulanceRoutes,
-  userRoutes,
-  pharmacyRoutes,
-  staffRoutes,
-  doctorRoutes,
-  specialityRoutes,
-  hospitalRoutes,
-  bookingRoutes,
-  medicineReminderRoutes,
-  notificationRoutes,
-  reviewRatingRoutes,
-  labRoutes,
-  adsRoutes,
-  roleRoutes
-]);
 
+router.use("/", bloodRoutes);   
+router.use("/", bloodBankRoutes);
+router.use("/", ambulanceRoutes);
+router.use("/", userRoutes);
+router.use("/", pharmacyRoutes);
+router.use("/", staffRoutes);
+router.use("/", doctorRoutes);
+router.use("/", specialityRoutes);
+router.use("/", hospitalRoutes);
+router.use("/", bookingRoutes);
+router.use("/", medicineReminderRoutes);
+router.use("/", notificationRoutes);
+router.use("/", reviewRatingRoutes);  
+router.use("/", labRoutes);
+router.use("/", adsRoutes); 
+router.use("/", roleRoutes);        
 export default router;
+

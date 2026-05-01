@@ -20,8 +20,9 @@ breaker.fallback(() => {
 
 export const proxyRequest = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // 🚀 Clean Forwarding: Forwarding the full /api/v1/... path directly
-    const url = `${SERVICES.ROLE_SERVICE}${req.originalUrl}`;
+    // Only strip the global /api prefix. The microservice still needs /review or /rating to route internally.
+    const cleanedPath = req.originalUrl.replace("/api", "");
+    const url = `${SERVICES.ROLE_SERVICE}${cleanedPath}`;
 
     logger.info("Forwarding role request", { 
       originalUrl: req.originalUrl, 

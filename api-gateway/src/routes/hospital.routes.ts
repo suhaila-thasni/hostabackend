@@ -3,6 +3,6 @@ import { proxyRequest } from "../services/hospital.service";
 
 const router = express.Router();
 
-router.use("/hospitals", proxyRequest);
+router.use("/hospital", proxyRequest);
 
 export default router;

@@ -7,18 +7,22 @@ import {
   getBooking,
  
 } from "../controllers/booking.controllers";
-import { authenticate, restrictTo } from "../middleware/authenticate";
+import { authenticate } from "../middleware/authenticate";
+import { checkPermission } from "../middleware/role.middleware";
+
+
 
 const router = Router();
 
 
 
 
+
 // CRUD - Accessible by authenticated Users and Staff
-router.post("/booking/register", authenticate, Registeration);
-router.get("/booking", authenticate, getBooking);
-router.get("/booking/:id", authenticate, getanBooking);
-router.put("/booking/:id", authenticate, updateData);
-router.delete("/booking/:id", authenticate, bookingDelete);
+router.post("/booking", authenticate, checkPermission("booking", "create" ), Registeration);
+router.get("/booking", authenticate, checkPermission("booking", "view" ), getBooking);
+router.get("/booking/:id", authenticate, checkPermission("booking", "view" ), getanBooking);
+router.put("/booking/:id", authenticate, checkPermission("booking", "edit" ), updateData);
+router.delete("/booking/:id", authenticate, checkPermission("booking", "delete" ), bookingDelete);
 
 export default router;

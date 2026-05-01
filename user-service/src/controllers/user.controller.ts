@@ -47,6 +47,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   } catch (error: any) {
     res.status(error.status || 500).json({ success: false, message: error.message || "Server error" });
   }
+ 
 });
 
 export const getUsers: any = asyncHandler(async (req: Request, res: Response) => {

@@ -109,9 +109,9 @@ class Hospital
   public deleteDate?: Date;
   public isActive?: boolean;
   public isDelete?: boolean;
+  public roleId: number;
   public otp!: string;
   public otpExpiry!: Date;
-  public roleId!: number;   
 }
 
 /* =======================
@@ -209,6 +209,11 @@ Hospital.init(
       type: DataTypes.JSONB,
       allowNull: true,
     },
+      roleId: {
+      type: DataTypes.INTEGER,
+      defaultValue: 6,
+      allowNull: true,
+    },
 
     deleteRequested: {
       type: DataTypes.BOOLEAN,
@@ -236,10 +241,7 @@ Hospital.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
-     roleId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
+    
   },
   {
     sequelize,

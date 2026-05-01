@@ -1,0 +1,24 @@
+{
+  "name": "load-tests",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:login": "esbuild src/login.test.ts --bundle --platform=neutral --target=es2017 --outfile=dist/login.js --external:k6 --external:k6/*",
+    "build:booking": "esbuild src/booking.test.ts --bundle --platform=neutral --target=es2017 --outfile=dist/booking.js --external:k6 --external:k6/*",
+    "build:workflow": "esbuild src/workflow.test.ts --bundle --platform=neutral --target=es2017 --outfile=dist/workflow.js --external:k6 --external:k6/*"
+    
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/k6": "^1.7.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "k6": "^0.0.0"
+  }
+}

@@ -93,6 +93,12 @@ User.init(
     picture: {
       type: DataTypes.JSONB, // 🔥 store imageUrl + public_id
     },
+    
+        roleId: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: true,
+    },
 
     fcmToken: {
       type: DataTypes.STRING,
@@ -104,11 +110,7 @@ User.init(
 
     otpExpiry: {
       type: DataTypes.DATE,
-    },
-   roleId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    },
+    }
   },
   {
     sequelize,

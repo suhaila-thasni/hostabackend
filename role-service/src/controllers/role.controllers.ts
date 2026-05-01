@@ -4,18 +4,53 @@ import Role from "../models/role.model";
 import { publishEvent } from "../events/publisher";
 import axios from "axios";
 import dotenv from "dotenv";
+import { Op } from "sequelize";
 
 // REGISTER - POST /role
 
 export const createRole: any = asyncHandler(async (req: Request, res: Response) => {
   
-  const { name, description,  hospitalId, labId } = req.body;
+  const { name, description,  hospitalId, labId } = req.body;  
+
+
+   
+
+let isExisting = null;
+
+if (hospitalId) {
+  isExisting = await Role.findOne({
+    where: {
+      name,
+      hospitalId
+    }
+  });
+}
+
+if (labId && !isExisting) {
+  isExisting = await Role.findOne({
+    where: {
+      name,
+      labId
+    }
+  });
+}
+
+if (isExisting) {
+  res.status(400).json({
+    success: false,
+    message: "Role already exists for this scope",
+    data: null,
+             error: { code: "ROLE_EXIST", details: null },
+  });
+  return;
+}
+
 
   if(hospitalId){
-     try {
 
-      console.log("Authorization Token:", req.headers.authorization);
-       const hospital = await axios.get(`${process.env.HOSPITAL_SERVICE_API}/hospital/${hospitalId}`, {
+     try {
+     
+        const hospital = await axios.get(`${process.env.HOSPITAL_SERVICE_API}/hospital/${hospitalId}`, {
          headers: { Authorization: req.headers.authorization }
 
        })

@@ -39,7 +39,6 @@ interface IPrescription {
 
   empty_stomach?: boolean;
 
-  roleId?: number;
 }
 
 /* =======================
@@ -54,7 +53,7 @@ type PrescriptionCreationAttributes =
     | "advice"
     | "next_consultation"
     | "empty_stomach"
-    | "roleId"
+    
   >;
 
 /* =======================
@@ -88,7 +87,6 @@ class Prescription
 
   public empty_stomach?: boolean;
 
-  public roleId?: number;
 } 
 
 /* =======================
@@ -153,10 +151,7 @@ Prescription.init(
       defaultValue: false,
     },
     
-    roleId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    },
+    
 
   },
 
