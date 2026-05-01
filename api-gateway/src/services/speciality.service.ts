@@ -39,10 +39,11 @@ export const proxyRequest = async (req: Request, res: Response, next: NextFuncti
 
     const response: any = await breaker.fire(options);
 
-    res.status(response.status).json({
-        success: response.status < 400,
-        data: response.data,
-    });
+    if (response.headers && response.headers['set-cookie']) {
+      res.setHeader('Set-Cookie', response.headers['set-cookie']);
+    }
+
+    res.status(response.status).json(response.data);
 
   } catch (error: any) {
     if (error.response) {

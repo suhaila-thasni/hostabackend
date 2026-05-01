@@ -41,6 +41,10 @@ export const proxyRequest = async (req: Request, res: Response, next: NextFuncti
 
     const response: any = await breaker.fire(options);
 
+    if (response.headers && response.headers['set-cookie']) {
+      res.setHeader('Set-Cookie', response.headers['set-cookie']);
+    }
+
     // 🔥 Fix: Ensure we use the status code from the microservice response
     return res.status(response.status).json(response.data);
 
