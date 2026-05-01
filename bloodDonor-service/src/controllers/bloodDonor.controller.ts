@@ -6,6 +6,18 @@ import { publishEvent } from "../events/publisher";
 import { generateToken } from "../services/jwt.service";
 import twilio from "twilio";
 import { httpClient } from "../utils/httpClient";
+import jwt from "jsonwebtoken";
+
+// Helper to set refresh token cookie
+const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+};
 
 const APPLE_TEST_NUMBER = "9999999999";
 const APPLE_TEST_OTP = "123456";
@@ -215,6 +227,12 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   await donor.update({ otp: null as any, otpExpiry: null as any });
 
   const token = generateToken({ id: donor.id, donorId: donor.donorId, userId: donor.userId });
+  const refreshToken = jwt.sign({ id: donor.id, donorId: donor.donorId, userId: donor.userId }, process.env.JWT_SECRET || "supersecretjwtkey", {
+    expiresIn: "7d"
+  });
+
+  setRefreshTokenCookie(res, refreshToken);
+
   const donorJson = donor.toJSON();
 
   delete (donorJson as any).otp;
@@ -357,4 +375,51 @@ export const deleteDonor: any = asyncHandler(async (req: Request, res: Response)
     data: null,
     error: null,
   });
+});
+
+// REFRESH TOKEN - POST /donors/refresh
+export const refreshBloodDonorToken: any = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (!refreshToken) {
+    res.status(401).json({ success: false, message: "Refresh token missing" });
+    return;
+  }
+
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+
+  try {
+    const decoded: any = jwt.verify(refreshToken, jwtKey);
+    const donor = await BloodDonor.findByPk(decoded.id);
+
+    if (!donor) {
+      res.status(401).json({ success: false, message: "Invalid refresh token" });
+      return;
+    }
+
+    const newToken = generateToken({ id: donor.id, donorId: donor.donorId, userId: donor.userId });
+    const newRefreshToken = jwt.sign({ id: donor.id, donorId: donor.donorId, userId: donor.userId }, jwtKey, {
+      expiresIn: "7d",
+    });
+
+    setRefreshTokenCookie(res, newRefreshToken);
+
+    res.status(200).json({
+      success: true,
+      token: newToken,
+    });
+  } catch (error) {
+    res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
+  }
+});
+
+// LOGOUT - POST /donors/logout
+export const logout: any = asyncHandler(async (req: Request, res: Response) => {
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
+  res.status(200).json({ success: true, message: "Logged out successfully" });
 });

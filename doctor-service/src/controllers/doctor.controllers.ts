@@ -9,6 +9,17 @@ import twilio from "twilio";
 import axios from "axios";
 import { sendEmail } from "../services/mail.service";
 
+// Helper to set refresh token cookie
+const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+};
+
 // Helper for Twilio Client
 const getTwilioClient = () => {
   const sid = process.env.TWILIO_ACCOUNT_SID;
@@ -189,6 +200,12 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   // Remove password and OTP fields from response
   const { password: _, otp: __, otpExpiry: ___, ...safeDoctor } = doctor.get();
 
+  const refreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}` }, jwtKey, {
+    expiresIn: "7d",
+  });
+
+  setRefreshTokenCookie(res, refreshToken);
+
   res.status(200).json({
     success: true,
     message: "Logged in successfully",
@@ -266,6 +283,12 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   });
 
   const { password: _, otp: __, otpExpiry: ___, ...safeDoctor } = doctor.get();
+
+  const refreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`}, jwtKey, {
+    expiresIn: "7d",
+  });
+
+  setRefreshTokenCookie(res, refreshToken);
 
   res.status(200).json({
     success: true,
@@ -482,6 +505,12 @@ export const verifyDoctorOtp: any = asyncHandler(async (req: Request, res: Respo
     expiresIn: "24h",
   });
 
+  const refreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}` }, jwtKey, {
+    expiresIn: "7d",
+  });
+
+  setRefreshTokenCookie(res, refreshToken);
+
   res.status(200).json({ 
     success: true, 
     message: "OTP verified",
@@ -530,4 +559,53 @@ export const changeDoctorPassword: any = asyncHandler(async (req: any, res: Resp
   await doctor.save();
 
   res.json({ success: true, message: "Password changed successfully" });
+});
+
+// REFRESH TOKEN - POST /doctor/refresh
+export const refreshDoctorToken: any = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (!refreshToken) {
+    res.status(401).json({ success: false, message: "Refresh token missing" });
+    return;
+  }
+
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+
+  try {
+    const decoded: any = jwt.verify(refreshToken, jwtKey);
+    const doctor = await Doctor.findByPk(decoded.id);
+
+    if (!doctor) {
+      res.status(401).json({ success: false, message: "Invalid refresh token" });
+      return;
+    }
+
+    const newToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}` }, jwtKey, {
+      expiresIn: "24h",
+    });
+    const newRefreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}` }, jwtKey, {
+      expiresIn: "7d",
+    });
+
+    setRefreshTokenCookie(res, newRefreshToken);
+
+    res.status(200).json({
+      success: true,
+      token: newToken,
+    });
+  } catch (error) {
+    res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
+  }
+});
+
+// LOGOUT - POST /doctor/logout
+export const logout: any = asyncHandler(async (req: Request, res: Response) => {
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
+  res.status(200).json({ success: true, message: "Logged out successfully" });
 });

@@ -10,11 +10,11 @@ interface IUser {
   phone?: string;
   picture?: any;
   fcmToken?: string;
-  roleId?: number;
    joinAccountId?:number;
    relationType?:string;
   otp?: string;
   otpExpiry?: Date;
+  roleId?: number;
 }
 
 class User extends Model<IUser> implements IUser {
@@ -27,10 +27,10 @@ class User extends Model<IUser> implements IUser {
   public phone!: string;
   public picture!: any;
   public fcmToken!: string;
-  public roleId?: number;
   public relationType!:string;
   public otp?: string;
   public otpExpiry?: Date;
+  public roleId: number;
 }
 
 User.init(
@@ -93,6 +93,7 @@ User.init(
     picture: {
       type: DataTypes.JSONB, // 🔥 store imageUrl + public_id
     },
+    
         roleId: {
       type: DataTypes.INTEGER,
       defaultValue: 3,
@@ -109,7 +110,7 @@ User.init(
 
     otpExpiry: {
       type: DataTypes.DATE,
-    },
+    }
   },
   {
     sequelize,

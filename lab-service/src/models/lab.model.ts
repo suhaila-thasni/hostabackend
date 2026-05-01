@@ -110,8 +110,7 @@ class Lab
 
   public otp?: string;
   public otpExpiry?: Date;
-
-  public roleId: number;
+   public roleId!: number; 
 }
 
 /* =======================
@@ -230,6 +229,7 @@ Lab.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    
   },
 
   {

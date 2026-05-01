@@ -8,7 +8,7 @@ interface IPatient {
   id: number;
   patientId?: string; // Virtual ID
   profileImage?: any;
-  userId?:number;
+  userId?: number;
 
   firstName: string;
   middleName?: string;
@@ -53,7 +53,7 @@ class Patient extends Model<IPatient> implements IPatient {
   public id!: number;
   public readonly patientId!: string;
   public profileImage!: any;
-  public userId!:number;
+  public userId!: number;
 
   public firstName!: string;
   public middleName!: string;
@@ -108,9 +108,9 @@ Patient.init(
         return `#PAT${String(id).padStart(5, "0")}`;
       },
     },
-    
-    userId:{
-      type:DataTypes.INTEGER,
+
+    userId: {
+      type: DataTypes.INTEGER,
       allowNull: true,
 
       references: {
@@ -198,7 +198,7 @@ Patient.init(
       },
     },
 
-    
+
 
     password: DataTypes.STRING,
   },

@@ -4,6 +4,19 @@ import { userService } from "../services/user.service";
 import Patient from "../models/patient.model";
 import PatientVitals from "../models/patientVitals.model";
 import User from "../models/user.model";
+import jwt from "jsonwebtoken";
+import { generateToken, generateRefreshToken } from "../services/jwt.service";
+
+// Helper to set refresh token cookie
+const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+};
 
 // --- USER CONTROLLERS ---
 
@@ -18,7 +31,8 @@ export const registerUser: any = asyncHandler(async (req: Request, res: Response
 
 export const loginUser: any = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const { token, user } = await userService.login(req.body);
+    const { token, refreshToken, user } = await userService.login(req.body);
+    setRefreshTokenCookie(res, refreshToken);
     res.status(200).json({ success: true, message: "Login success", token, data: user });
   } catch (error: any) {
     res.status(error.status || 500).json({ success: false, message: error.message || "Server Error" });
@@ -36,7 +50,8 @@ export const loginWithPhone: any = asyncHandler(async (req: Request, res: Respon
 
 export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const { token, user } = await userService.verifyOtp(req.body);
+    const { token, refreshToken, user } = await userService.verifyOtp(req.body);
+    setRefreshTokenCookie(res, refreshToken);
     res.status(200).json({
       success: true,
       message: "OTP verified successfully",
@@ -103,6 +118,7 @@ export const sendOtpEmail: any = asyncHandler(async (req: Request, res: Response
 export const verifyOtpEmail: any = asyncHandler(async (req: Request, res: Response) => {
   try {
     const result = await userService.verifyOtpEmail(req.body);
+    if (result.refreshToken) setRefreshTokenCookie(res, result.refreshToken);
     res.status(200).json({ success: true, message: "OTP verified", ...result });
   } catch (error: any) {
     res.status(error.status || 500).json({ success: false, message: error.message });
@@ -355,5 +371,50 @@ export const deletePatient: any = asyncHandler(async (req: Request, res: Respons
     success: true,
     message: "Patient deleted successfully",
   });
+});
+
+// REFRESH TOKEN - POST /users/refresh
+export const refreshUserToken: any = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (!refreshToken) {
+    res.status(401).json({ success: false, message: "Refresh token missing" });
+    return;
+  }
+
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+
+  try {
+    const decoded: any = jwt.verify(refreshToken, jwtKey);
+    const user = await User.findByPk(decoded.id);
+
+    if (!user) {
+      res.status(401).json({ success: false, message: "Invalid refresh token" });
+      return;
+    }
+
+    const newToken = generateToken({ id: user.id, email: user.email, role: "user" });
+    const newRefreshToken = generateRefreshToken({ id: user.id, email: user.email, role: "user" });
+
+    setRefreshTokenCookie(res, newRefreshToken);
+
+    res.status(200).json({
+      success: true,
+      token: newToken,
+    });
+  } catch (error) {
+    res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
+  }
+});
+
+// LOGOUT - POST /users/logout
+export const logout: any = asyncHandler(async (req: Request, res: Response) => {
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
+  res.status(200).json({ success: true, message: "Logged out successfully" });
 });
 

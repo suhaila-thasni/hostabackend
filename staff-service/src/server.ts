@@ -12,7 +12,9 @@ const startServer = async () => {
     try {
         await connectDB();
         await connectRabbitMQ();
-        
+        // Tables are managed by migrations in production
+        const { default: Staff } = await import("./models/staff.model");
+
         // Starting Staff Service
         const server = app.listen(PORT, () => {
             logger.info(`🚀 Staff Service is running on port ${PORT}`);

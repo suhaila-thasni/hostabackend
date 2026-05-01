@@ -52,12 +52,12 @@ export interface IHospital {
   working_hours_clinic?: IWorkingHoursClinic[];
   working_hours_clinic_nobreak?: IWorkingHoursGeneral[];
   web: string,
-  roleId: number;
   deleteDate?: Date;
   isActive?: boolean;
   isDelete?: boolean;
   otp?: string;
   otpExpiry?: Date;
+  roleId: number; 
 }
 
 /* =======================
@@ -241,6 +241,7 @@ Hospital.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    
   },
   {
     sequelize,

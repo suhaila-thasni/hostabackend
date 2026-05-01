@@ -52,9 +52,11 @@ if (isExisting) {
      
         const hospital = await axios.get(`${process.env.HOSPITAL_SERVICE_API}/hospital/${hospitalId}`, {
          headers: { Authorization: req.headers.authorization }
-       })
 
-              
+       })
+       console.log(hospital.data);  
+
+
        if(!hospital || !hospital.data) {
            res.status(404).json({
              success: false,

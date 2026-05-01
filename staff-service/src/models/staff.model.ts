@@ -35,7 +35,7 @@ interface IStaff {
   isDelete?: boolean;
   otp?: string;
   otpExpiry?: Date;
-  roleId: number;
+  roleId: number; 
 }
 
 /* =======================
@@ -90,7 +90,7 @@ class Staff
   public isDelete?: boolean;
   public otp?: string;
   public otpExpiry?: Date;
-  public roleId: number;
+  public roleId!: number;   
 
   // timestamps
   public readonly createdAt!: Date;
@@ -216,6 +216,7 @@ Staff.init(
     otpExpiry: {
       type: DataTypes.DATE,
     },
+   
   },
   {
     sequelize,

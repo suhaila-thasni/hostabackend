@@ -20,6 +20,8 @@ import {
   getPatient,
   updatePatient,
   deletePatient,
+  refreshUserToken,
+  logout
 } from "../controllers/user.controller";
 
 import {
@@ -50,6 +52,10 @@ router.post("/users/auth/send-otp", validate(sendOtpEmailSchema), sendOtpEmail);
 router.post("/users/auth/verify-otp", validate(verifyOtpEmailSchema), verifyOtpEmail);
 router.post("/users/auth/reset-password", validate(resetPasswordEmailSchema), resetPasswordEmail);
 router.put("/users/auth/change-password", authenticate, validate(changePasswordSchema), changePassword);
+
+// Refresh and Logout
+router.post("/users/refresh", refreshUserToken);
+router.post("/users/logout", logout);
 
 router.get("/users", authenticate,  getUsers);
 router.get("/users/:id", authenticate, validateParams(idParamSchema), checkPermission("users", "view"), getUser);

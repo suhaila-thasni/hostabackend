@@ -13,6 +13,8 @@ import {
   verifyStaffOtp,
   resetStaffPassword,
   changeStaffPassword,
+  refreshStaffToken,
+  logout,
 } from "../controllers/staff.controllers";
 
 import { validate, validateParams } from "../middleware/validate.middleware";
@@ -40,6 +42,8 @@ router.post("/staff", validate(registerStaffSchema),checkPermission("staff", "cr
 router.post("/staff/login", validate(loginStaffSchema), login);
 router.post("/staff/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
 router.post("/staff/otp", validate(verifyOtpSchema), verifyOtp);
+router.post("/staff/refresh", refreshStaffToken);
+router.post("/staff/logout", logout);
 // router.post("/staff/password", changepassword);
 
 

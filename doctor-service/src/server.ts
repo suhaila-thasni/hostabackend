@@ -12,7 +12,10 @@ const startServer = async () => {
     try {
         await connectDB();
         await connectRabbitMQ();
-        
+        // Ensure tables are in sync
+        const { default: Doctor } = await import("./models/doctor.model");
+        await Doctor.sync({ alter: true });
+
         // Starting Doctor Service
         const server = app.listen(PORT, () => {
             logger.info(`🚀 Doctor Service is running on port ${PORT}`);

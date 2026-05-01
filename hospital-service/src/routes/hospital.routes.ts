@@ -23,7 +23,9 @@ import {
   getanHospital,
   getHospital,
   updateData,
-  hospitalDelete 
+  hospitalDelete,
+  refreshHospitalToken,
+  logout
 } from "../controllers/hospital.controllers";
 import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
@@ -44,6 +46,8 @@ router.post("/hospital/auth/send-otp", validate(loginWithEmailSchema), sendOtp);
 router.post("/hospital/auth/verify-otp", validate(verifyOtpSchema), verifyOtp);
 router.post("/hospital/auth/reset-password", validate(resetPasswordSchema), resetPassword);
 router.put("/hospital/auth/change-password", authenticate, validate(changePasswordSchema), changePassword);
+router.post("/hospital/refresh", refreshHospitalToken);
+router.post("/hospital/logout", logout);
 
 // Notifications
 router.post("/hospital/notify/email", authenticate, validate(sendCustomEmailSchema), sendCustomEmail);

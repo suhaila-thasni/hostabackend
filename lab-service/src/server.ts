@@ -13,14 +13,10 @@ const startServer = async () => {
         await connectDB();
         await connectRabbitMQ();
         
-        // Ensure tables exist safely
+        // Tables are now managed by migrations
         const { default: Lab } = await import("./models/lab.model");
         const { default: Report } = await import("./models/report.model");
         const { default: Test } = await import("./models/test.model");
-
-        await Lab.sync({ alter: true });
-        await Report.sync({ alter: true });
-        await Test.sync({ alter: true });
         
         // Starting blood Service
         app.listen(PORT, () => {

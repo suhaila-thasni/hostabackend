@@ -38,6 +38,7 @@ interface IPrescription {
   next_consultation?: Date;
 
   empty_stomach?: boolean;
+
 }
 
 /* =======================
@@ -52,6 +53,7 @@ type PrescriptionCreationAttributes =
     | "advice"
     | "next_consultation"
     | "empty_stomach"
+    
   >;
 
 /* =======================
@@ -84,7 +86,8 @@ class Prescription
   public next_consultation?: Date;
 
   public empty_stomach?: boolean;
-}
+
+} 
 
 /* =======================
    INIT
@@ -147,6 +150,8 @@ Prescription.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    
+    
 
   },
 

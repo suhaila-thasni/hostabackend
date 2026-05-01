@@ -12,6 +12,8 @@ import {
   updateData,
   labDelete,
   getLabs,
+  refreshLabToken,
+  logout
 } from "../controllers/lab.controllers";
 
 
@@ -44,6 +46,8 @@ router.post("/lab/auth/send-otp", validate(loginWithEmailSchema), sendOtp);
 router.post("/lab/auth/verify-otp", validate(verifyOtpSchema), verifyOtp);
 router.post("/lab/auth/reset-password", validate(resetPasswordSchema), resetPassword);
 router.put("/lab/auth/change-password", authenticate, validate(changePasswordSchema), changePassword);
+router.post("/lab/refresh", refreshLabToken);
+router.post("/lab/logout", logout);
 
 // CRUD
 router.get("/lab", authenticate, checkPermission("lab", "view"), getLabs);
