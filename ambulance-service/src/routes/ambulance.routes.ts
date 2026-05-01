@@ -7,6 +7,8 @@ import {
   updateData,
   ambulanceDelete,
   getAmbulaces,
+  refreshAmbulanceToken,
+  logout
 } from "../controllers/ambulance.controllers";
 import { validate, validateParams } from "../middleware/validate.middleware";
 import {
@@ -17,19 +19,21 @@ import {
   idParamSchema,
 } from "../validators/ambulance.validator";
 import { authenticate } from "../middleware/authenticate";
-// import { checkPermission } from "../middleware/role.middleware";
+import { checkPermission } from "../middleware/role.middleware";
 
 const router = Router();
 
-// Auth
+// Auth 
 router.post("/ambulance/register", authenticate, validate(registerSchema), Registeration);
 router.post("/ambulance/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
 router.post("/ambulance/otp", validate(verifyOtpSchema), verifyOtp);
+router.post("/ambulance/refresh", refreshAmbulanceToken);
+router.post("/ambulance/logout", logout);
 
 // CRUD
 router.get("/ambulance", getAmbulaces);
-router.get("/ambulance/:id", validateParams(idParamSchema), getanAmbulace);
-router.put("/ambulance/:id", authenticate, validateParams(idParamSchema), validate(updateSchema), updateData);
-router.delete("/ambulance/:id", authenticate, validateParams(idParamSchema), ambulanceDelete);
+router.get("/ambulance/:id", authenticate, validateParams(idParamSchema),checkPermission("ambulance", "view"), getanAmbulace);
+router.put("/ambulance/:id", authenticate, validateParams(idParamSchema), validate(updateSchema),checkPermission("ambulance", "edit"), updateData);
+router.delete("/ambulance/:id", authenticate, validateParams(idParamSchema),checkPermission("ambulance", "delete"), ambulanceDelete);
 
 export default router;

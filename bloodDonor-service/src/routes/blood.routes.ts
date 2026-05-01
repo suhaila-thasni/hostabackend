@@ -7,25 +7,30 @@ import {
   getSingleDonor,
   updateDonor,
   deleteDonor,
+  refreshBloodDonorToken,
+  logout
 } from "../controllers/bloodDonor.controller";
 import { validate, validateParams } from "../middleware/validate.middleware";
 import { donorSchema, idParamSchema, phoneLoginSchema, otpSchema } from "../validators/blood.validator";
 import { authenticate } from "../middleware/authenticate";
+import { checkPermission } from "../middleware/role.middleware";
 
 const router = Router();
 
 // 🔐 Auth Routes
 router.post("/donors/login/phone", validate(phoneLoginSchema), loginWithPhone);
 router.post("/donors/otp", validate(otpSchema), verifyOtp);
+router.post("/donors/refresh", refreshBloodDonorToken);
+router.post("/donors/logout", logout);
 
 // 🛡️ Protected - Only authenticated users can register as donors
-router.post("/donors/register", authenticate, validate(donorSchema), createDonor);
+router.post("/donors/register", authenticate, validate(donorSchema), checkPermission("donors", "create"), createDonor);
 
 // 📋 CRUD Routes
-router.get("/donors", getDonors);
-router.get("/donors/:id",authenticate, validateParams(idParamSchema), getSingleDonor);
-router.put("/donors/:id",authenticate, validateParams(idParamSchema), updateDonor);
-router.delete("/donors/:id",authenticate, validateParams(idParamSchema), deleteDonor);
+router.get("/donors",  getDonors);
+router.get("/donors/:id",authenticate, validateParams(idParamSchema), checkPermission("donors", "view"), getSingleDonor);
+router.put("/donors/:id",authenticate, validateParams(idParamSchema), checkPermission("donors", "edit"), updateDonor);
+router.delete("/donors/:id",authenticate, validateParams(idParamSchema), checkPermission("donors", "delete"), deleteDonor);
 
 export default router;
 

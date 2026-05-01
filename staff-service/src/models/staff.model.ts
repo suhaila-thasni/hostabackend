@@ -190,6 +190,11 @@ Staff.init(
     knowLanguages: {
       type: DataTypes.JSONB, // safer for PostgreSQL
     },
+        roleId: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: true,
+    },
 
     address: {
       type: DataTypes.JSONB,
@@ -211,10 +216,7 @@ Staff.init(
     otpExpiry: {
       type: DataTypes.DATE,
     },
-    roleId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
+   
   },
   {
     sequelize,

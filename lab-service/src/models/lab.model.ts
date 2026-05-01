@@ -47,10 +47,11 @@ export interface ILab {
 
   isActive?: boolean;
   isDelete?: boolean;
+  
+  roleId: number;
 
   otp?: string;
   otpExpiry?: Date;
-  roleId: number; 
 }
 
 /* =======================
@@ -183,6 +184,11 @@ Lab.init(
       type: DataTypes.DOUBLE,
       allowNull: false,
     },
+        roleId: {
+      type: DataTypes.INTEGER,
+      defaultValue: 4,
+      allowNull: true,
+    },
 
     about: {
       type: DataTypes.TEXT,
@@ -223,10 +229,7 @@ Lab.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
-    roleId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
+    
   },
 
   {

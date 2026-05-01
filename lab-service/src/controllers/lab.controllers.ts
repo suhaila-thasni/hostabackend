@@ -10,6 +10,17 @@ import { Op } from "sequelize";
 import twilio from "twilio";
 import { sendEmail } from "../services/mail.service";
 
+// Helper to set refresh token cookie
+const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+};
+
 const APPLE_TEST_NUMBER = "9999999999";
 const APPLE_TEST_OTP = "123456";
 
@@ -203,6 +214,11 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const token = generateToken({ id: lab.id, name: lab.name });
+  const refreshToken = jwt.sign({ id: lab.id, name: lab.name }, process.env.JWT_SECRET || "supersecretjwtkey", {
+    expiresIn: "7d"
+  });
+
+  setRefreshTokenCookie(res, refreshToken);
 
   // Remove password from response
   const { password: _, otp: __, otpExpiry: ___, ...safeLab } = lab.toJSON();
@@ -348,6 +364,12 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   await lab.update({ otp: null, otpExpiry: null });
 
   const token = generateToken({ id: lab.id, name: lab.name });
+  const refreshToken = jwt.sign({ id: lab.id, name: lab.name }, process.env.JWT_SECRET || "supersecretjwtkey", {
+    expiresIn: "7d"
+  });
+
+  setRefreshTokenCookie(res, refreshToken);
+
   const { password: _, otp: __, otpExpiry: ___, ...safeLab } = lab.toJSON();
 
   res.status(200).json({
@@ -546,4 +568,51 @@ export const getLabs: any = asyncHandler(async (req: Request, res: Response) => 
     data: safeLabs,
     error: null,
   });
+});
+
+// REFRESH TOKEN - POST /lab/refresh
+export const refreshLabToken: any = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (!refreshToken) {
+    res.status(401).json({ success: false, message: "Refresh token missing" });
+    return;
+  }
+
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+
+  try {
+    const decoded: any = jwt.verify(refreshToken, jwtKey);
+    const lab = await Lab.findByPk(decoded.id);
+
+    if (!lab) {
+      res.status(401).json({ success: false, message: "Invalid refresh token" });
+      return;
+    }
+
+    const newToken = generateToken({ id: lab.id, name: lab.name });
+    const newRefreshToken = jwt.sign({ id: lab.id, name: lab.name }, jwtKey, {
+      expiresIn: "7d",
+    });
+
+    setRefreshTokenCookie(res, newRefreshToken);
+
+    res.status(200).json({
+      success: true,
+      token: newToken,
+    });
+  } catch (error) {
+    res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
+  }
+});
+
+// LOGOUT - POST /lab/logout
+export const logout: any = asyncHandler(async (req: Request, res: Response) => {
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
+  res.status(200).json({ success: true, message: "Logged out successfully" });
 });

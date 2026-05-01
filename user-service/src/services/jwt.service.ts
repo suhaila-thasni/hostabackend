@@ -9,6 +9,12 @@ export const generateToken = (payload: any) => {
   });
 };
 
+export const generateRefreshToken = (payload: any) => {
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: "7d",
+  });
+};
+
 export const verifyToken = (token: string) => {
   try {
     return jwt.verify(token, JWT_SECRET);

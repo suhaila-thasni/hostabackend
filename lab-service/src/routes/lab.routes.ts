@@ -12,6 +12,8 @@ import {
   updateData,
   labDelete,
   getLabs,
+  refreshLabToken,
+  logout
 } from "../controllers/lab.controllers";
 
 
@@ -34,7 +36,7 @@ import { checkPermission } from "../middleware/role.middleware";
 const router = Router();
 
 // Auth & Password Flow
-router.post("/lab/register", validate(registerSchema), Registeration);
+router.post("/lab", validate(registerSchema),  Registeration);
 router.post("/lab/login", validate(loginSchema), login);
 router.post("/lab/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
 router.post("/lab/otp", validate(verifyOtpSchema), verifyLoginOtp);
@@ -44,6 +46,8 @@ router.post("/lab/auth/send-otp", validate(loginWithEmailSchema), sendOtp);
 router.post("/lab/auth/verify-otp", validate(verifyOtpSchema), verifyOtp);
 router.post("/lab/auth/reset-password", validate(resetPasswordSchema), resetPassword);
 router.put("/lab/auth/change-password", authenticate, validate(changePasswordSchema), changePassword);
+router.post("/lab/refresh", refreshLabToken);
+router.post("/lab/logout", logout);
 
 // CRUD
 router.get("/lab", authenticate, checkPermission("lab", "view"), getLabs);

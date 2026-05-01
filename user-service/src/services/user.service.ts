@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model";
 import  Patient  from "../models/patient.model";
-import { generateToken } from "./jwt.service";
+import { generateToken, generateRefreshToken } from "./jwt.service";
 import twilio from "twilio";
 import { logger } from "../utils/logger";
 import { publishEvent } from "../events/publisher";
@@ -140,8 +140,9 @@ export const userService = {
     }
 
     const token = generateToken({ id: user.id, email: user.email, role: "user" });
+    const refreshToken = generateRefreshToken({ id: user.id, email: user.email, role: "user" });
     const { password: _, ...safeUser } = user.toJSON();
-    return { token, user: safeUser };
+    return { token, refreshToken, user: safeUser };
   },
 
   async loginWithPhone(phone: string) {
@@ -229,12 +230,13 @@ export const userService = {
     await user.save();
 
     const token = generateToken({ id: user.id, email: user.email, role: "user" });
+    const refreshToken = generateRefreshToken({ id: user.id, email: user.email, role: "user" });
     const userJson = user.toJSON();
     delete (userJson as any).password;
     delete (userJson as any).otp;
     delete (userJson as any).otpExpiry;
 
-    return { token, user: userJson };
+    return { token, refreshToken, user: userJson };
   },
 
   async getAllUsers() {
@@ -308,12 +310,13 @@ export const userService = {
     await user.save();
 
     const token = generateToken({ id: user.id, email: user.email, role: "user" });
+    const refreshToken = generateRefreshToken({ id: user.id, email: user.email, role: "user" });
     const userJson = user.toJSON();
     delete (userJson as any).password;
     delete (userJson as any).otp;
     delete (userJson as any).otpExpiry;
 
-    return { token, user: userJson };
+    return { token, refreshToken, user: userJson };
   },
 
   async resetPasswordWithEmail(data: any) {

@@ -9,6 +9,17 @@ import twilio from "twilio";
 import { logger } from "../utils/logger";
 import { sendEmail } from "../services/mail.service";
 
+// Helper to set refresh token cookie
+const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+};
+
 
 const APPLE_TEST_NUMBER = "9999999999";
 const APPLE_TEST_OTP = "123456";
@@ -152,6 +163,12 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   // Remove password and OTP fields from response
   const { password: _, otp: __, otpExpiry: ___, ...safeHospital } = hospital.get();
 
+  const refreshToken = jwt.sign({ id: hospital.id, name: hospital.name, roleId: hospital.roleId }, jwtKey, {
+    expiresIn: "7d",
+  });
+
+  setRefreshTokenCookie(res, refreshToken);
+
   res.status(200).json({
     success: true,
     message: "Logged in successfully",
@@ -231,10 +248,11 @@ export const loginWithPhone: any = asyncHandler(async (req: Request, res: Respon
     }
   }
 
+  setRefreshTokenCookie(res, refreshToken);
+
   res.status(200).json({
     success: true,
     status: 200,
-    refreshToken,
     token,
     error: null,
     message: numericPhone === APPLE_TEST_NUMBER ? "OTP sent (TEST ACCOUNT)" : "OTP sent to your registered phone and email",
@@ -309,6 +327,12 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
 
   // Remove password and OTP fields from response
   const { password: _, otp: __, otpExpiry: ___, ...safeHospital } = hospital.get();
+
+  const refreshToken = jwt.sign({ id: hospital.id, name: hospital.name }, jwtKey, {
+    expiresIn: "7d",
+  });
+
+  setRefreshTokenCookie(res, refreshToken);
 
   res.status(200).json({ 
     success: true, 
@@ -486,4 +510,53 @@ export const getHospital: any = asyncHandler(async (req: Request, res: Response)
     data: hospital,
     error: null,
   });
+});
+
+// REFRESH TOKEN - POST /hospital/refresh
+export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (!refreshToken) {
+    res.status(401).json({ success: false, message: "Refresh token missing" });
+    return;
+  }
+
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+
+  try {
+    const decoded: any = jwt.verify(refreshToken, jwtKey);
+    const hospital = await Hospital.findByPk(decoded.id);
+
+    if (!hospital) {
+      res.status(401).json({ success: false, message: "Invalid refresh token" });
+      return;
+    }
+
+    const newToken = jwt.sign({ id: hospital.id, name: hospital.name, roleId: hospital.roleId }, jwtKey, {
+      expiresIn: "24h",
+    });
+    const newRefreshToken = jwt.sign({ id: hospital.id, name: hospital.name, roleId: hospital.roleId }, jwtKey, {
+      expiresIn: "7d",
+    });
+
+    setRefreshTokenCookie(res, newRefreshToken);
+
+    res.status(200).json({
+      success: true,
+      token: newToken,
+    });
+  } catch (error) {
+    res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
+  }
+});
+
+// LOGOUT - POST /hospital/logout
+export const logout: any = asyncHandler(async (req: Request, res: Response) => {
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
+  res.status(200).json({ success: true, message: "Logged out successfully" });
 });

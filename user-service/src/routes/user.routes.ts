@@ -20,6 +20,8 @@ import {
   getPatient,
   updatePatient,
   deletePatient,
+  refreshUserToken,
+  logout
 } from "../controllers/user.controller";
 
 import {
@@ -51,10 +53,14 @@ router.post("/users/auth/verify-otp", validate(verifyOtpEmailSchema), verifyOtpE
 router.post("/users/auth/reset-password", validate(resetPasswordEmailSchema), resetPasswordEmail);
 router.put("/users/auth/change-password", authenticate, validate(changePasswordSchema), changePassword);
 
-router.get("/users", authenticate, getUsers);
-router.get("/users/:id", authenticate, validateParams(idParamSchema), getUser);
-router.put("/users/:id", authenticate, validateParams(idParamSchema), validate(updateUserSchema), updateUser);
-router.delete("/users/:id", authenticate, validateParams(idParamSchema), deleteUser);
+// Refresh and Logout
+router.post("/users/refresh", refreshUserToken);
+router.post("/users/logout", logout);
+
+router.get("/users", authenticate,  getUsers);
+router.get("/users/:id", authenticate, validateParams(idParamSchema), checkPermission("users", "view"), getUser);
+router.put("/users/:id", authenticate, validateParams(idParamSchema), validate(updateUserSchema), checkPermission("users", "edit"), updateUser);
+router.delete("/users/:id", authenticate, validateParams(idParamSchema), checkPermission("users", "delete"), deleteUser);
 
 
 // router.post("/users/:id/token", validateParams(idParamSchema), saveExpoToken);

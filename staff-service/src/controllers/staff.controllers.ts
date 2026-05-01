@@ -10,6 +10,17 @@ import { publishEvent } from "../events/publisher";
 import { sendEmail } from "../services/mail.service";
 import { logger } from "../utils/logger";
 
+// Helper to set refresh token cookie
+const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+};
+
 const APPLE_TEST_NUMBER = "9999999999";
 const APPLE_TEST_OTP = "123456";
 
@@ -221,15 +232,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     { expiresIn: "7d" }
   );
 
-  const sevenDayInMs = 7 * 24 * 60 * 60 * 1000;
-  const expirationDate = new Date(Date.now() + sevenDayInMs);
-
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    expires: expirationDate,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  });
+  setRefreshTokenCookie(res, refreshToken);
 
   res.status(200).json({
     success: true,
@@ -330,6 +333,9 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   }
 
   const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, { expiresIn: "15m" });
+  const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, { expiresIn: "7d" });
+
+  setRefreshTokenCookie(res, refreshToken);
 
   res.status(200).json({
     success: true,
@@ -584,8 +590,13 @@ export const verifyStaffOtp: any = asyncHandler(async (req: Request, res: Respon
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
   const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, {
-    expiresIn: "24h",
+    expiresIn: "15m",
   });
+  const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, {
+    expiresIn: "7d",
+  });
+
+  setRefreshTokenCookie(res, refreshToken);
 
   res.status(200).json({ 
     success: true, 
@@ -635,4 +646,53 @@ export const changeStaffPassword: any = asyncHandler(async (req: any, res: Respo
   await staff.save();
 
   res.json({ success: true, message: "Password changed successfully" });
+});
+
+// REFRESH TOKEN - POST /staff/refresh
+export const refreshStaffToken: any = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    res.status(401).json({ success: false, message: "Refresh token missing" });
+    return;
+  }
+
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+
+  try {
+    const decoded: any = jwt.verify(refreshToken, jwtKey);
+    const staff = await Staff.findByPk(decoded.id);
+
+    if (!staff) {
+      res.status(401).json({ success: false, message: "Invalid refresh token" });
+      return;
+    }
+
+    const newToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, {
+      expiresIn: "15m",
+    });
+    const newRefreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, {
+      expiresIn: "7d",
+    });
+
+    setRefreshTokenCookie(res, newRefreshToken);
+
+    res.status(200).json({
+      success: true,
+      token: newToken,
+    });
+  } catch (error) {
+    res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
+  }
+});
+
+// LOGOUT - POST /staff/logout
+export const logout: any = asyncHandler(async (req: Request, res: Response) => {
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
+  res.status(200).json({ success: true, message: "Logged out successfully" });
 });

@@ -16,9 +16,9 @@ const router = Router();
 
 // CRUD
 
-router.post("/rating/register", authenticate, Registeration);
+router.post("/rating", authenticate, Registeration);
 router.get("/rating", getRating);
-router.get("/rating/:id", getanRating);
+router.get("/rating/:id", authenticate, getanRating);
 router.put("/rating/:id", authenticate, updateData);
 router.delete("/rating/:id", authenticate, ratingDelete);
 
