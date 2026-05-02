@@ -17,6 +17,7 @@ interface IAmbulance {
   otp?: string;
   otpExpiry?: Date;
   userId?: number;
+  roleId?: number;
 }
 
 class Ambulance extends Model<IAmbulance> implements IAmbulance {
@@ -29,6 +30,7 @@ class Ambulance extends Model<IAmbulance> implements IAmbulance {
   public otp!: string;
   public otpExpiry!: Date;
   public userId!: number;
+  public roleId!: number;
 }
 
 Ambulance.init(
@@ -71,6 +73,11 @@ Ambulance.init(
     },
     otpExpiry: {
       type: DataTypes.DATE,
+      allowNull: true,
+    },
+    roleId: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0, 
       allowNull: true,
     },
   },

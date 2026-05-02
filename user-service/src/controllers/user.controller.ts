@@ -13,7 +13,7 @@ const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 60 * 60 * 1000, // 1 hour
     path: "/",
   });
 };
@@ -377,6 +377,8 @@ export const deletePatient: any = asyncHandler(async (req: Request, res: Respons
 export const refreshUserToken: any = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
 
+  console.log("refreshToken", refreshToken);
+
   if (!refreshToken) {
     res.status(401).json({ success: false, message: "Refresh token missing" });
     return;
@@ -393,8 +395,20 @@ export const refreshUserToken: any = asyncHandler(async (req: Request, res: Resp
       return;
     }
 
-    const newToken = generateToken({ id: user.id, email: user.email, role: "user" });
-    const newRefreshToken = generateRefreshToken({ id: user.id, email: user.email, role: "user" });
+    const newToken = generateToken({ id: user.id, email: user.email, role: "user", roleId: user.roleId });
+    const newRefreshToken = generateRefreshToken({ id: user.id, email: user.email, role: "user", roleId: user.roleId }, );
+
+
+
+
+    
+    // const newToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId }, jwtKey, {
+    //   expiresIn: "15m",
+    // });
+    // const newRefreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId }, jwtKey, {
+    //   expiresIn: "7d",
+    // });
+
 
     setRefreshTokenCookie(res, newRefreshToken);
 

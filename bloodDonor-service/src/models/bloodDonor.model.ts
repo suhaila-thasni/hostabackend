@@ -18,6 +18,7 @@ interface IBloodDonor {
   otp?: string;
   otpExpiry?: Date;
   deletedAt?: Date;
+  roleId?: number;
 }
 
 class BloodDonor extends Model<IBloodDonor> implements IBloodDonor {
@@ -31,6 +32,7 @@ class BloodDonor extends Model<IBloodDonor> implements IBloodDonor {
   public otp?: string;
   public otpExpiry?: Date;
   public readonly deletedAt!: Date;
+  public roleId!: number;
 }
 
 BloodDonor.init(
@@ -74,6 +76,11 @@ BloodDonor.init(
     },
     otpExpiry: {
       type: DataTypes.DATE,
+      allowNull: true,
+    },
+    roleId: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
       allowNull: true,
     },
   },

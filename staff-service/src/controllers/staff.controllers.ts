@@ -222,15 +222,17 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Generate JWT tokens
-  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, {
+  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId }, jwtKey, {
     expiresIn: "15m",
   });
 
   const refreshToken = jwt.sign(
-    { id: staff.id, name: staff.name, role: "staff" },
+    { id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId },
     jwtKey,
     { expiresIn: "7d" }
   );
+
+  // Save refresh token to Redis (REMOVED)
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -332,8 +334,10 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
     return;
   }
 
-  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, { expiresIn: "15m" });
-  const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, { expiresIn: "7d" });
+  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId }, jwtKey, { expiresIn: "15m" });
+  const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId }, jwtKey, { expiresIn: "7d" });
+
+  // Save refresh token to Redis (REMOVED)
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -589,12 +593,14 @@ export const verifyStaffOtp: any = asyncHandler(async (req: Request, res: Respon
   await staff.update({ otp: null, otpExpiry: null });
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, {
+  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId }, jwtKey, {
     expiresIn: "15m",
   });
-  const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, {
+  const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId }, jwtKey, {
     expiresIn: "7d",
   });
+
+  // Save refresh token to Redis (REMOVED)
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -661,6 +667,9 @@ export const refreshStaffToken: any = asyncHandler(async (req: Request, res: Res
 
   try {
     const decoded: any = jwt.verify(refreshToken, jwtKey);
+    
+    // Check Redis Blacklist / Rotation (REMOVED)
+
     const staff = await Staff.findByPk(decoded.id);
 
     if (!staff) {
@@ -668,13 +677,14 @@ export const refreshStaffToken: any = asyncHandler(async (req: Request, res: Res
       return;
     }
 
-    const newToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, {
+    const newToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId }, jwtKey, {
       expiresIn: "15m",
     });
-    const newRefreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff" }, jwtKey, {
+    const newRefreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId }, jwtKey, {
       expiresIn: "7d",
     });
 
+    // Redis Rotation (REMOVED)
     setRefreshTokenCookie(res, newRefreshToken);
 
     res.status(200).json({
@@ -688,6 +698,7 @@ export const refreshStaffToken: any = asyncHandler(async (req: Request, res: Res
 
 // LOGOUT - POST /staff/logout
 export const logout: any = asyncHandler(async (req: Request, res: Response) => {
+  // Redis Blacklist (REMOVED)
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -695,4 +706,4 @@ export const logout: any = asyncHandler(async (req: Request, res: Response) => {
     path: "/",
   });
   res.status(200).json({ success: true, message: "Logged out successfully" });
-});
+});

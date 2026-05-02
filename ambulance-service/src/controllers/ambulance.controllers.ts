@@ -173,8 +173,11 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   // Clear OTP fields after verification
   await ambulance.update({ otp: null as any, otpExpiry: null as any });
 
-  const token = generateToken({ id: ambulance.id, name: ambulance.serviceName });
-  const refreshToken = jwt.sign({ id: ambulance.id, name: ambulance.serviceName }, process.env.JWT_SECRET || "supersecretjwtkey", {
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+  const token = jwt.sign({ id: ambulance.id, name: ambulance.serviceName, role: "ambulance", roleId: ambulance.roleId }, jwtKey, {
+    expiresIn: "15m"
+  });
+  const refreshToken = jwt.sign({ id: ambulance.id, name: ambulance.serviceName, role: "ambulance", roleId: ambulance.roleId }, jwtKey, {
     expiresIn: "7d"
   });
 
@@ -323,6 +326,7 @@ export const refreshAmbulanceToken: any = asyncHandler(async (req: Request, res:
 
   try {
     const decoded: any = jwt.verify(refreshToken, jwtKey);
+    
     const ambulance = await Ambulance.findByPk(decoded.id);
 
     if (!ambulance) {
@@ -330,8 +334,10 @@ export const refreshAmbulanceToken: any = asyncHandler(async (req: Request, res:
       return;
     }
 
-    const newToken = generateToken({ id: ambulance.id, name: ambulance.serviceName });
-    const newRefreshToken = jwt.sign({ id: ambulance.id, name: ambulance.serviceName }, jwtKey, {
+    const newToken = jwt.sign({ id: ambulance.id, name: ambulance.serviceName, role: "ambulance", roleId: ambulance.roleId }, jwtKey, {
+      expiresIn: "15m",
+    });
+    const newRefreshToken = jwt.sign({ id: ambulance.id, name: ambulance.serviceName, role: "ambulance", roleId: ambulance.roleId }, jwtKey, {
       expiresIn: "7d",
     });
 

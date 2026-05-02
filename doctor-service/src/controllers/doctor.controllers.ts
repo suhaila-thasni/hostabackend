@@ -193,16 +193,18 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`}, jwtKey, {
-    expiresIn: "24h",
+  const token = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`, role: "doctor", roleId: doctor.roleId }, jwtKey, {
+    expiresIn: "15m",
   });
 
   // Remove password and OTP fields from response
   const { password: _, otp: __, otpExpiry: ___, ...safeDoctor } = doctor.get();
 
-  const refreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}` }, jwtKey, {
+  const refreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`, role: "doctor", roleId: doctor.roleId }, jwtKey, {
     expiresIn: "7d",
   });
+
+  // Save refresh token to Redis (REMOVED)
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -278,13 +280,13 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   await doctor.update({ otp: null, otpExpiry: null });
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`}, jwtKey, {
-    expiresIn: "24h",
+  const token = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`, role: "doctor", roleId: doctor.roleId }, jwtKey, {
+    expiresIn: "15m",
   });
 
   const { password: _, otp: __, otpExpiry: ___, ...safeDoctor } = doctor.get();
 
-  const refreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`}, jwtKey, {
+  const refreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`, role: "doctor", roleId: doctor.roleId }, jwtKey, {
     expiresIn: "7d",
   });
 
@@ -501,11 +503,11 @@ export const verifyDoctorOtp: any = asyncHandler(async (req: Request, res: Respo
   await doctor.update({ otp: null, otpExpiry: null });
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}` }, jwtKey, {
-    expiresIn: "24h",
+  const token = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`, role: "doctor", roleId: doctor.roleId }, jwtKey, {
+    expiresIn: "15m",
   });
 
-  const refreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}` }, jwtKey, {
+  const refreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`, role: "doctor", roleId: doctor.roleId }, jwtKey, {
     expiresIn: "7d",
   });
 
@@ -574,6 +576,9 @@ export const refreshDoctorToken: any = asyncHandler(async (req: Request, res: Re
 
   try {
     const decoded: any = jwt.verify(refreshToken, jwtKey);
+    
+    // Check Redis Blacklist / Rotation (REMOVED)
+
     const doctor = await Doctor.findByPk(decoded.id);
 
     if (!doctor) {
@@ -581,13 +586,14 @@ export const refreshDoctorToken: any = asyncHandler(async (req: Request, res: Re
       return;
     }
 
-    const newToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}` }, jwtKey, {
-      expiresIn: "24h",
+    const newToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`, role: "doctor", roleId: doctor.roleId }, jwtKey, {
+      expiresIn: "15m",
     });
-    const newRefreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}` }, jwtKey, {
+    const newRefreshToken = jwt.sign({ id: doctor.id, name: `${doctor.firstName} ${doctor.lastName}`, role: "doctor", roleId: doctor.roleId }, jwtKey, {
       expiresIn: "7d",
     });
 
+    // Redis Rotation (REMOVED)
     setRefreshTokenCookie(res, newRefreshToken);
 
     res.status(200).json({
@@ -601,6 +607,7 @@ export const refreshDoctorToken: any = asyncHandler(async (req: Request, res: Re
 
 // LOGOUT - POST /doctor/logout
 export const logout: any = asyncHandler(async (req: Request, res: Response) => {
+  // Redis Blacklist (REMOVED)
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

@@ -226,8 +226,11 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   // Clear OTP fields after verification
   await donor.update({ otp: null as any, otpExpiry: null as any });
 
-  const token = generateToken({ id: donor.id, donorId: donor.donorId, userId: donor.userId });
-  const refreshToken = jwt.sign({ id: donor.id, donorId: donor.donorId, userId: donor.userId }, process.env.JWT_SECRET || "supersecretjwtkey", {
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+  const token = jwt.sign({ id: donor.id, donorId: donor.donorId, userId: donor.userId, role: "bloodDonor", roleId: donor.roleId }, jwtKey, {
+    expiresIn: "15m"
+  });
+  const refreshToken = jwt.sign({ id: donor.id, donorId: donor.donorId, userId: donor.userId, role: "bloodDonor", roleId: donor.roleId }, jwtKey, {
     expiresIn: "7d"
   });
 
@@ -390,6 +393,7 @@ export const refreshBloodDonorToken: any = asyncHandler(async (req: Request, res
 
   try {
     const decoded: any = jwt.verify(refreshToken, jwtKey);
+    
     const donor = await BloodDonor.findByPk(decoded.id);
 
     if (!donor) {
@@ -397,8 +401,10 @@ export const refreshBloodDonorToken: any = asyncHandler(async (req: Request, res
       return;
     }
 
-    const newToken = generateToken({ id: donor.id, donorId: donor.donorId, userId: donor.userId });
-    const newRefreshToken = jwt.sign({ id: donor.id, donorId: donor.donorId, userId: donor.userId }, jwtKey, {
+    const newToken = jwt.sign({ id: donor.id, donorId: donor.donorId, userId: donor.userId, role: "bloodDonor", roleId: donor.roleId }, jwtKey, {
+      expiresIn: "15m",
+    });
+    const newRefreshToken = jwt.sign({ id: donor.id, donorId: donor.donorId, userId: donor.userId, role: "bloodDonor", roleId: donor.roleId }, jwtKey, {
       expiresIn: "7d",
     });
 

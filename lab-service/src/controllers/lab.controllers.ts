@@ -213,8 +213,11 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  const token = generateToken({ id: lab.id, name: lab.name });
-  const refreshToken = jwt.sign({ id: lab.id, name: lab.name }, process.env.JWT_SECRET || "supersecretjwtkey", {
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+  const token = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId }, jwtKey, {
+    expiresIn: "15m"
+  });
+  const refreshToken = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId }, jwtKey, {
     expiresIn: "7d"
   });
 
@@ -363,8 +366,11 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   // Clear OTP fields after verification
   await lab.update({ otp: null, otpExpiry: null });
 
-  const token = generateToken({ id: lab.id, name: lab.name });
-  const refreshToken = jwt.sign({ id: lab.id, name: lab.name }, process.env.JWT_SECRET || "supersecretjwtkey", {
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+  const token = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId }, jwtKey, {
+    expiresIn: "15m"
+  });
+  const refreshToken = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId }, jwtKey, {
     expiresIn: "7d"
   });
 
@@ -583,6 +589,7 @@ export const refreshLabToken: any = asyncHandler(async (req: Request, res: Respo
 
   try {
     const decoded: any = jwt.verify(refreshToken, jwtKey);
+    
     const lab = await Lab.findByPk(decoded.id);
 
     if (!lab) {
@@ -590,8 +597,10 @@ export const refreshLabToken: any = asyncHandler(async (req: Request, res: Respo
       return;
     }
 
-    const newToken = generateToken({ id: lab.id, name: lab.name });
-    const newRefreshToken = jwt.sign({ id: lab.id, name: lab.name }, jwtKey, {
+    const newToken = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId }, jwtKey, {
+      expiresIn: "15m",
+    });
+    const newRefreshToken = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId }, jwtKey, {
       expiresIn: "7d",
     });
 

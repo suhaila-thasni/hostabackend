@@ -156,16 +156,18 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: hospital.id, name: hospital.name, roleId: hospital.roleId }, jwtKey, {
-    expiresIn: "24h",
+  const token = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId }, jwtKey, {
+    expiresIn: "15m",
   });
 
   // Remove password and OTP fields from response
   const { password: _, otp: __, otpExpiry: ___, ...safeHospital } = hospital.get();
 
-  const refreshToken = jwt.sign({ id: hospital.id, name: hospital.name, roleId: hospital.roleId }, jwtKey, {
+  const refreshToken = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId }, jwtKey, {
     expiresIn: "7d",
   });
+
+  // Save refresh token to Redis (REMOVED)
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -200,13 +202,13 @@ export const loginWithPhone: any = asyncHandler(async (req: Request, res: Respon
   }
 
   // Generate JWT tokens
-  const token = jwt.sign({ id: hospital.id, name: hospital.name, roleId: hospital.roleId, }, process.env.JWT_SECRET, {
+  const token = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId, }, process.env.JWT_SECRET || "supersecretjwtkey", {
     expiresIn: "15m",
   });
 
   const refreshToken = jwt.sign(
-    { id: hospital.id, name: hospital.name, roleId: hospital.roleId },
-    process.env.JWT_SECRET,
+    { id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId },
+    process.env.JWT_SECRET || "supersecretjwtkey",
     { expiresIn: "7d" }
   );
 
@@ -247,6 +249,8 @@ export const loginWithPhone: any = asyncHandler(async (req: Request, res: Respon
       }
     }
   }
+
+  // Save refresh token to Redis (REMOVED)
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -321,16 +325,18 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   await hospital.update({ otp: null, otpExpiry: null });
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: hospital.id, name: hospital.name }, jwtKey, {
-    expiresIn: "24h",
+  const token = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId }, jwtKey, {
+    expiresIn: "15m",
   });
 
   // Remove password and OTP fields from response
   const { password: _, otp: __, otpExpiry: ___, ...safeHospital } = hospital.get();
 
-  const refreshToken = jwt.sign({ id: hospital.id, name: hospital.name }, jwtKey, {
+  const refreshToken = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId }, jwtKey, {
     expiresIn: "7d",
   });
+
+  // Save refresh token to Redis (REMOVED)
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -525,6 +531,9 @@ export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: 
 
   try {
     const decoded: any = jwt.verify(refreshToken, jwtKey);
+    
+    // Check Redis Blacklist / Rotation (REMOVED)
+
     const hospital = await Hospital.findByPk(decoded.id);
 
     if (!hospital) {
@@ -532,13 +541,14 @@ export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: 
       return;
     }
 
-    const newToken = jwt.sign({ id: hospital.id, name: hospital.name, roleId: hospital.roleId }, jwtKey, {
-      expiresIn: "24h",
+    const newToken = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId }, jwtKey, {
+      expiresIn: "15m",
     });
-    const newRefreshToken = jwt.sign({ id: hospital.id, name: hospital.name, roleId: hospital.roleId }, jwtKey, {
+    const newRefreshToken = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId }, jwtKey, {
       expiresIn: "7d",
     });
 
+    // Redis Rotation (REMOVED)
     setRefreshTokenCookie(res, newRefreshToken);
 
     res.status(200).json({
@@ -552,6 +562,7 @@ export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: 
 
 // LOGOUT - POST /hospital/logout
 export const logout: any = asyncHandler(async (req: Request, res: Response) => {
+  // Redis Blacklist (REMOVED)
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

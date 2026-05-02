@@ -9,6 +9,7 @@ export const checkPermission =
     try {
 
       const roleId = req.user.roleId;
+      console.log(roleId,"role");
       
       
 
@@ -18,6 +19,11 @@ export const checkPermission =
           roleId,
           module,
           action,
+        },
+        {
+          headers: {
+            Authorization: req.headers.authorization,
+          },
         }
       );
 
