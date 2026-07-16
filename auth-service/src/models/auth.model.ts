@@ -14,6 +14,7 @@ export interface IAuth {
   phone?: string;
   password?: string;
   role: string;
+  roleId?: number;
   superadminId?: number;
   doctorId?: number;
   staffId?: number;
@@ -31,7 +32,7 @@ export interface IAuth {
   otpExpiry?: Date;
 }
 
-type AuthCreationAttributes = Optional<IAuth, 'id' | 'email' | 'phone' | 'password' | 'superadminId' | 'doctorId' | 'staffId' | 'hospitalId' | 'doctor_fcmtoken' | 'staff_fcmtoken' | 'hospital_fcmtoken' | 'superadmin_fcmtoken' | 'deleteDate' | 'isActive' | 'isDelete' | 'otp' | 'otpExpiry'>;
+type AuthCreationAttributes = Optional<IAuth, 'id' | 'email' | 'phone' | 'password' | 'roleId' | 'superadminId' | 'doctorId' | 'staffId' | 'hospitalId' | 'doctor_fcmtoken' | 'staff_fcmtoken' | 'hospital_fcmtoken' | 'superadmin_fcmtoken' | 'deleteDate' | 'isActive' | 'isDelete' | 'otp' | 'otpExpiry'>;
 
 class Auth extends Model<IAuth, AuthCreationAttributes> implements IAuth {
   public id!: number;
@@ -39,6 +40,7 @@ class Auth extends Model<IAuth, AuthCreationAttributes> implements IAuth {
   public phone?: string;
   public password?: string;
   public role!: string;
+  public roleId?: number;
   public superadminId?: number;
   public doctorId?: number;
   public staffId?: number;
