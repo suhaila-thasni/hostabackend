@@ -4,7 +4,7 @@ export const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8),
-  phone: z.string().regex(/^[0-9]{10}$/),
+  phone: z.string().regex(/^[0-9]{10}$/, "Phone must be a 10-digit number"),
   fcmToken: z.string().optional(),
 });
 
@@ -48,7 +48,7 @@ export const verifyOtpSchema = z.object({
 export const updateUserSchema = z.object({
     name: z.string().min(2).optional(),
     email: z.string().email().optional(),
-    phone: z.string().regex(/^[0-9]{10}$/).optional(),
+    phone: z.string().regex(/^[0-9]{10}$/, "Phone must be a 10-digit number").optional(),
     relationType: z.enum(["mother", "father", "guardian"]).optional(),
     joinAccountId: z.number().optional(),
 });

@@ -64,6 +64,7 @@ import {
 
 import { validate, validateParams } from "../middleware/validate.middleware";
 import { registerSchema, loginSchema, idParamSchema, loginWithPhoneSchema, verifyOtpSchema, updateUserSchema, sendOtpEmailSchema, verifyOtpEmailSchema, resetPasswordEmailSchema, changePasswordSchema } from "../validators/user.validator";
+import { createPatientSchema, updatePatientSchema } from "../validators/patient.validator";
 import { authenticate, restrictTo } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
 
@@ -97,12 +98,12 @@ router.delete("/users/:id", authenticate, validateParams(idParamSchema), checkPe
 
 
 // Patient Routes
-router.post("/patients", authenticate, checkPermission("patient", "create"), createPatient);
+router.post("/patients", authenticate, checkPermission("patient", "create"), validate(createPatientSchema), createPatient);
 router.get("/patients", authenticate, checkPermission("patient", "view"), getPatients);
 router.get("/patients/blacklist", authenticate, checkPermission("patient", "view"), getBlacklistedPatients);
 router.get("/patients/:id", authenticate, checkPermission("patient", "view"), validateParams(idParamSchema), getPatient);
 router.put("/patients/recover/:id", authenticate, checkPermission("patient", "edit"), recoverPatient);
-router.put("/patients/:id", authenticate, checkPermission("patient", "edit"), validateParams(idParamSchema), updatePatient);
+router.put("/patients/:id", authenticate, checkPermission("patient", "edit"), validateParams(idParamSchema), validate(updatePatientSchema), updatePatient);
 router.delete("/patients/:id", authenticate, checkPermission("patient", "delete"), validateParams(idParamSchema), deletePatient);
 
 

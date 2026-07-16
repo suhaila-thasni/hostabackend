@@ -197,7 +197,6 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false }, jwtKey, {
     expiresIn: "15m",
   });
-  
 
   // Remove password and OTP fields from response
   const safeUser = user.toJSON();
