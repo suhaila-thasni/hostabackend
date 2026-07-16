@@ -194,10 +194,9 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false ,}, jwtKey, {
+  const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false }, jwtKey, {
     expiresIn: "15m",
   });
-  
 
   // Remove password and OTP fields from response
   const safeUser = user.toJSON();
