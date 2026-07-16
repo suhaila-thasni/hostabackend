@@ -20,6 +20,7 @@ export const SERVICES = {
   S3_SERVICE: env.S3_SERVICE_URL,
   BULMQ_SERVICE: env.BULMQ_SERVICE_URL,
   SOCKETIO_SERVICE: env.SOCKETIO_SERVICE_URL,
+  AUTH_SERVICE: env.AUTH_SERVICE_URL,
 };
 
 
@@ -102,4 +103,8 @@ if (!SERVICES.BULMQ_SERVICE) {
 
 if (!SERVICES.SOCKETIO_SERVICE) {
   throw new Error("SOCKETIO_SERVICE_URL not defined");
+}
+
+if (!SERVICES.AUTH_SERVICE) {
+  throw new Error("AUTH_SERVICE_URL not defined");
 }
