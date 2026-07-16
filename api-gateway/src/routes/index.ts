@@ -19,6 +19,8 @@ import roleRoutes from "./role.routes";
 import s3Routes from "./s3.routes";
 import bulmqRoutes from "./bulmq.routes";
 import socketioRoutes from "./socketio.routes";
+import authRoutes from "./auth.routes";
+
 
 
 
@@ -44,6 +46,7 @@ router.use("/", roleRoutes);
 router.use("/", s3Routes);
 router.use("/", bulmqRoutes);
 router.use("/", socketioRoutes);
+router.use("/", authRoutes);
 
 export default router;
 

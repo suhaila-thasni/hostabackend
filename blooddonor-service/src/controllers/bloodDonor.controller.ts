@@ -427,7 +427,29 @@ export const updateDonor: any = asyncHandler(async (req: Request, res: Response)
   // Whitelist fields to prevent Mass Assignment
   const { phone, dateOfBirth, bloodGroup, address } = req.body;
   const updatePayload: any = {};
+
   if (phone) updatePayload.phone = phone.replace(/\D/g, "").slice(-10);
+
+    // Age validation (must be 18+)
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+
+  if (age < 18) {
+    res.status(400).json({
+      success: false,
+      message: "Must be at least 18 years old to donate blood",
+      data: null,
+      error: { code: "AGE_RESTRICTION", details: null },
+    });
+    return;
+  }
+
+
+
+
   if (dateOfBirth) updatePayload.dateOfBirth = dateOfBirth;
   if (bloodGroup) updatePayload.bloodGroup = bloodGroup;
   if (address) updatePayload.address = address;

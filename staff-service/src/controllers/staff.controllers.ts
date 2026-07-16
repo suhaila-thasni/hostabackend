@@ -98,7 +98,6 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
   const { hospitalId, name, phone, email, password, roleId,  designation, joiningDate, jobType, staffType,  dob, gender, knowLanguages, qualification, address, hospitalName } = req.body;
 
 
-
   if (!hospitalId) {
     res.status(400).json({ success: false, message: "Hospital ID is required" });
     return;
@@ -149,6 +148,28 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
       knowLanguages, qualification, address,
       designation, joiningDate, jobType, staffType,hospitalName
     });
+
+    
+     try {
+   await axios.post(
+    `${process.env.AUTH_SERVICE_URL}/auth`,
+    {
+      email,
+      phone,
+      password,
+      role: "staff",
+      staffId: newStaff.id,
+    }
+  );
+
+} catch (error: any) {
+  console.error(
+    "Failed to create auth staff:",
+    error.response?.data || error.message
+  );
+
+  throw new Error("Failed to create authentication staff");
+}
 
     await publishEvent("staff_events", "STAFF_REGISTERED", {
       staffId: newStaff.id,
@@ -464,6 +485,8 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
   const { id } = req.params;
   const { id: _, ...updatePayload } = req.body; // Remove id from payload if present
 
+
+
   const staff = await Staff.findOne({ where: { id, isDelete: false } });
 
   if (!staff) {
@@ -498,6 +521,26 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
   try {
     // 🔥 Use instance update to trigger beforeUpdate hooks (password hashing)
     await staff.update(updatePayload);
+
+
+      // update auth staff
+
+   try {
+   await axios.put(
+    `${process.env.AUTH_SERVICE_URL}/auth/${staff.id}/role/${"staff"}`,
+    {
+     updatePayload
+    }
+  );
+
+} catch (error: any) {
+  console.error(
+    "Failed to update auth staff:",
+    error.response?.data || error.message
+  );
+
+  throw new Error("Failed to update authentication staff");
+}
 
     await publishEvent("staff_events", "STAFF_UPDATED", {
       staffId: staff.id,
@@ -551,6 +594,29 @@ export const staffDelete: any = asyncHandler(async (req: Request, res: Response)
     isDelete: true,
     deleteDate: new Date(),
   });
+
+
+
+      // update auth staff
+
+   try {
+   await axios.put(
+    `${process.env.AUTH_SERVICE_URL}/auth/${staff.id}/role/${"staff"}`,
+    {
+      isActive: false,
+      isDelete: true,
+      deleteDate: new Date(),
+    }
+  );
+
+} catch (error: any) {
+  console.error(
+    "Failed to update auth staff:",
+    error.response?.data || error.message
+  );
+
+  throw new Error("Failed to update authentication staff");
+}
 
 
     await publishEvent("staff_events", "STAFF_DELETED", {
@@ -811,6 +877,28 @@ export const recoverStaff: any = asyncHandler(async (req: Request, res: Response
     isActive: true,
     deleteDate: null,
   });
+
+
+      // update auth staff
+
+   try {
+   await axios.put(
+    `${process.env.AUTH_SERVICE_URL}/auth/${staff.id}/role/${"staff"}`,
+    {
+      isActive: true,
+      isDelete: false,
+      deleteDate: null,
+    }
+  );
+
+} catch (error: any) {
+  console.error(
+    "Failed to update auth staff:",
+    error.response?.data || error.message
+  );
+
+  throw new Error("Failed to update authentication staff");
+}
 
   await publishEvent("staff_events", "STAFF_RECOVERED", {
     staffId: staff.id,
