@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { createProxyMiddleware, Options } from "http-proxy-middleware";
 import http from "http";
 
@@ -71,9 +71,10 @@ const loginLimiter = rateLimit({
     max: 5,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req: any) => {
+    keyGenerator: (req: any, res: any) => {
         const email = req.body?.email || req.body?.phone || "unknown";
-        return `${req.ip}-${email}`;
+        const ip = ipKeyGenerator(req, res);
+        return `${ip}-${email}`;
     },
     message: {
         success: false,

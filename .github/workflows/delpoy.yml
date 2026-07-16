@@ -30,6 +30,7 @@ jobs:
           - speciality-service
           - staff-service
           - user-service
+          - auth-service
 
     steps:
       - name: Checkout code
@@ -90,6 +91,7 @@ jobs:
             # Sync .env files individually to prevent variable collisions (like PORT)
             echo "${{ secrets.APIGATEWAY_SERVICE_ENV }}" > .env.api-gateway
             echo "${{ secrets.USER_SERVICE_ENV }}" > .env.user-service
+            echo "${{ secrets.AUTH_SERVICE_ENV }}" > .env.auth-service
             echo "${{ secrets.AMBULANCE_SERVICE_ENV }}" > .env.ambulance-service
             echo "${{ secrets.BLOODDONOR_SERVICE_ENV }}" > .env.blood-service
             echo "${{ secrets.BLOODBANK_SERVICE_ENV }}" > .env.blood-bank-service
