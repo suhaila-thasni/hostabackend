@@ -8,9 +8,13 @@ import {
   resetPassword,
   changePassword,
   refreshHospitalToken,
-  logout
+  logout,
+  register,
+  deleteAuth,
+  update,
+  getAuthByid
 } from '../controllers/auth.controller';
-import { authenticate, checkPermission } from '../middleware/auth.middleware';
+import { authenticate } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate';
 import {
   loginHospitalSchema,
@@ -18,7 +22,9 @@ import {
   verifyOtpSchema,
   loginWithEmailSchema,
   resetPasswordSchema,
-  changePasswordSchema
+  changePasswordSchema,
+  registerSchema,
+  updateSchema
 } from '../validators/auth.validator';
 
 const router = Router();
@@ -27,6 +33,13 @@ const router = Router();
 router.post("/login", validate(loginHospitalSchema), login);
 router.post("/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
 router.post("/otp", validate(verifyOtpSchema), verifyLoginOtp);
+router.post("/", validate(registerSchema), register);
+router.put("/:id/role/:roles", authenticate, validate(updateSchema), update);
+router.delete("/:id/role/:roles", deleteAuth);
+router.get("/:id/role/:roles",  getAuthByid);
+
+
+
 
 // Production Auth Routes
 router.post("/send-otp", validate(loginWithEmailSchema), sendOtp);

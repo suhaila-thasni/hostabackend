@@ -25,6 +25,7 @@ services:
       - speciality-service
       - doctor-service
       - hospital-service
+      - auth-service
     networks:
       - hosta-network
 
@@ -196,6 +197,14 @@ services:
     environment:
       - NODE_OPTIONS=--dns-result-order=ipv4first
     env_file: ./s3-service/.env
+    networks:
+      - hosta-network  
+  auth-service:
+    container_name: auth-service
+    build: ./auth-service
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file: ./auth-service/.env
     networks:
       - hosta-network  
 

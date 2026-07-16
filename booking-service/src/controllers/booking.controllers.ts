@@ -174,26 +174,16 @@ export const Registeration: any = asyncHandler(
 
     try {
       // TOKENS
-      const hospitalToken = hospitalRes?.data?.data?.fcmToken?.map((d: any) => d.fcmToken) ?? [];
-      const doctorToken = doctor?.data?.fcmToken?.map((d: any) => d.fcmToken) ?? [];
-      // USER TOKEN
-      let userToken;
-      if (userId) {
-        const userRes = await httpClient.get(
-          `${process.env.USER_SERVICE_URL}/users/${userId}`,
-          {
-            headers: {
-              Authorization: req.headers.authorization,
-            },
-          }
-        );
-        userToken = userRes?.data?.data?.fcmToken?.map((d: any) => d.fcmToken) ?? [];
-      }
+        const authHospitalToken =  await axios.get(`${process.env.AUTH_SERVICE_URL}/auth/${hospitalRes?.data?.data?.id}/role/${"hospital"}`);
+        const authDoctorToken =  await axios.get(`${process.env.AUTH_SERVICE_URL}/auth/${doctor?.data?.id}/role/${"doctor"}`);
+
+      const hospitalToken = authHospitalToken?.data?.data?.hospital_fcmtoken?.map((d: any) => d.fcmToken) ?? [];
+      const doctorToken = authDoctorToken?.data?.doctor_fcmtoken?.map((d: any) => d.fcmToken) ?? [];
+  
 
       await sendBookingPushNotifications({
         hospitalToken,
         doctorToken,
-        userToken,
         patient_name,
         doctorName,
         booking_date,

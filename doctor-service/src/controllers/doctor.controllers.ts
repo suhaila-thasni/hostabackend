@@ -184,6 +184,31 @@ if (exist) {
       hospitalName,
     });
 
+
+
+
+ try {
+   await axios.post(
+    `${process.env.AUTH_SERVICE_URL}/auth`,
+    {
+      email,
+      phone,
+      password,
+      role: "doctor",
+      doctorId: newDoctor.id,
+    }
+  );
+
+} catch (error: any) {
+  console.error(
+    "Failed to create auth doctor:",
+    error.response?.data || error.message
+  );
+
+  throw new Error("Failed to create authentication doctor");
+}
+
+
     await publishEvent("doctor_events", "DOCTOR_REGISTERED", {
       doctorId: newDoctor.id,
       doctorName: newDoctor.displayName,
@@ -576,6 +601,26 @@ export const updateData: any = asyncHandler(
       return;
     }
 
+
+      // update auth doctor
+
+   try {
+   await axios.put(
+    `${process.env.AUTH_SERVICE_URL}/auth/${doctor[1][0].id}/role/${"doctor"}`,
+    {
+     updatePayload
+    }
+  );
+
+} catch (error: any) {
+  console.error(
+    "Failed to update auth doctor:",
+    error.response?.data || error.message
+  );
+
+  throw new Error("Failed to update authentication doctor");
+}
+
     await publishEvent("doctor_events", "DOCTOR_UPDATED", {
       doctorId: doctor[1][0].id,
     });
@@ -611,6 +656,28 @@ export const doctorDelete: any = asyncHandler(
       isDelete: true,
       deleteDate: new Date(),
     });
+
+
+      // update auth doctor
+
+   try {
+   await axios.put(
+    `${process.env.AUTH_SERVICE_URL}/auth/${id}/role/${"doctor"}`,
+    {
+      isActive: false,
+      isDelete: true,
+      deleteDate: new Date(),
+    }
+  );
+
+} catch (error: any) {
+  console.error(
+    "Failed to update auth doctor:",
+    error.response?.data || error.message
+  );
+
+  throw new Error("Failed to update authentication doctor");
+}
 
     await publishEvent("doctor_events", "DOCTOR_DELETED", {
       doctorId: id,
@@ -830,6 +897,27 @@ export const recoverDoctor: any = asyncHandler(async (req: Request, res: Respons
     isActive: true,
     deleteDate: null,
   });
+
+
+   try {
+   await axios.put(
+    `${process.env.AUTH_SERVICE_URL}/auth/${doctor.id}/role/${"doctor"}`,
+    {
+      isActive: true,
+      isDelete: false,
+      deleteDate: null,
+    }
+  );
+
+} catch (error: any) {
+  console.error(
+    "Failed to update auth doctor:",
+    error.response?.data || error.message
+  );
+
+  throw new Error("Failed to update authentication doctor");
+}
+
 
   await publishEvent("doctor_events", "DOCTOR_RECOVERED", {
     doctorId: doctor.id,

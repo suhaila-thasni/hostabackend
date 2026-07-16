@@ -63,3 +63,27 @@ export const resetPasswordSchema = z.object({
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
+
+
+export const registerSchema  =  z.object({
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.string(),
+  phone:  z.string().regex(/^[0-9]{10}$/, "Phone number must be 10 digits"),
+  superadminId: z.number().optional(),
+  doctorId: z.number().optional(),
+  staffId: z.number().optional(),
+  hospitalId: z.number().optional(),
+});
+
+export const updateSchema  =  z.object({
+  email: z.string().email("Invalid email format").optional(),
+  password: z.string().min(6, "Password must be at least 6 characters").optional(),
+  role: z.string(),
+  phone:  z.string().regex(/^[0-9]{10}$/, "Phone number must be 10 digits").optional(),
+  superadminId: z.number().optional(),
+  doctorId: z.number().optional(),
+  staffId: z.number().optional(),
+  hospitalId: z.number().optional(),
+});
+

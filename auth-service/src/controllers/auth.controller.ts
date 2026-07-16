@@ -197,6 +197,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false }, jwtKey, {
     expiresIn: "15m",
   });
+  
 
   // Remove password and OTP fields from response
   const safeUser = user.toJSON();
@@ -495,7 +496,319 @@ export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: 
 });
 
 // ===================== LOGOUT =====================
-export const logout: any = asyncHandler(async (req: AuthRequest, res: Response) => {
-  res.clearCookie("refreshToken");
-  res.status(200).json({ message: "Logout successful" });
+
+export const logout: any = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { id, deviceId, role } = req.body;
+
+    if (!id || !deviceId || !role) {
+      res.status(400).json({
+        success: false,
+        message: "id, role and deviceId are required",
+      });
+      return;
+    }
+
+    const auth = await Auth.findByPk(id);
+
+    if (!auth) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    const roleFieldMap: Record<string, string> = {
+      doctor: "doctor_fcmtoken",
+      staff: "staff_fcmtoken",
+      hospital: "hospital_fcmtoken",
+      superadmin: "superadmin_fcmtoken",
+    };
+
+    const tokenField = roleFieldMap[role];
+
+    if (!tokenField) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid role",
+      });
+      return;
+    }
+
+    const tokens = (auth.get(tokenField) || []) as any[];
+
+    const updatedTokens = tokens.filter(
+      (token) => token.deviceId !== deviceId
+    );
+
+    await auth.update({
+      [tokenField]: updatedTokens,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Logout successful",
+    });
+  }
+);
+
+
+
+export const register = asyncHandler(async (req: Request, res: Response) : Promise<void> => {
+  const {
+    email,
+    phone,
+    password,
+    role,
+    superadminId,
+    doctorId,
+    staffId,
+    hospitalId,
+  } = req.body;
+
+  // Validation
+  if (!password || (!email && !phone)) {
+     res.status(400).json({
+      success: false,
+      message: "Email or phone and password are required.",
+    });
+    return;
+  }
+
+ 
+  // Create user
+  const auth = await Auth.create({
+    email,
+    phone,
+    password,
+    role,
+    superadminId,
+    doctorId,
+    staffId,
+    hospitalId,
+  });
+
+ res.status(201).json({
+    success: true,
+    message: "User registered successfully.",
+    data: auth,
+  });
+  return;
 });
+
+
+
+export const update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const { id, roles } : any = req.params;
+
+    const {
+    email,
+    phone,
+    password,
+    role,
+    superadminId,
+    doctorId,
+    staffId,
+    hospitalId,
+    deviceId,
+    fcmToken,
+    platform,
+  } = req.body;
+
+let where: any = {};
+
+switch (roles) {
+  case "doctor":
+    where.doctorId = id;
+    break;
+
+  case "staff":
+    where.staffId = id;
+    break;
+
+  case "hospital":
+    where.hospitalId = id;
+    break;
+
+  case "superadmin":
+    where.superadminId = id;
+    break;
+
+  default:
+     res.status(400).json({
+      success: false,
+      message: "Invalid role",
+    });
+    return;
+}
+
+const auth: any = await Auth.findOne({ where });
+
+  if (!auth) {
+    res.status(404).json({
+      success: false,
+      message: "User not found.",
+    });
+    return;
+  }
+
+  // Update normal fields
+  await auth.update({
+    email,
+    phone,
+    password,
+    role,
+    superadminId,
+    doctorId,
+    staffId,
+    hospitalId,
+  });
+
+  // Update FCM token array based on role
+  if (deviceId && fcmToken && platform) {
+    const fieldMap: any = {
+      doctor: "doctor_fcmtoken",
+      staff: "staff_fcmtoken",
+      hospital: "hospital_fcmtoken",
+      superadmin: "superadmin_fcmtoken",
+    };
+
+    const field = fieldMap[auth.role];
+
+    if (field) {
+      const tokens = auth[field] || [];
+
+      const index = tokens.findIndex(
+        (item: any) => item.deviceId === deviceId
+      );
+
+      const tokenData = {
+        deviceId,
+        fcmToken,
+        platform,
+      };
+
+      if (index !== -1) {
+        tokens[index] = tokenData;
+      } else {
+        tokens.push(tokenData);
+      }
+
+      await auth.update({
+        [field]: tokens,
+      });
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "User updated successfully.",
+    data: auth,
+  });
+});
+
+
+export const deleteAuth = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { id, roles } : any = req.params;
+
+    
+let where: any = {};
+
+switch (roles) {
+  case "doctor":
+    where.doctorId = id;
+    break;
+
+  case "staff":
+    where.staffId = id;
+    break;
+
+  case "hospital":
+    where.hospitalId = id;
+    break;
+
+  case "superadmin":
+    where.superadminId = id;
+    break;
+
+  default:
+     res.status(400).json({
+      success: false,
+      message: "Invalid role",
+    });
+    return;
+}
+
+const auth: any = await Auth.findOne({ where });
+
+    if (!auth) {
+      res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+      return;
+    }
+
+    await auth.destroy();
+
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully.",
+    });
+  }
+);
+
+
+
+export const getAuthByid = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { id, roles } : any = req.params;
+
+    
+let where: any = {};
+
+switch (roles) {
+  case "doctor":
+    where.doctorId = id;
+    break;
+
+  case "staff":
+    where.staffId = id;
+    break;
+
+  case "hospital":
+    where.hospitalId = id;
+    break;
+
+  case "superadmin":
+    where.superadminId = id;
+    break;
+
+  default:
+     res.status(400).json({
+      success: false,
+      message: "Invalid role",
+    });
+    return;
+}
+
+const auth: any = await Auth.findOne({ where });
+
+    if (!auth) {
+      res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+      return;
+    }
+
+
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully.",
+      data: auth,
+    });
+  }
+);
