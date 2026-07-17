@@ -290,6 +290,7 @@ export const updateData: any = asyncHandler(
       } else if (updatedBooking.status === "completed") {
         eventName = "BOOKING_COMPLETED";
                await sendBookingPushNotifications({
+                doctorName:updatedBooking?.doctor_name,
         userToken,
         type: "BOOKING_COMPLETED",
       });
