@@ -6,6 +6,7 @@ import Auth from "../models/auth.model";
 import { Op } from "sequelize";
 import twilio from "twilio";
 import axios from "axios";
+import { sendEmail } from "../services/mail.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 
 const APPLE_TEST_NUMBER = "9999999999";
@@ -38,8 +39,33 @@ const getTwilioClient = () => {
 };
 
 export const sendOtpEmail = async (email: string, otp: string, userName: string = "User") => {
-  // Integration point for sending emails
-  console.log(`Sending Email OTP to ${email}: ${otp}`);
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+      <div style="background-color: #007bff; padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px; letter-spacing: 1px;">Hosta Hospital</h1>
+      </div>
+      <div style="padding: 40px; background-color: #ffffff;">
+        <h2 style="color: #333; margin-top: 0;">Verification Code</h2>
+        <p style="color: #666; font-size: 16px; line-height: 1.6;">Hello <strong>${userName}</strong>,</p>
+        <p style="color: #666; font-size: 16px; line-height: 1.6;">Use the following security code to complete your login. This code is valid for <strong>10 minutes</strong>.</p>
+        
+        <div style="text-align: center; margin: 40px 0;">
+          <div style="display: inline-block; background-color: #f8f9fa; border: 2px dashed #007bff; border-radius: 8px; padding: 20px 40px; font-size: 32px; font-weight: bold; color: #007bff; letter-spacing: 8px;">
+            ${otp}
+          </div>
+        </div>
+        
+        <p style="color: #999; font-size: 14px; line-height: 1.5; border-top: 1px solid #eee; padding-top: 20px;">
+          If you didn't request this, please ignore this email or contact support if you have concerns.
+        </p>
+      </div>
+      <div style="background-color: #f8f9fa; padding: 20px; text-align: center; color: #999; font-size: 12px;">
+        &copy; 2026 Hosta Health. All rights reserved.
+      </div>
+    </div>
+  `;
+
+  await sendEmail(email, "Your Verification Code - Hosta Hospital", html);
 };
 
 /**
