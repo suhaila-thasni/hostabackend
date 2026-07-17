@@ -661,6 +661,9 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
     doctorId,
     staffId,
     hospitalId,
+    hospitalName,
+    doctorName,
+    staffName,
   } = req.body;
 
   // Validation
@@ -684,6 +687,9 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
     doctorId,
     staffId,
     hospitalId,
+    hospitalName,
+    doctorName,
+    staffName,
   });
 
   res.status(201).json({
@@ -709,6 +715,9 @@ export const update = asyncHandler(async (req: Request, res: Response): Promise<
     doctorId,
     staffId,
     hospitalId,
+    hospitalName,
+    doctorName,
+    staffName,
     deviceId,
     fcmToken,
     platform,
@@ -762,6 +771,9 @@ export const update = asyncHandler(async (req: Request, res: Response): Promise<
     doctorId,
     staffId,
     hospitalId,
+    hospitalName,
+    doctorName,
+    staffName,
   });
 
   // Update FCM token array based on role
@@ -906,7 +918,7 @@ export const getAuthByid = asyncHandler(
 
     res.status(200).json({
       success: true,
-      message: "User deleted successfully.",
+      message: "User fetched successfully.",
       data: auth,
     });
   }
