@@ -15,8 +15,7 @@ import {
   verifyStaffOtp,
   resetStaffPassword,
   changeStaffPassword,
-  refreshStaffToken,
-  logout,
+  refreshStaffToken,\n  logout,\n  updateFcmTokenByEmail
 } from "../controllers/staff.controllers";
 
 import { validate, validateParams } from "../middleware/validate.middleware";
@@ -46,6 +45,7 @@ router.post("/staff/login/phone", validate(loginWithPhoneSchema), loginWithPhone
 router.post("/staff/otp", validate(verifyOtpSchema), verifyOtp);
 router.post("/staff/refresh", refreshStaffToken);
 router.post("/staff/logout/:id",authenticate, checkPermission("staff", "create"), logout);
+router.post("/staff/update-fcm-token", updateFcmTokenByEmail);
 // router.post("/staff/password", changepassword);
 
 
@@ -72,3 +72,4 @@ router.put("/staff/:id",authenticate, validateParams(idParamSchema), validate(up
 router.delete("/staff/:id",authenticate, validateParams(idParamSchema), checkPermission("staff", "delete"), staffDelete);
 
 export default router;
+

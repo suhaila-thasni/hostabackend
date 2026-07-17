@@ -119,6 +119,49 @@ const fetchRolePermissions = async (roleId: number | undefined): Promise<any> =>
   }
 };
 
+/**
+ * Update FCM token in the respective service based on role.
+ * This will call the doctor/hospital/staff service to update their FCM token.
+ */
+const updateFCMTokenInService = async (role: string, entityId: number, email: string, fcmToken: any): Promise<void> => {
+  try {
+    let serviceUrl = "";
+    let endpoint = "";
+
+    switch (role) {
+      case "hospital":
+        serviceUrl = process.env.HOSPITAL_SERVICE_URL || "";
+        endpoint = `${serviceUrl}/hospital/update-fcm-token`;
+        break;
+      case "staff":
+        serviceUrl = process.env.STAFF_SERVICE_URL || "";
+        endpoint = `${serviceUrl}/staff/update-fcm-token`;
+        break;
+      case "doctor":
+        serviceUrl = process.env.DOCTOR_SERVICE_URL || "";
+        endpoint = `${serviceUrl}/doctor/update-fcm-token`;
+        break;
+      default:
+        console.log(`FCM token update not supported for role: ${role}`);
+        return;
+    }
+
+    if (!serviceUrl) {
+      console.log(`Service URL not configured for role: ${role}`);
+      return;
+    }
+
+    await axios.post(endpoint, {
+      email,
+      fcmToken,
+    });
+
+    console.log(`FCM token updated successfully for ${role} with email: ${email}`);
+  } catch (err: any) {
+    console.error(`Failed to update FCM token for ${role}:`, err.message);
+  }
+};
+
 // ===================== LOGIN (Email/Password) =====================
 export const login: any = asyncHandler(async (req: Request, res: Response) => {
   const { email, phone, password, fcmToken } = req.body;
@@ -194,7 +237,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false }, jwtKey, {
+  const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false, roleId: user.roleId }, jwtKey, {
     expiresIn: "15m",
   });
 
@@ -385,7 +428,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   await user.update({ otp: null as any, otpExpiry: null as any });
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false }, jwtKey, {
+  const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false, roleId: user.roleId }, jwtKey, {
     expiresIn: "15m",
   });
 
@@ -403,8 +446,8 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   // Fetch related profile from other microservices
   const profileData = await fetchRelatedProfile(user);
 
-  // Fetch role permissions from role-service
-  const authPermission = await fetchRolePermissions(profileData?.roleId);
+  // Fetch role permissions from role-service (use user.roleId as fallback if profileData doesn't carry it)
+  const authPermission = await fetchRolePermissions(profileData?.roleId ?? user.roleId);
 
   res.status(200).json({
     success: true,
@@ -483,7 +526,7 @@ export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: 
       }
 
       const accessToken = jwt.sign(
-        { id: user.id, role: user.role, isRefresh: false },
+        { id: user.id, role: user.role, isRefresh: false, roleId: user.roleId },
         process.env.JWT_SECRET || "supersecretjwtkey",
         { expiresIn: "15m" }
       );
@@ -554,12 +597,13 @@ export const logout: any = asyncHandler(
 
 
 
-export const register = asyncHandler(async (req: Request, res: Response) : Promise<void> => {
+export const register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const {
     email,
     phone,
     password,
     role,
+    roleId,
     superadminId,
     doctorId,
     staffId,
@@ -568,27 +612,28 @@ export const register = asyncHandler(async (req: Request, res: Response) : Promi
 
   // Validation
   if (!password || (!email && !phone)) {
-     res.status(400).json({
+    res.status(400).json({
       success: false,
       message: "Email or phone and password are required.",
     });
     return;
   }
 
- 
+
   // Create user
   const auth = await Auth.create({
     email,
     phone,
     password,
     role,
+    roleId,
     superadminId,
     doctorId,
     staffId,
     hospitalId,
   });
 
- res.status(201).json({
+  res.status(201).json({
     success: true,
     message: "User registered successfully.",
     data: auth,
@@ -599,13 +644,14 @@ export const register = asyncHandler(async (req: Request, res: Response) : Promi
 
 
 export const update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const { id, roles } : any = req.params;
+  const { id, roles }: any = req.params;
 
-    const {
+  const {
     email,
     phone,
     password,
     role,
+    roleId,
     superadminId,
     doctorId,
     staffId,
@@ -615,34 +661,34 @@ export const update = asyncHandler(async (req: Request, res: Response): Promise<
     platform,
   } = req.body;
 
-let where: any = {};
+  let where: any = {};
 
-switch (roles) {
-  case "doctor":
-    where.doctorId = id;
-    break;
+  switch (roles) {
+    case "doctor":
+      where.doctorId = id;
+      break;
 
-  case "staff":
-    where.staffId = id;
-    break;
+    case "staff":
+      where.staffId = id;
+      break;
 
-  case "hospital":
-    where.hospitalId = id;
-    break;
+    case "hospital":
+      where.hospitalId = id;
+      break;
 
-  case "superadmin":
-    where.superadminId = id;
-    break;
+    case "superadmin":
+      where.superadminId = id;
+      break;
 
-  default:
-     res.status(400).json({
-      success: false,
-      message: "Invalid role",
-    });
-    return;
-}
+    default:
+      res.status(400).json({
+        success: false,
+        message: "Invalid role",
+      });
+      return;
+  }
 
-const auth: any = await Auth.findOne({ where });
+  const auth: any = await Auth.findOne({ where });
 
   if (!auth) {
     res.status(404).json({
@@ -658,6 +704,7 @@ const auth: any = await Auth.findOne({ where });
     phone,
     password,
     role,
+    roleId,
     superadminId,
     doctorId,
     staffId,
@@ -710,37 +757,37 @@ const auth: any = await Auth.findOne({ where });
 
 export const deleteAuth = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { id, roles } : any = req.params;
+    const { id, roles }: any = req.params;
 
-    
-let where: any = {};
 
-switch (roles) {
-  case "doctor":
-    where.doctorId = id;
-    break;
+    let where: any = {};
 
-  case "staff":
-    where.staffId = id;
-    break;
+    switch (roles) {
+      case "doctor":
+        where.doctorId = id;
+        break;
 
-  case "hospital":
-    where.hospitalId = id;
-    break;
+      case "staff":
+        where.staffId = id;
+        break;
 
-  case "superadmin":
-    where.superadminId = id;
-    break;
+      case "hospital":
+        where.hospitalId = id;
+        break;
 
-  default:
-     res.status(400).json({
-      success: false,
-      message: "Invalid role",
-    });
-    return;
-}
+      case "superadmin":
+        where.superadminId = id;
+        break;
 
-const auth: any = await Auth.findOne({ where });
+      default:
+        res.status(400).json({
+          success: false,
+          message: "Invalid role",
+        });
+        return;
+    }
+
+    const auth: any = await Auth.findOne({ where });
 
     if (!auth) {
       res.status(404).json({
@@ -763,37 +810,37 @@ const auth: any = await Auth.findOne({ where });
 
 export const getAuthByid = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { id, roles } : any = req.params;
+    const { id, roles }: any = req.params;
 
-    
-let where: any = {};
 
-switch (roles) {
-  case "doctor":
-    where.doctorId = id;
-    break;
+    let where: any = {};
 
-  case "staff":
-    where.staffId = id;
-    break;
+    switch (roles) {
+      case "doctor":
+        where.doctorId = id;
+        break;
 
-  case "hospital":
-    where.hospitalId = id;
-    break;
+      case "staff":
+        where.staffId = id;
+        break;
 
-  case "superadmin":
-    where.superadminId = id;
-    break;
+      case "hospital":
+        where.hospitalId = id;
+        break;
 
-  default:
-     res.status(400).json({
-      success: false,
-      message: "Invalid role",
-    });
-    return;
-}
+      case "superadmin":
+        where.superadminId = id;
+        break;
 
-const auth: any = await Auth.findOne({ where });
+      default:
+        res.status(400).json({
+          success: false,
+          message: "Invalid role",
+        });
+        return;
+    }
+
+    const auth: any = await Auth.findOne({ where });
 
     if (!auth) {
       res.status(404).json({

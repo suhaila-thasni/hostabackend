@@ -1245,6 +1245,60 @@ await doctor.save();
   res.status(200).json({ success: true, message: "Logged out successfully" });
 });
 
+// UPDATE FCM TOKEN BY EMAIL - POST /doctor/update-fcm-token
+export const updateFcmTokenByEmail: any = asyncHandler(async (req: Request, res: Response) => {
+  const { email, fcmToken } = req.body;
+
+  if (!email || !fcmToken) {
+    res.status(400).json({
+      success: false,
+      message: "Email and FCM token are required",
+      error: { code: "MISSING_REQUIRED_FIELDS", details: null },
+    });
+    return;
+  }
+
+  const doctor = await Doctor.findOne({ where: { email } });
+  if (!doctor) {
+    res.status(404).json({
+      success: false,
+      message: "Doctor not found",
+      error: { code: "DOCTOR_NOT_FOUND", details: null },
+    });
+    return;
+  }
+
+  const existingTokens: FCMTOKEN[] = Array.isArray(doctor.fcmToken)
+    ? doctor.fcmToken
+    : [];
+
+  const newTokens: FCMTOKEN[] = Array.isArray(fcmToken)
+    ? fcmToken
+    : [fcmToken];
+
+  const updatedTokens = [
+    ...existingTokens.filter(
+      (oldToken) =>
+        !newTokens.some(
+          (newToken) =>
+            newToken.deviceId === oldToken.deviceId
+        )
+    ),
+    ...newTokens,
+  ];
+
+  await doctor.update({
+    fcmToken: updatedTokens,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "FCM token updated successfully",
+    data: { id: doctor.id, fcmToken: updatedTokens },
+    error: null,
+  });
+});
+
 // SAVE FCM TOKEN - POST /doctor/:id/fcm-token
 export const saveFcmToken: any = asyncHandler(async (req: Request, res: Response) => {
   const { fcmToken } = req.body;
@@ -1278,3 +1332,4 @@ export const saveFcmToken: any = asyncHandler(async (req: Request, res: Response
     error: null,
   });
 });
+

@@ -28,8 +28,9 @@ import {
   recoverHospital,
   refreshHospitalToken,
   logout,
-  roleBaseLogin,
-  roleBaseLogout
+  roleBaseLogin,              
+   roleBaseLogout,
+  updateFcmTokenByEmail,
 } from "../controllers/hospital.controllers";
 import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
@@ -71,9 +72,12 @@ router.delete("/hospital/:id",authenticate,checkPermission("hospital","delete"),
 
 router.post("/hospital/g-login", roleBaseLogin);
 router.post("/hospital/g-logout", roleBaseLogout);
+router.post("/hospital/update-fcm-token", updateFcmTokenByEmail);
 
 
 
 export default router;
+
+
 
 

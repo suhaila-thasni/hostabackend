@@ -1201,3 +1201,58 @@ export const saveFcmToken: any = asyncHandler(async (req: Request, res: Response
   });
 });
 
+
+
+// UPDATE FCM TOKEN BY EMAIL - POST /staff/update-fcm-token
+export const updateFcmTokenByEmail: any = asyncHandler(async (req: Request, res: Response) => {
+  const { email, fcmToken } = req.body;
+
+  if (!email || !fcmToken) {
+    res.status(400).json({
+      success: false,
+      message: "Email and FCM token are required",
+      error: { code: "MISSING_REQUIRED_FIELDS", details: null },
+    });
+    return;
+  }
+
+  const staff = await Staff.findOne({ where: { email } });
+  if (!staff) {
+    res.status(404).json({
+      success: false,
+      message: "Staff not found",
+      error: { code: "STAFF_NOT_FOUND", details: null },
+    });
+    return;
+  }
+
+  const existingTokens: FCMTOKEN[] = Array.isArray(staff.fcmToken)
+    ? staff.fcmToken
+    : [];
+
+  const newTokens: FCMTOKEN[] = Array.isArray(fcmToken)
+    ? fcmToken
+    : [fcmToken];
+
+  const updatedTokens = [
+    ...existingTokens.filter(
+      (oldToken) =>
+        !newTokens.some(
+          (newToken) =>
+            newToken.deviceId === oldToken.deviceId
+        )
+    ),
+    ...newTokens,
+  ];
+
+  await staff.update({
+    fcmToken: updatedTokens,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "FCM token updated successfully",
+    data: { id: staff.id, fcmToken: updatedTokens },
+    error: null,
+  });
+});
