@@ -40,7 +40,7 @@ export const connectDB = async () => {
       if (isProduction) {
         // await sequelize.sync(); // DISABLED - Use migrations instead // safe — only creates tables that don't exist
       } else {
-        await sequelize.sync({ alter: true }); // dev — alters columns to match model
+        // await sequelize.sync({ alter: true }); // DISABLED — too slow on remote DB, causes service to be unavailable during startup
       }
       console.log("🚀 Database schema synchronized");
     } catch (error) {

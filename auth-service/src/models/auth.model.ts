@@ -32,7 +32,7 @@ export interface IAuth {
   otpExpiry?: Date;
 }
 
-type AuthCreationAttributes = Optional<IAuth, 'id' | 'email' | 'phone' | 'password' | 'roleId' | 'superadminId' | 'doctorId' | 'staffId' | 'hospitalId' | 'doctor_fcmtoken' | 'staff_fcmtoken' | 'hospital_fcmtoken' | 'superadmin_fcmtoken' | 'deleteDate' | 'isActive' | 'isDelete' | 'otp' | 'otpExpiry'>;
+type AuthCreationAttributes = Optional<IAuth, 'id' | 'email' | 'phone' | 'password' | 'roleId'  | 'superadminId' | 'doctorId' | 'staffId' | 'hospitalId' | 'doctor_fcmtoken' | 'staff_fcmtoken' | 'hospital_fcmtoken' | 'superadmin_fcmtoken' | 'deleteDate' | 'isActive' | 'isDelete' | 'otp' | 'otpExpiry'>;
 
 class Auth extends Model<IAuth, AuthCreationAttributes> implements IAuth {
   public id!: number;
@@ -86,6 +86,10 @@ Auth.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    roleId: {
+  type: DataTypes.INTEGER,
+  allowNull: true,
+},
     superadminId: {
       type: DataTypes.INTEGER,
       allowNull: true,
