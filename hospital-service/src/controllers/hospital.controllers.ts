@@ -1229,4 +1229,56 @@ export const roleBaseLogout: any = asyncHandler(
   }
 );
 
+// UPDATE FCM TOKEN BY EMAIL - POST /hospital/update-fcm-token
+export const updateFcmTokenByEmail: any = asyncHandler(async (req: Request, res: Response) => {
+  const { email, fcmToken } = req.body;
 
+  if (!email || !fcmToken) {
+    res.status(400).json({
+      success: false,
+      message: "Email and FCM token are required",
+      error: { code: "MISSING_REQUIRED_FIELDS", details: null },
+    });
+    return;
+  }
+
+  const hospital = await Hospital.findOne({ where: { email } });
+  if (!hospital) {
+    res.status(404).json({
+      success: false,
+      message: "Hospital not found",
+      error: { code: "HOSPITAL_NOT_FOUND", details: null },
+    });
+    return;
+  }
+
+  const existingTokens: any[] = Array.isArray(hospital.fcmToken)
+    ? hospital.fcmToken
+    : [];
+
+  const newTokens: any[] = Array.isArray(fcmToken)
+    ? fcmToken
+    : [fcmToken];
+
+  const updatedTokens = [
+    ...existingTokens.filter(
+      (oldToken) =>
+        !newTokens.some(
+          (newToken) =>
+            newToken.deviceId === oldToken.deviceId
+        )
+    ),
+    ...newTokens,
+  ];
+
+  await hospital.update({
+    fcmToken: updatedTokens,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "FCM token updated successfully",
+    data: { id: hospital.id, fcmToken: updatedTokens },
+    error: null,
+  });
+});

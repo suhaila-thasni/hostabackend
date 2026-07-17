@@ -15,7 +15,9 @@ import {
   verifyStaffOtp,
   resetStaffPassword,
   changeStaffPassword,
-  refreshStaffToken,\n  logout,\n  updateFcmTokenByEmail
+  refreshStaffToken,
+  logout,
+  updateFcmTokenByEmail
 } from "../controllers/staff.controllers";
 
 import { validate, validateParams } from "../middleware/validate.middleware";

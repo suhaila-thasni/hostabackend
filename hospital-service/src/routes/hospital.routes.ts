@@ -28,9 +28,9 @@ import {
   recoverHospital,
   refreshHospitalToken,
   logout,
-  roleBaseLogin,              
-   roleBaseLogout,
-  updateFcmTokenByEmail,
+  roleBaseLogin,
+  roleBaseLogout,
+  updateFcmTokenByEmail
 } from "../controllers/hospital.controllers";
 import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
