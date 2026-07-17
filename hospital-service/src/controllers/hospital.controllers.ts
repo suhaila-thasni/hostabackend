@@ -133,6 +133,8 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
       password,
       role: "hospital",
       hospitalId: newHospital.id,
+      roleId,
+      hospitalName: name,
     }
   );
 
