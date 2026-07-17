@@ -142,6 +142,7 @@ export const Registeration: any = asyncHandler(
   where: {
     phone: numericPhone,
     hospitalId: hospitalId,
+
   },
 
 });
@@ -196,6 +197,8 @@ if (exist) {
       password,
       role: "doctor",
       doctorId: newDoctor.id,
+       roleId,
+      doctorName: newDoctor.displayName,
     }
   );
 

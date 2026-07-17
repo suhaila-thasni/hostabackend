@@ -159,6 +159,8 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
       password,
       role: "staff",
       staffId: newStaff.id,
+      roleId,
+      staffName: newStaff.name,
     }
   );
 
