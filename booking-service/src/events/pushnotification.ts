@@ -1,17 +1,21 @@
 import { admin } from "../config/firebase-admin";
+import dotenv from "dotenv";
+dotenv.config();
+
 
 interface SendNotificationParams {
   token: string;
   title: string;
   body: string;
- 
+  imageUrl?: string;
 }
+
 
 export const sendPushNotification = async ({
   token,
   title,
   body,
-
+  imageUrl=process.env.PUSHNOTIFICATION_IMAGE_URL,
 }: SendNotificationParams) => {
   try {
     const message: admin.messaging.Message = {
@@ -24,32 +28,42 @@ export const sendPushNotification = async ({
 
       android: {
         notification: {
-          sound: 'default',
-          icon: 'ic_notification',
-          channelId: 'default-channel',
+          sound: "default",
+          icon: "ic_notification",
+          channelId: "default-channel",
+          imageUrl: imageUrl,
         },
       },
 
       apns: {
+        headers: {
+          "apns-priority": "10",
+        },
         payload: {
           aps: {
-            sound: 'default',
+            sound: "default",
+            badge: 1,
+            mutableContent: true,
           },
+        },
+        fcmOptions: {
+          imageUrl: imageUrl,
         },
       },
 
       data: {
-        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+        imageUrl: imageUrl ?? "",
       },
     };
 
     const response = await admin.messaging().send(message);
 
-    console.log('✅ Notification sent:', response);
+    console.log("✅ Notification sent:", response);
 
     return response;
   } catch (error) {
-    console.error('❌ Error sending notification:', error);
+    console.error("❌ Error sending notification:", error);
     throw error;
   }
 };
