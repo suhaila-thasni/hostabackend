@@ -237,9 +237,20 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false, roleId: user.roleId }, jwtKey, {
-    expiresIn: "15m",
-  });
+  const token = jwt.sign(
+    { 
+      id: user.id, 
+      role: user.role, 
+      isRefresh: false, 
+      roleId: user.roleId,
+      hospitalId: user.hospitalId,
+      staffId: user.staffId,
+      doctorId: user.doctorId,
+      superadminId: user.superadminId
+    }, 
+    jwtKey, 
+    { expiresIn: "15m" }
+  );
 
   // Remove password and OTP fields from response
   const safeUser = user.toJSON();
@@ -247,9 +258,20 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   delete safeUser.otp;
   delete safeUser.otpExpiry;
 
-  const refreshToken = jwt.sign({ id: user.id, role: user.role, isRefresh: true }, jwtKey, {
-    expiresIn: "2w",
-  });
+  const refreshToken = jwt.sign(
+    { 
+      id: user.id, 
+      role: user.role, 
+      isRefresh: true,
+      roleId: user.roleId,
+      hospitalId: user.hospitalId,
+      staffId: user.staffId,
+      doctorId: user.doctorId,
+      superadminId: user.superadminId
+    }, 
+    jwtKey, 
+    { expiresIn: "2w" }
+  );
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -428,18 +450,40 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   await user.update({ otp: null as any, otpExpiry: null as any });
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false, roleId: user.roleId }, jwtKey, {
-    expiresIn: "15m",
-  });
+  const token = jwt.sign(
+    { 
+      id: user.id, 
+      role: user.role, 
+      isRefresh: false, 
+      roleId: user.roleId,
+      hospitalId: user.hospitalId,
+      staffId: user.staffId,
+      doctorId: user.doctorId,
+      superadminId: user.superadminId
+    }, 
+    jwtKey, 
+    { expiresIn: "15m" }
+  );
 
   const safeUser = user.toJSON();
   delete safeUser.password;
   delete safeUser.otp;
   delete safeUser.otpExpiry;
 
-  const refreshToken = jwt.sign({ id: user.id, role: user.role, isRefresh: true }, jwtKey, {
-    expiresIn: "2w",
-  });
+  const refreshToken = jwt.sign(
+    { 
+      id: user.id, 
+      role: user.role, 
+      isRefresh: true,
+      roleId: user.roleId,
+      hospitalId: user.hospitalId,
+      staffId: user.staffId,
+      doctorId: user.doctorId,
+      superadminId: user.superadminId
+    }, 
+    jwtKey, 
+    { expiresIn: "2w" }
+  );
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -526,7 +570,16 @@ export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: 
       }
 
       const accessToken = jwt.sign(
-        { id: user.id, role: user.role, isRefresh: false, roleId: user.roleId },
+        { 
+          id: user.id, 
+          role: user.role, 
+          isRefresh: false, 
+          roleId: user.roleId,
+          hospitalId: user.hospitalId,
+          staffId: user.staffId,
+          doctorId: user.doctorId,
+          superadminId: user.superadminId
+        },
         process.env.JWT_SECRET || "supersecretjwtkey",
         { expiresIn: "15m" }
       );
