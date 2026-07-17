@@ -237,9 +237,20 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false, roleId: user.roleId }, jwtKey, {
-    expiresIn: "15m",
-  });
+  const token = jwt.sign(
+    { 
+      id: user.id, 
+      role: user.role, 
+      isRefresh: false, 
+      roleId: user.roleId,
+      hospitalId: user.hospitalId,
+      staffId: user.staffId,
+      doctorId: user.doctorId,
+      superadminId: user.superadminId
+    }, 
+    jwtKey, 
+    { expiresIn: "15m" }
+  );
 
   // Remove password and OTP fields from response
   const safeUser = user.toJSON();
@@ -247,9 +258,20 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   delete safeUser.otp;
   delete safeUser.otpExpiry;
 
-  const refreshToken = jwt.sign({ id: user.id, role: user.role, isRefresh: true }, jwtKey, {
-    expiresIn: "2w",
-  });
+  const refreshToken = jwt.sign(
+    { 
+      id: user.id, 
+      role: user.role, 
+      isRefresh: true,
+      roleId: user.roleId,
+      hospitalId: user.hospitalId,
+      staffId: user.staffId,
+      doctorId: user.doctorId,
+      superadminId: user.superadminId
+    }, 
+    jwtKey, 
+    { expiresIn: "2w" }
+  );
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -428,18 +450,40 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   await user.update({ otp: null as any, otpExpiry: null as any });
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-  const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false, roleId: user.roleId }, jwtKey, {
-    expiresIn: "15m",
-  });
+  const token = jwt.sign(
+    { 
+      id: user.id, 
+      role: user.role, 
+      isRefresh: false, 
+      roleId: user.roleId,
+      hospitalId: user.hospitalId,
+      staffId: user.staffId,
+      doctorId: user.doctorId,
+      superadminId: user.superadminId
+    }, 
+    jwtKey, 
+    { expiresIn: "15m" }
+  );
 
   const safeUser = user.toJSON();
   delete safeUser.password;
   delete safeUser.otp;
   delete safeUser.otpExpiry;
 
-  const refreshToken = jwt.sign({ id: user.id, role: user.role, isRefresh: true }, jwtKey, {
-    expiresIn: "2w",
-  });
+  const refreshToken = jwt.sign(
+    { 
+      id: user.id, 
+      role: user.role, 
+      isRefresh: true,
+      roleId: user.roleId,
+      hospitalId: user.hospitalId,
+      staffId: user.staffId,
+      doctorId: user.doctorId,
+      superadminId: user.superadminId
+    }, 
+    jwtKey, 
+    { expiresIn: "2w" }
+  );
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -526,7 +570,16 @@ export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: 
       }
 
       const accessToken = jwt.sign(
-        { id: user.id, role: user.role, isRefresh: false, roleId: user.roleId },
+        { 
+          id: user.id, 
+          role: user.role, 
+          isRefresh: false, 
+          roleId: user.roleId,
+          hospitalId: user.hospitalId,
+          staffId: user.staffId,
+          doctorId: user.doctorId,
+          superadminId: user.superadminId
+        },
         process.env.JWT_SECRET || "supersecretjwtkey",
         { expiresIn: "15m" }
       );
@@ -608,6 +661,9 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
     doctorId,
     staffId,
     hospitalId,
+    hospitalName,
+    doctorName,
+    staffName,
   } = req.body;
 
   // Validation
@@ -631,6 +687,9 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
     doctorId,
     staffId,
     hospitalId,
+    hospitalName,
+    doctorName,
+    staffName,
   });
 
   res.status(201).json({
@@ -656,6 +715,9 @@ export const update = asyncHandler(async (req: Request, res: Response): Promise<
     doctorId,
     staffId,
     hospitalId,
+    hospitalName,
+    doctorName,
+    staffName,
     deviceId,
     fcmToken,
     platform,
@@ -709,6 +771,9 @@ export const update = asyncHandler(async (req: Request, res: Response): Promise<
     doctorId,
     staffId,
     hospitalId,
+    hospitalName,
+    doctorName,
+    staffName,
   });
 
   // Update FCM token array based on role
@@ -853,7 +918,7 @@ export const getAuthByid = asyncHandler(
 
     res.status(200).json({
       success: true,
-      message: "User deleted successfully.",
+      message: "User fetched successfully.",
       data: auth,
     });
   }

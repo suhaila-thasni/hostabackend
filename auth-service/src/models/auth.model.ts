@@ -19,6 +19,9 @@ export interface IAuth {
   doctorId?: number;
   staffId?: number;
   hospitalId?: number;
+  hospitalName?: string;
+  doctorName?: string;
+  staffName?: string;
   doctor_fcmtoken?: FCMTOKEN[];
   staff_fcmtoken?: FCMTOKEN[];
   hospital_fcmtoken?: FCMTOKEN[];
@@ -32,7 +35,7 @@ export interface IAuth {
   otpExpiry?: Date;
 }
 
-type AuthCreationAttributes = Optional<IAuth, 'id' | 'email' | 'phone' | 'password' | 'roleId'  | 'superadminId' | 'doctorId' | 'staffId' | 'hospitalId' | 'doctor_fcmtoken' | 'staff_fcmtoken' | 'hospital_fcmtoken' | 'superadmin_fcmtoken' | 'deleteDate' | 'isActive' | 'isDelete' | 'otp' | 'otpExpiry'>;
+type AuthCreationAttributes = Optional<IAuth, 'id' | 'email' | 'phone' | 'password' | 'roleId'  | 'superadminId' | 'doctorId' | 'staffId' | 'hospitalId' | 'hospitalName' | 'doctorName' | 'staffName' | 'doctor_fcmtoken' | 'staff_fcmtoken' | 'hospital_fcmtoken' | 'superadmin_fcmtoken' | 'deleteDate' | 'isActive' | 'isDelete' | 'otp' | 'otpExpiry'>;
 
 class Auth extends Model<IAuth, AuthCreationAttributes> implements IAuth {
   public id!: number;
@@ -45,6 +48,9 @@ class Auth extends Model<IAuth, AuthCreationAttributes> implements IAuth {
   public doctorId?: number;
   public staffId?: number;
   public hospitalId?: number;
+  public hospitalName?: string;
+  public doctorName?: string;
+  public staffName?: string;
   public doctor_fcmtoken?: FCMTOKEN[];
   public staff_fcmtoken?: FCMTOKEN[];
   public hospital_fcmtoken?: FCMTOKEN[];
@@ -104,6 +110,18 @@ Auth.init(
     },
     hospitalId: {
       type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    hospitalName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    doctorName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    staffName: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
     doctor_fcmtoken: {
