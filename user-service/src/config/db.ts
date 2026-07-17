@@ -2,17 +2,21 @@ import { Sequelize } from "sequelize";
 import { env } from "./env";
 
 const isProduction = env.NODE_ENV === "production";
+const useSSL =
+  isProduction ||
+  env.DATABASE_URL.includes("sslmode=require") ||
+  env.DATABASE_URL.includes("ssl=true");
 
 const sequelize = new Sequelize(env.DATABASE_URL, {
   dialect: "postgres",
 
   logging: !isProduction,
 
-  dialectOptions: isProduction
+  dialectOptions: useSSL
     ? {
         ssl: {
           require: true,
-          rejectUnauthorized: true, // ✅ secure
+          rejectUnauthorized: isProduction,
         },
       }
     : {},
