@@ -200,183 +200,7 @@ const updateFCMTokenInService = async (role: string, entityId: number, email: st
 };
 
 // ===================== LOGIN (Email/Password) =====================
-// export const login: any = asyncHandler(async (req: Request, res: Response) => {
-//   const { email, phone, password, fcmToken } = req.body;
 
-//   if ((!email && !phone) || !password) {
-//     res.status(400).json({
-//       success: false,
-//       message: "Identifier (email/phone) and password are required",
-//     });
-//     return;
-//   }
-
-//   // Find auth user by email OR phone
-//   const users = await Auth.scope("withPassword").findAll({
-//     where: {
-//       [Op.or]: [
-//         email ? { email } : null,
-//         phone ? { phone } : null,
-//       ].filter(Boolean) as any,
-//     },
-//   });
-
-//   if (!users) {
-//     res.status(401).json({
-//       success: false,
-//       message: "User not found! Please register",
-//       data: null,
-//       error: { code: "USER_NOT_FOUND", details: null },
-//     });
-//     return;
-//   }
-
-//   if (user.isDelete === true || user.isActive === false) {
-//     res.status(401).json({
-//       success: false,
-//       message: "User account has been deactivated or deleted.",
-//       data: null,
-//       error: { code: "USER_BLACKLISTED", details: null },
-//     });
-//     return;
-//   }
-//     const matchedDoctors = [];
-
-// if(user.role=="doctor"){
-  
-
-//     for (const doctor of doctors) {
-//       const valid = await bcrypt.compare(password, doctor.password || "");
-
-//       if (valid) {
-//         matchedDoctors.push(doctor);
-//       }
-//     }
-
-//     if (!matchedDoctors.length) {
-//       res.status(401).json({
-//         success: false,
-//         message: "Wrong password",
-//       });
-
-//       return;
-//     }
-
-//     if (matchedDoctors.length > 1 && !hospitalId) {
-      
-//       res.status(200).json({
-//         success: true,
-
-//         requireHospitalSelection: true,
-
-//         hospitals: matchedDoctors.map((d) => ({
-//           doctorId: d.id,
-
-//           hospitalId: d.hospitalId,
-
-//           hospitalName: d.hospitalName,
-//         })),
-//       });
-
-//       return;
-//     }
-
-//     const doctor = matchedDoctors[0];
-
-
-// }
-
-
-
-//   // Update FCM token
-//   if (fcmToken) {
-//     const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
-//     const existingTokens: FCMTOKEN[] = Array.isArray(user[fieldName])
-//       ? (user[fieldName] as unknown as FCMTOKEN[])
-//       : [];
-
-//     const newTokens: FCMTOKEN[] = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
-
-//     const updatedTokens = [
-//       ...existingTokens.filter(
-//         (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
-//       ),
-//       ...newTokens,
-//     ];
-
-//     await user.update({
-//       [fieldName]: updatedTokens,
-//     });
-//   }
-
-//   const checkPassword = await bcrypt.compare(password, user.password || "");
-//   if (!checkPassword) {
-//     res.status(401).json({
-//       success: false,
-//       message: "Wrong password, Please try again",
-//       data: null,
-//       error: { code: "WRONG_PASSWORD", details: null },
-//     });
-//     return;
-//   }
-
-//   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-//   const token = jwt.sign(
-//     { 
-//       id: user.id, 
-//       role: user.role, 
-//       isRefresh: false, 
-//       roleId: user.roleId,
-//       hospitalId: user.hospitalId,
-//       staffId: user.staffId,
-//       doctorId: user.doctorId,
-//       superadminId: user.superadminId
-//     }, 
-//     jwtKey, 
-//     { expiresIn: "15m" }
-//   );
-
-//   // Remove password and OTP fields from response
-//   const safeUser = user.toJSON();
-//   delete safeUser.password;
-//   delete safeUser.otp;
-//   delete safeUser.otpExpiry;
-
-//   const refreshToken = jwt.sign(
-//     { 
-//       id: user.id, 
-//       role: user.role, 
-//       isRefresh: true,
-//       roleId: user.roleId,
-//       hospitalId: user.hospitalId,
-//       staffId: user.staffId,
-//       doctorId: user.doctorId,
-//       superadminId: user.superadminId
-//     }, 
-//     jwtKey, 
-//     { expiresIn: "2w" }
-//   );
-
-//   setRefreshTokenCookie(res, refreshToken);
-
-//   // Fetch related profile from other microservices (hospital/staff/doctor)
-//   const profileData = await fetchRelatedProfile(user);
-
-//   // Fetch role permissions from role-service
-//   const authPermission = await fetchRolePermissions(profileData?.roleId,profileData.hospitalId,profileData.role);
-
-//   res.status(200).json({
-//     success: true,
-//     message: "Logged in successfully",
-//     status: 200,
-//     token,
-//     data: safeUser,
-//     profile: profileData,
-//     error: null,
-//     authDefaultPermission: 1,
-//     authPermission,
-//   });
-// });
 export const login: any = asyncHandler(async (req: Request, res: Response) => {
   const { email, phone, password, fcmToken, hospitalId } = req.body;
 
@@ -805,8 +629,7 @@ export const resetPassword: any = asyncHandler(async (req: Request, res: Respons
 
   await user.save();
   if(user.role=="hospital"){
-  //   await axios.put(`${process.env.HOSPITAL_SERVICE_URL}/hospital/${user.hospitalId}`, { password: newPassword });
-  // }
+ 
   await axios.put(
   `${process.env.HOSPITAL_SERVICE_URL}/internal/hospital/${user.hospitalId}/password`,
   {
@@ -871,6 +694,51 @@ export const changePassword: any = asyncHandler(async (req: AuthRequest, res: Re
 
   user.password = newPassword;
   await user.save();
+
+
+    if(user.role=="hospital"){
+ 
+  await axios.put(
+  `${process.env.HOSPITAL_SERVICE_URL}/internal/hospital/${user.hospitalId}/password`,
+  {
+    password: newPassword,
+  },
+  {
+    headers: {
+      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+    },
+  }
+  
+);
+   }
+  else if(user.role=="staff"){
+  await axios.put(
+  `${process.env.STAFF_SERVICE_URL}/internal/staff/${user.staffId}/password`,
+  {
+    password: newPassword,
+  },
+  {
+    headers: {
+      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+    },
+  }
+  
+);
+}
+  else if(user.role=="doctor"){
+  await axios.put(
+  `${process.env.DOCTOR_SERVICE_URL}/internal/doctor/${user.doctorId}/password`,
+  {
+    password: newPassword,
+  },
+  {
+    headers: {
+      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+    },
+  }
+  
+);
+ }
 
 
 
