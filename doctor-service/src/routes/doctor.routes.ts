@@ -32,7 +32,8 @@ import {
 import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
 import { check } from "zod";
-
+import { verifyInternalRequest } from "../middleware/internalAuth";
+import{updateDoctorPassword} from "../controllers/doctor.controllers";
 
 const router = Router();
 
@@ -64,6 +65,14 @@ router.get("/doctor/blacklist", authenticate, checkPermission('doctor', 'view'),
 router.get("/doctor/:id", getanDoctor);
 router.put("/doctor/recover/:id", authenticate, checkPermission('doctor', 'edit'), recoverDoctor);
 router.put("/doctor/:id", authenticate, checkPermission('doctor','edit'), updateData);
+
+router.put(
+  "/internal/doctor/:id/password",
+  verifyInternalRequest,  
+  updateDoctorPassword
+);
+
+
 router.delete("/doctor/:id", authenticate, checkPermission('doctor','delete'), doctorDelete);
 
 

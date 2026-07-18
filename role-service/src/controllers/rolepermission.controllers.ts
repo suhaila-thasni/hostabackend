@@ -204,7 +204,7 @@ export const getRolepermission: any = asyncHandler(async (req: Request, res: Res
 
 
    let { hospitalId, labId, pharmacyId, roleId }: any = req.query;
-   
+    
 
     if (Array.isArray(hospitalId)) hospitalId = hospitalId[0];
         if (Array.isArray(labId)) labId = labId[0];

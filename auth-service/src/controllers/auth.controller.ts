@@ -804,9 +804,54 @@ export const resetPassword: any = asyncHandler(async (req: Request, res: Respons
   user.otpExpiry = null as any;
 
   await user.save();
+  if(user.role=="hospital"){
+  //   await axios.put(`${process.env.HOSPITAL_SERVICE_URL}/hospital/${user.hospitalId}`, { password: newPassword });
+  // }
+  await axios.put(
+  `${process.env.HOSPITAL_SERVICE_URL}/internal/hospital/${user.hospitalId}/password`,
+  {
+    password: newPassword,
+  },
+  {
+    headers: {
+      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+    },
+  }
+  
+);
+   }
+  else if(user.role=="staff"){
+  await axios.put(
+  `${process.env.STAFF_SERVICE_URL}/internal/staff/${user.staffId}/password`,
+  {
+    password: newPassword,
+  },
+  {
+    headers: {
+      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+    },
+  }
+  
+);
+}
+  else if(user.role=="doctor"){
+  await axios.put(
+  `${process.env.DOCTOR_SERVICE_URL}/internal/doctor/${user.doctorId}/password`,
+  {
+    password: newPassword,
+  },
+  {
+    headers: {
+      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+    },
+  }
+  
+);
+ }
 
   res.json({ success: true, message: "Password reset successful" });
 });
+
 
 // ===================== CHANGE PASSWORD =====================
 export const changePassword: any = asyncHandler(async (req: AuthRequest, res: Response) => {
