@@ -590,6 +590,11 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
     `${process.env.AUTH_SERVICE_URL}/auth/${hospital[1].id}/role/${"hospital"}`,
     {
      updatePayload
+    },
+    {
+      headers: {
+        Authorization: req.headers.authorization || "",
+      },
     }
   );
 
@@ -672,7 +677,7 @@ export const hospitalDelete: any = asyncHandler(async (req: Request, res: Respon
 
 
 
-      // update auth doctor
+      // update auth hospital
 
    try {
    await axios.put(
@@ -681,6 +686,11 @@ export const hospitalDelete: any = asyncHandler(async (req: Request, res: Respon
       isActive: false,
       isDelete: true,
       deleteDate: new Date(),
+    },
+     {
+      headers: {
+        Authorization: req.headers.authorization || "",
+      },
     }
   );
 
@@ -1038,6 +1048,11 @@ export const recoverHospital: any = asyncHandler(async (req: Request, res: Respo
       isActive: true,
       isDelete: false,
       deleteDate: null,
+    },
+     {
+      headers: {
+        Authorization: req.headers.authorization || "",
+      },
     }
   );
 

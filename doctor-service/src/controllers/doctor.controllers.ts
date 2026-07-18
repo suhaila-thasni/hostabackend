@@ -12,7 +12,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 
-
 interface FCMTOKEN {
   deviceId: string;
   fcmToken: string;
@@ -199,6 +198,11 @@ if (exist) {
       doctorId: newDoctor.id,
        roleId,
       doctorName: newDoctor.displayName,
+    },
+     {
+      headers: {
+        Authorization: req.headers.authorization || "",
+      },
     }
   );
 
@@ -612,6 +616,11 @@ export const updateData: any = asyncHandler(
     `${process.env.AUTH_SERVICE_URL}/auth/${doctor[1][0].id}/role/${"doctor"}`,
     {
      updatePayload
+    },
+     {
+      headers: {
+        Authorization: req.headers.authorization || "",
+      },
     }
   );
 
@@ -661,7 +670,7 @@ export const doctorDelete: any = asyncHandler(
     });
 
 
-      // update auth doctor
+      // delete auth doctor
 
    try {
    await axios.put(
@@ -670,6 +679,11 @@ export const doctorDelete: any = asyncHandler(
       isActive: false,
       isDelete: true,
       deleteDate: new Date(),
+    },
+     {
+      headers: {
+        Authorization: req.headers.authorization || "",
+      },
     }
   );
 
@@ -909,6 +923,11 @@ export const recoverDoctor: any = asyncHandler(async (req: Request, res: Respons
       isActive: true,
       isDelete: false,
       deleteDate: null,
+    },
+     {
+      headers: {
+        Authorization: req.headers.authorization || "",
+      },
     }
   );
 

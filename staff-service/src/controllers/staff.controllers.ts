@@ -532,6 +532,11 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
     `${process.env.AUTH_SERVICE_URL}/auth/${staff.id}/role/${"staff"}`,
     {
      updatePayload
+    },
+     {
+      headers: {
+        Authorization: req.headers.authorization || "",
+      },
     }
   );
 
@@ -599,7 +604,7 @@ export const staffDelete: any = asyncHandler(async (req: Request, res: Response)
 
 
 
-      // update auth staff
+      // delete auth staff
 
    try {
    await axios.put(
@@ -608,6 +613,11 @@ export const staffDelete: any = asyncHandler(async (req: Request, res: Response)
       isActive: false,
       isDelete: true,
       deleteDate: new Date(),
+    },
+     {
+      headers: {
+        Authorization: req.headers.authorization || "",
+      },
     }
   );
 
@@ -890,6 +900,11 @@ export const recoverStaff: any = asyncHandler(async (req: Request, res: Response
       isActive: true,
       isDelete: false,
       deleteDate: null,
+    },
+     {
+      headers: {
+        Authorization: req.headers.authorization || "",
+      },
     }
   );
 

@@ -128,16 +128,27 @@ const fetchRelatedProfile = async (user: any): Promise<any> => {
 /**
  * Fetch role-based permissions from the role-service.
  */
-const fetchRolePermissions = async (roleId: number | undefined): Promise<any> => {
+const fetchRolePermissions = async (roleId: number | undefined,hospitalId:number|undefined,role:string|undefined): Promise<any> => {
   if (!roleId) return null;
 
   try {
-    const roleServiceUrl = process.env.ROLE_SERVICE_URL || "";
-    if (!roleServiceUrl) return null;
+   
 
-    const res = await axios.get(`${roleServiceUrl}/rolepermission`, {
-      params: { roleId },
+       const res = await axios.get(`${process.env.ROLE_SERVICE_URL}/rolepermission`, {
+      params:
+        role === "doctor" || role === "staff"
+          ? {
+              roleId,
+              hospitalId,
+            }
+          : {
+              roleId,
+            },
     });
+
+
+
+    
     return res.data;
   } catch (err: any) {
     console.error("Failed to fetch role permissions:", err.message);
@@ -189,9 +200,187 @@ const updateFCMTokenInService = async (role: string, entityId: number, email: st
 };
 
 // ===================== LOGIN (Email/Password) =====================
-export const login: any = asyncHandler(async (req: Request, res: Response) => {
-  const { email, phone, password, fcmToken } = req.body;
+// export const login: any = asyncHandler(async (req: Request, res: Response) => {
+//   const { email, phone, password, fcmToken } = req.body;
 
+//   if ((!email && !phone) || !password) {
+//     res.status(400).json({
+//       success: false,
+//       message: "Identifier (email/phone) and password are required",
+//     });
+//     return;
+//   }
+
+//   // Find auth user by email OR phone
+//   const users = await Auth.scope("withPassword").findAll({
+//     where: {
+//       [Op.or]: [
+//         email ? { email } : null,
+//         phone ? { phone } : null,
+//       ].filter(Boolean) as any,
+//     },
+//   });
+
+//   if (!users) {
+//     res.status(401).json({
+//       success: false,
+//       message: "User not found! Please register",
+//       data: null,
+//       error: { code: "USER_NOT_FOUND", details: null },
+//     });
+//     return;
+//   }
+
+//   if (user.isDelete === true || user.isActive === false) {
+//     res.status(401).json({
+//       success: false,
+//       message: "User account has been deactivated or deleted.",
+//       data: null,
+//       error: { code: "USER_BLACKLISTED", details: null },
+//     });
+//     return;
+//   }
+//     const matchedDoctors = [];
+
+// if(user.role=="doctor"){
+  
+
+//     for (const doctor of doctors) {
+//       const valid = await bcrypt.compare(password, doctor.password || "");
+
+//       if (valid) {
+//         matchedDoctors.push(doctor);
+//       }
+//     }
+
+//     if (!matchedDoctors.length) {
+//       res.status(401).json({
+//         success: false,
+//         message: "Wrong password",
+//       });
+
+//       return;
+//     }
+
+//     if (matchedDoctors.length > 1 && !hospitalId) {
+      
+//       res.status(200).json({
+//         success: true,
+
+//         requireHospitalSelection: true,
+
+//         hospitals: matchedDoctors.map((d) => ({
+//           doctorId: d.id,
+
+//           hospitalId: d.hospitalId,
+
+//           hospitalName: d.hospitalName,
+//         })),
+//       });
+
+//       return;
+//     }
+
+//     const doctor = matchedDoctors[0];
+
+
+// }
+
+
+
+//   // Update FCM token
+//   if (fcmToken) {
+//     const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
+//     const existingTokens: FCMTOKEN[] = Array.isArray(user[fieldName])
+//       ? (user[fieldName] as unknown as FCMTOKEN[])
+//       : [];
+
+//     const newTokens: FCMTOKEN[] = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
+
+//     const updatedTokens = [
+//       ...existingTokens.filter(
+//         (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
+//       ),
+//       ...newTokens,
+//     ];
+
+//     await user.update({
+//       [fieldName]: updatedTokens,
+//     });
+//   }
+
+//   const checkPassword = await bcrypt.compare(password, user.password || "");
+//   if (!checkPassword) {
+//     res.status(401).json({
+//       success: false,
+//       message: "Wrong password, Please try again",
+//       data: null,
+//       error: { code: "WRONG_PASSWORD", details: null },
+//     });
+//     return;
+//   }
+
+//   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+//   const token = jwt.sign(
+//     { 
+//       id: user.id, 
+//       role: user.role, 
+//       isRefresh: false, 
+//       roleId: user.roleId,
+//       hospitalId: user.hospitalId,
+//       staffId: user.staffId,
+//       doctorId: user.doctorId,
+//       superadminId: user.superadminId
+//     }, 
+//     jwtKey, 
+//     { expiresIn: "15m" }
+//   );
+
+//   // Remove password and OTP fields from response
+//   const safeUser = user.toJSON();
+//   delete safeUser.password;
+//   delete safeUser.otp;
+//   delete safeUser.otpExpiry;
+
+//   const refreshToken = jwt.sign(
+//     { 
+//       id: user.id, 
+//       role: user.role, 
+//       isRefresh: true,
+//       roleId: user.roleId,
+//       hospitalId: user.hospitalId,
+//       staffId: user.staffId,
+//       doctorId: user.doctorId,
+//       superadminId: user.superadminId
+//     }, 
+//     jwtKey, 
+//     { expiresIn: "2w" }
+//   );
+
+//   setRefreshTokenCookie(res, refreshToken);
+
+//   // Fetch related profile from other microservices (hospital/staff/doctor)
+//   const profileData = await fetchRelatedProfile(user);
+
+//   // Fetch role permissions from role-service
+//   const authPermission = await fetchRolePermissions(profileData?.roleId,profileData.hospitalId,profileData.role);
+
+//   res.status(200).json({
+//     success: true,
+//     message: "Logged in successfully",
+//     status: 200,
+//     token,
+//     data: safeUser,
+//     profile: profileData,
+//     error: null,
+//     authDefaultPermission: 1,
+//     authPermission,
+//   });
+// });
+export const login: any = asyncHandler(async (req: Request, res: Response) => {
+  const { email, phone, password, fcmToken, hospitalId } = req.body;
+
+  // 1. Validate input
   if ((!email && !phone) || !password) {
     res.status(400).json({
       success: false,
@@ -200,8 +389,8 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  // Find auth user by email OR phone
-  const user = await Auth.scope("withPassword").findOne({
+  // 2. Find all matching users
+  const users = await Auth.scope("withPassword").findAll({
     where: {
       [Op.or]: [
         email ? { email } : null,
@@ -210,7 +399,8 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
-  if (!user) {
+  // 3. No users found
+  if (users.length === 0) {
     res.status(401).json({
       success: false,
       message: "User not found! Please register",
@@ -220,7 +410,9 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  if (user.isDelete === true || user.isActive === false) {
+  // 4. Filter out deleted/inactive users
+  const activeUsers = users.filter(u => u.isDelete !== true && u.isActive !== false);
+  if (activeUsers.length === 0) {
     res.status(401).json({
       success: false,
       message: "User account has been deactivated or deleted.",
@@ -230,7 +422,82 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  // Update FCM token
+  // 5. Determine the role of the first active user (all should have same role for the same email/phone)
+  const role = activeUsers[0].role;
+
+  // 6. Handle role‑specific logic
+  let selectedUser = null;
+
+  if (role === "doctor") {
+    // ----- Doctor flow -----
+    // Validate password for each doctor
+    const validDoctors = [];
+    for (const user of activeUsers) {
+      const valid = await bcrypt.compare(password, user.password || "");
+      if (valid) {
+        validDoctors.push(user);
+      }
+    }
+
+    if (validDoctors.length === 0) {
+      res.status(401).json({
+        success: false,
+        message: "Wrong password",
+      });
+      return;
+    }
+
+    // If multiple valid doctors and no hospitalId provided → ask for hospital selection
+    if (validDoctors.length > 1 && !hospitalId) {
+      const hospitals = validDoctors.map(d => ({
+        doctorId: d.doctorId,
+        hospitalId: d.hospitalId,
+        hospitalName: d.hospitalName,
+      }));
+      res.status(200).json({
+        success: true,
+        requireHospitalSelection: true,
+        hospitals,
+      });
+      return;
+    }
+
+    // If hospitalId is provided, filter to that hospital
+    if (hospitalId) {
+      const filtered = validDoctors.filter(d => d.hospitalId === parseInt(hospitalId));
+      if (filtered.length === 0) {
+        res.status(401).json({
+          success: false,
+          message: "No doctor found for the selected hospital",
+        });
+        return;
+      }
+      selectedUser = filtered[0]; // take the first (should be only one)
+    } else {
+      // Only one valid doctor, use that
+      selectedUser = validDoctors[0];
+    }
+  } else {
+    // ----- Non‑doctor flow (hospital, staff, superadmin) -----
+    // We expect exactly one active user (or take the first)
+    const user = activeUsers[0];
+    const valid = await bcrypt.compare(password, user.password || "");
+    if (!valid) {
+      res.status(401).json({
+        success: false,
+        message: "Wrong password, Please try again",
+        data: null,
+        error: { code: "WRONG_PASSWORD", details: null },
+      });
+      return;
+    }
+    selectedUser = user;
+  }
+
+  // At this point we have a single selectedUser
+  const user = selectedUser;
+
+  // 7. Update FCM token
   if (fcmToken) {
     const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
     const existingTokens: FCMTOKEN[] = Array.isArray(user[fieldName])
@@ -251,62 +518,51 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  const checkPassword = await bcrypt.compare(password, user.password || "");
-  if (!checkPassword) {
-    res.status(401).json({
-      success: false,
-      message: "Wrong password, Please try again",
-      data: null,
-      error: { code: "WRONG_PASSWORD", details: null },
-    });
-    return;
-  }
-
+  // 8. Generate tokens
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
   const token = jwt.sign(
-    { 
-      id: user.id, 
-      role: user.role, 
-      isRefresh: false, 
+    {
+      id: user.id,
+      role: user.role,
+      isRefresh: false,
       roleId: user.roleId,
       hospitalId: user.hospitalId,
       staffId: user.staffId,
       doctorId: user.doctorId,
-      superadminId: user.superadminId
-    }, 
-    jwtKey, 
+      superadminId: user.superadminId,
+    },
+    jwtKey,
     { expiresIn: "15m" }
   );
 
-  // Remove password and OTP fields from response
-  const safeUser = user.toJSON();
-  delete safeUser.password;
-  delete safeUser.otp;
-  delete safeUser.otpExpiry;
-
   const refreshToken = jwt.sign(
-    { 
-      id: user.id, 
-      role: user.role, 
+    {
+      id: user.id,
+      role: user.role,
       isRefresh: true,
       roleId: user.roleId,
       hospitalId: user.hospitalId,
       staffId: user.staffId,
       doctorId: user.doctorId,
-      superadminId: user.superadminId
-    }, 
-    jwtKey, 
+      superadminId: user.superadminId,
+    },
+    jwtKey,
     { expiresIn: "2w" }
   );
 
   setRefreshTokenCookie(res, refreshToken);
 
-  // Fetch related profile from other microservices (hospital/staff/doctor)
+  // 9. Sanitize user
+  const safeUser = user.toJSON();
+  delete safeUser.password;
+  delete safeUser.otp;
+  delete safeUser.otpExpiry;
+
+  // 10. Fetch profile & permissions (as before)
   const profileData = await fetchRelatedProfile(user);
+  const authPermission = await fetchRolePermissions(profileData?.roleId, profileData?.hospitalId, profileData?.role);
 
-  // Fetch role permissions from role-service
-  const authPermission = await fetchRolePermissions(profileData?.roleId);
-
+  // 11. Return response
   res.status(200).json({
     success: true,
     message: "Logged in successfully",
@@ -517,7 +773,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   const profileData = await fetchRelatedProfile(user);
 
   // Fetch role permissions from role-service (use user.roleId as fallback if profileData doesn't carry it)
-  const authPermission = await fetchRolePermissions(profileData?.roleId ?? user.roleId);
+  const authPermission = await fetchRolePermissions(profileData?.roleId,profileData.hospitalId,profileData.role);
 
   res.status(200).json({
     success: true,
