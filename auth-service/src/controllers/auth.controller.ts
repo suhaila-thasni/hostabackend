@@ -827,6 +827,11 @@ export const changePassword: any = asyncHandler(async (req: AuthRequest, res: Re
   user.password = newPassword;
   await user.save();
 
+
+
+
+  
+
   res.json({ success: true, message: "Password changed successfully" });
 });
 
