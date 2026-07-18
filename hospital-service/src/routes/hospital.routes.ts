@@ -30,10 +30,12 @@ import {
   logout,
   roleBaseLogin,
   roleBaseLogout,
-  updateFcmTokenByEmail
+  updateFcmTokenByEmail,
 } from "../controllers/hospital.controllers";
 import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
+import { verifyInternalRequest } from "../middleware/internalAuth";
+import { updateHospitalPassword } from "../controllers/hospital.controllers";
 
 
 
@@ -68,6 +70,14 @@ router.get("/hospital/blacklist", authenticate, checkPermission("hospital", "vie
 router.get("/hospital/:id",  getanHospital);
 router.put("/hospital/recover/:id", authenticate, checkPermission("hospital", "edit"), recoverHospital);
 router.put("/hospital/:id",authenticate,checkPermission("hospital","edit"), updateData);
+
+router.put(
+  "/internal/hospital/:id/password",
+  verifyInternalRequest,
+  updateHospitalPassword
+);
+
+
 router.delete("/hospital/:id",authenticate,checkPermission("hospital","delete"), hospitalDelete);
 
 router.post("/hospital/g-login", roleBaseLogin);

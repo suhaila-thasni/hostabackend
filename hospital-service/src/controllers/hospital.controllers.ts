@@ -133,7 +133,7 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
       password,
       role: "hospital",
       hospitalId: newHospital.id,
-       roleId,
+       roleId:2,
       hospitalName: name,
     }
   );
@@ -650,6 +650,37 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
     error: null,
   });
 });
+
+
+
+export const updateHospitalPassword = async (
+  req: Request,
+  res: Response
+) => {
+
+    const { password } = req.body;
+
+    const hospital = await Hospital.findByPk(req.params.id);
+
+    if (!hospital) {
+        return res.status(404).json({
+            success:false,
+            message:"Hospital not found"
+        });
+    }
+
+    hospital.password = password;
+
+    await hospital.save();
+
+    res.json({
+        success:true,
+        message:"Password updated"
+    });
+};
+
+
+
 
 // DELETE - DELETE /hospital/:id
 export const hospitalDelete: any = asyncHandler(async (req: Request, res: Response) => {

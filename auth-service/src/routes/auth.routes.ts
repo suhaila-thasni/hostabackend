@@ -34,6 +34,7 @@ router.post("/login", validate(loginHospitalSchema), login);
 router.post("/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
 router.post("/otp", validate(verifyOtpSchema), verifyLoginOtp);
 router.post("/", validate(registerSchema), register);
+
 router.put("/:id/role/:roles", authenticate, validate(updateSchema), update);
 router.delete("/:id/role/:roles", deleteAuth);
 router.get("/:id/role/:roles",  getAuthByid);

@@ -646,6 +646,34 @@ export const updateData: any = asyncHandler(
   },
 );
 
+
+
+export const updateDoctorPassword = async (
+  req: Request,
+  res: Response
+) => {
+
+    const { password } = req.body;
+
+    const doctor = await Doctor.findByPk(req.params.id);
+
+    if (!doctor) {
+        return res.status(404).json({
+            success:false,
+            message:"Doctor not found"
+        });
+    }
+
+    doctor.password = password;
+
+    await doctor.save();
+
+    res.json({
+        success:true,
+        message:"Password updated"
+    });
+};
+
 // DELETE - DELETE /doctor/:id
 export const doctorDelete: any = asyncHandler(
   async (req: Request, res: Response) => {
