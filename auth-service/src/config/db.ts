@@ -1,18 +1,62 @@
-import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
+// import { Sequelize } from 'sequelize';
+// import dotenv from 'dotenv';
 
-dotenv.config();
+// dotenv.config();
 
-const dbUrl = process.env.DB_URL;
+// const dbUrl = process.env.DB_URL;
 
-if (!dbUrl) {
-  console.error("DB_URL is not defined in environment variables");
-  process.exit(1);
-}
+// if (!dbUrl) {
+//   console.error("DB_URL is not defined in environment variables");
+//   process.exit(1);
+// }
 
-const sequelize = new Sequelize(dbUrl, {
-  dialect: 'postgres',
-  logging: false,
+// const sequelize = new Sequelize(dbUrl, {
+//   dialect: 'postgres',
+//   logging: false,
+// });
+
+// export default sequelize;
+
+
+import { Sequelize } from "sequelize";
+import { env } from "./env";
+
+const isProduction = env.NODE_ENV === "production";
+
+const useSSL = env.DATABASE_URL.includes("neon.tech");
+
+const sequelize = new Sequelize(env.DATABASE_URL, {
+  dialect: "postgres",
+
+  logging: !isProduction,
+
+  dialectOptions: useSSL
+    ? {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false,
+        },
+      }
+    : {},
+
+  pool: {
+    max: 10,
+    min: 2,
+    acquire: 30000,
+    idle: 10000,
+  },
 });
+
+export const connectDB = async () => {
+  try {
+    await sequelize.authenticate();
+
+    console.log("✅ PostgreSQL Connected (auth Service)");
+
+  } catch (error) {
+    console.error("❌ DB Error:", error);
+    process.exit(1);
+  }
+};
 
 export default sequelize;

@@ -1,24 +1,36 @@
+
+
+
+
+
+
+
+
+
+
 import { Sequelize } from "sequelize";
 import { env } from "./env";
 
 const isProduction = env.NODE_ENV === "production";
+
+const useSSL = env.DATABASE_URL.includes("neon.tech");
 
 const sequelize = new Sequelize(env.DATABASE_URL, {
   dialect: "postgres",
 
   logging: !isProduction,
 
-  dialectOptions: isProduction
+  dialectOptions: useSSL
     ? {
         ssl: {
           require: true,
-          rejectUnauthorized: true, // ✅ secure
+          rejectUnauthorized: false,
         },
       }
     : {},
 
   pool: {
-    max: 10,        // ✅ better for production
+    max: 10,
     min: 2,
     acquire: 30000,
     idle: 10000,
@@ -28,13 +40,8 @@ const sequelize = new Sequelize(env.DATABASE_URL, {
 export const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log("✅ PostgreSQL Connected (Pharmacy Service)");
 
-    // ❌ REMOVE THIS IN PRODUCTION
-    if (!isProduction) {
-      await sequelize.sync({ alter: true });
-      console.log("🚀 Database schema synchronized");
-    }
+    console.log("✅ PostgreSQL Connected (pharmacy Service)");
 
   } catch (error) {
     console.error("❌ DB Error:", error);

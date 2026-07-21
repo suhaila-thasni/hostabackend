@@ -3,28 +3,30 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('blood_donors', {
+    await queryInterface.createTable('roles', {
       id: {
         type: Sequelize.INTEGER,
         autoIncrement: true,
         primaryKey: true,
       },
-      phone: {
+      name: {
         type: Sequelize.STRING,
         allowNull: false,
-        unique: true,
       },
-      dateOfBirth: {
-        type: Sequelize.DATE,
-        allowNull: false,
+      description: {
+        type: Sequelize.STRING,
       },
-      bloodGroup: {
-        type: Sequelize.ENUM("O+", "O-", "AB+", "AB-", "A+", "A-", "B+", "B-"),
-        allowNull: false,
+      hospitalId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
       },
-      address: {
-        type: Sequelize.JSONB,
-        allowNull: false,
+      labId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+      },
+      isActive: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: true,
       },
       createdAt: {
         type: Sequelize.DATE,
@@ -38,10 +40,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    try {
-      await queryInterface.dropTable('blood_donors');
-    } catch (e) {
-      console.log('Skipping down migration: relation does not exist');
-    }
+    await queryInterface.dropTable('roles');
   }
 };

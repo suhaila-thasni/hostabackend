@@ -7,7 +7,13 @@ module.exports = {
     // ADD NEW COLUMNS
     // =========================
 
-    const table = await queryInterface.describeTable('patients');
+    let table;
+    try {
+      table = await queryInterface.describeTable('patients');
+    } catch (error) {
+      console.log('Skipping migration for missing table: patients');
+      return;
+    }
 
     // hospitalId
     if (!table.hospitalId) {

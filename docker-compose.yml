@@ -240,8 +240,20 @@ services:
       - RABBITMQ_DEFAULT_PASS=guest
     networks:
       - hosta-network
- 
- 
+
+  restore-test-db:
+    image: postgres:17-alpine
+    container_name: restore-test-db
+    restart: always
+    environment:
+      POSTGRES_USER: hosta_user
+      POSTGRES_PASSWORD: "Hosta@123"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql
+    networks:
+      - hosta-network
 
 networks:
   hosta-network:

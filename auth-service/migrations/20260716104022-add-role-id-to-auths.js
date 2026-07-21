@@ -2,10 +2,14 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('auths', 'roleId', {
-      type: Sequelize.INTEGER,
-      allowNull: true,
-    });
+    try {
+      await queryInterface.addColumn('auths', 'roleId', {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+      });
+    } catch (e) {
+      console.log('Column roleId already exists, skipping.');
+    }
   },
 
   async down(queryInterface, Sequelize) {

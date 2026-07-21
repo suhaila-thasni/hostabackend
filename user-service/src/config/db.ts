@@ -1,11 +1,19 @@
+
+
+
+
+
+
+
+
+
+
 import { Sequelize } from "sequelize";
 import { env } from "./env";
 
 const isProduction = env.NODE_ENV === "production";
-const useSSL =
-  isProduction ||
-  env.DATABASE_URL.includes("sslmode=require") ||
-  env.DATABASE_URL.includes("ssl=true");
+
+const useSSL = env.DATABASE_URL.includes("neon.tech");
 
 const sequelize = new Sequelize(env.DATABASE_URL, {
   dialect: "postgres",
@@ -16,13 +24,13 @@ const sequelize = new Sequelize(env.DATABASE_URL, {
     ? {
         ssl: {
           require: true,
-          rejectUnauthorized: isProduction,
+          rejectUnauthorized: false,
         },
       }
     : {},
 
   pool: {
-    max: 10,        // ✅ better for production
+    max: 10,
     min: 2,
     acquire: 30000,
     idle: 10000,
@@ -30,34 +38,14 @@ const sequelize = new Sequelize(env.DATABASE_URL, {
 });
 
 export const connectDB = async () => {
-  let connected = false;
-  let attempts = 0;
-  const maxAttempts = 5;
+  try {
+    await sequelize.authenticate();
 
-  while (!connected && attempts < maxAttempts) {
-    try {
-      await sequelize.authenticate();
-      console.log("✅ PostgreSQL Connected (User Service)");
-      connected = true;
+    console.log("✅ PostgreSQL Connected (user Service)");
 
-      // In dev: alter tables to match models. In prod: only create missing tables (safe).
-      if (isProduction) {
-        // await sequelize.sync(); // DISABLED - Use migrations instead // safe — only creates tables that don't exist
-      } else {
-        // await sequelize.sync({ alter: true }); // DISABLED — too slow on remote DB, causes service to be unavailable during startup
-      }
-      console.log("🚀 Database schema synchronized");
-    } catch (error) {
-      attempts++;
-      console.error(`❌ DB Connection attempt ${attempts} failed:`, error instanceof Error ? error.message : error);
-      if (attempts < maxAttempts) {
-        console.log("Retrying in 5 seconds...");
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-      } else {
-        console.error("Max connection attempts reached. Exiting...");
-        process.exit(1);
-      }
-    }
+  } catch (error) {
+    console.error("❌ DB Error:", error);
+    process.exit(1);
   }
 };
 

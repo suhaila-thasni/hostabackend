@@ -5,7 +5,13 @@ module.exports = {
     const tables = ["users", "patients", "prescriptions"];
 
     for (const table of tables) {
-      const tableInfo = await queryInterface.describeTable(table);
+      let tableInfo;
+      try {
+        tableInfo = await queryInterface.describeTable(table);
+      } catch (error) {
+        console.log(`Skipping migration for missing table: ${table}`);
+        continue;
+      }
 
       if (!tableInfo.isActive) {
         await queryInterface.addColumn(table, "isActive", {

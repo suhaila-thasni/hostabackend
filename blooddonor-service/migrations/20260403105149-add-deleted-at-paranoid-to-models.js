@@ -11,6 +11,8 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.removeColumn('blood_donors', 'deletedAt');
+    try {
+      await queryInterface.removeColumn('blood_donors', 'deletedAt');
+    } catch (e) {}
   }
 };
