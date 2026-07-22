@@ -18,7 +18,7 @@ const router = Router();
 
 // CRUD
 
-router.post("/rolepermission",  authenticate,    createRolepermission);
+router.post("/rolepermission",  authenticate,  createRolepermission);
 router.get("/rolepermission",    getRolepermission);
 router.get("/rolepermission/:id", authenticate, checkPermission("rolepermission", "view"),  getanRolepermission);
 router.put("/rolepermission/:id", authenticate, checkPermission("rolepermission", "edit"),  updateData);

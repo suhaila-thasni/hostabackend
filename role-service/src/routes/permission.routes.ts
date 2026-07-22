@@ -18,7 +18,7 @@ const router = Router();
 
 // CRUD
 
-router.post("/permission", authenticate, createPermission );
+router.post("/permission", authenticate, createPermission);
 router.get("/permission", authenticate, checkPermission("permission", "view"), getPermission);
 router.get("/permission/:id", authenticate, checkPermission("permission", "view"), getanPermission);
 router.put("/permission/:id", authenticate, checkPermission("permission", "edit"), updateData);
