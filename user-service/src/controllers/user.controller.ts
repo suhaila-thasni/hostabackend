@@ -63,7 +63,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
       success: true,
       message: "OTP verified successfully",
       token,
-      fchmToken: user.fcmToken,
+      fcmToken: user.fcmToken,
       userDetails: user,
       status: 200,
     });

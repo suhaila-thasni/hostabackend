@@ -161,6 +161,8 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
       staffId: newStaff.id,
       roleId,
       staffName: newStaff.name,
+      hospitalId,
+      hospitalName
     }
   );
 
