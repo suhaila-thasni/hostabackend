@@ -196,8 +196,10 @@ if (exist) {
       password,
       role: "doctor",
       doctorId: newDoctor.id,
-       roleId,
+      roleId,
       doctorName: newDoctor.displayName,
+      hospitalId,
+      hospitalName
     },
      {
       headers: {

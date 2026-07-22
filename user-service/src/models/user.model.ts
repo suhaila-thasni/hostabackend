@@ -115,7 +115,7 @@ User.init(
     
         roleId: {
       type: DataTypes.INTEGER,
-      defaultValue: 3,
+      defaultValue: 5,
       allowNull: true,
     },
 

@@ -112,7 +112,7 @@ Auth.init(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
-    hospitalName: {
+    hospitalName: {   
       type: DataTypes.STRING,
       allowNull: true,
     },

@@ -865,6 +865,7 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
     doctorName,
     staffName,
   } = req.body;
+  console.log("hos,na", hospitalName)
 
   // Validation
   if (!password || (!email && !phone)) {
