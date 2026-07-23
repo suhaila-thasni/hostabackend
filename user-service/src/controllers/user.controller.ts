@@ -207,7 +207,7 @@ export const createPatient: any = asyncHandler(async (req: Request, res: Respons
     const {
       name, bloodGroup, gender, maritalStatus,roleId,
       patientType, age, dob, mobileNumber, emergencyNumber,
-      guardianName, addressLine, location, email, password, userId, hospitalId
+      guardianName, addressLine, location, email, password, userId, hospitalId,hospitalName
     } = req.body;
 
 
@@ -267,7 +267,7 @@ export const createPatient: any = asyncHandler(async (req: Request, res: Respons
     const patient = await Patient.create({
       name, bloodGroup, gender, maritalStatus,
       patientType, age, dob, mobileNumber, emergencyNumber,
-      guardianName, addressLine, location, email, password, userId: finalUserId, hospitalId
+      guardianName, addressLine, location, email, password, userId: finalUserId, hospitalId,hospitalName
     }, { transaction: t });
 
 
@@ -516,7 +516,7 @@ export const updatePatient: any = asyncHandler(async (req: Request, res: Respons
     const {
       name, bloodGroup, gender, maritalStatus,
       patientType, age, dob, mobileNumber, emergencyNumber,
-      guardianName, addressLine, location, email, password, userId, hospitalId
+      guardianName, addressLine, location, email, password, userId, hospitalId,hospitalName
     } = req.body;
 
     // 1.5 Validate userId (if provided)
@@ -531,7 +531,7 @@ export const updatePatient: any = asyncHandler(async (req: Request, res: Respons
     await patient.update({
       name, bloodGroup, gender, maritalStatus,
       patientType, age, dob, mobileNumber, emergencyNumber,
-      guardianName, addressLine, location, email, password, userId, hospitalId
+      guardianName, addressLine, location, email, password, userId, hospitalId,hospitalName
     }, { transaction: t });
 
     await t.commit();

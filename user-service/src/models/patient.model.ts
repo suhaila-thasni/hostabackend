@@ -34,6 +34,7 @@ interface IPatient {
   addressLine: string;
 
   location: ILocation;
+  hospitalName: string;
 
   email?: string;
   password?: string;
@@ -72,7 +73,7 @@ class Patient extends Model<IPatient> implements IPatient {
   public password!: string;
 
   public location!: ILocation;
-
+  public hospitalName!: string;
   public readonly vitals?: any[];
 
   public deleteDate?: Date;
@@ -198,6 +199,10 @@ Patient.init(
       validate: {
         isEmail: true,
       },
+    },
+    hospitalName:{
+      type: DataTypes.STRING,
+      allowNull: false,
     },
 
     password: {
