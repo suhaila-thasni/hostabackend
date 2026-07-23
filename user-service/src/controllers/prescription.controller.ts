@@ -36,62 +36,59 @@ export const createPrescription: any = asyncHandler(async (req: Request, res: Re
 
   const errors: string[] = [];
 
-  // 1. Validate / Auto-Create Patient
+  // 1. Validate Hospital (Cross-Service) & Get Hospital Name
+  let fetchedHospitalName = hospitalName;
+  try {
+    const hospitalRes = await httpClient.get(`${process.env.HOSPITAL_SERVICE_URL}/hospital/${hospitalId}`, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    if (!fetchedHospitalName && hospitalRes.data?.data?.name) {
+      fetchedHospitalName = hospitalRes.data.data.name;
+    }
+  } catch (error: any) {
+    console.error("Hospital validation failed:", error.message);
+    errors.push(`Hospital with ID ${hospitalId} does not exist or is unreachable.`);
+  }
+
+  // 2. Validate / Auto-Create Patient
   let finalPatientId = patientId;
   let patientExists = null;
 
-  
-
   if (finalPatientId) {
     patientExists = await Patient.findOne({ where: { id: finalPatientId, isDelete: false } });
-    
   }
-
-  
 
   // Auto Create Patient if not found but we have a userId
   if (!patientExists && userId) {
-    
     const user = await User.findOne({ where: { id: userId, isDelete: false } });
 
-
-        let booking: any;
-
-try {
-  booking = await httpClient.get(
-    `${process.env.BOOKING_SERVICE_URL}/booking/${bookingId}`,
-    {
-      headers: { Authorization: req.headers.authorization }
+    let booking: any;
+    try {
+      booking = await httpClient.get(
+        `${process.env.BOOKING_SERVICE_URL}/booking/${bookingId}`,
+        { headers: { Authorization: req.headers.authorization } }
+      );
+    } catch (error: any) {
+       res.status(error.response?.status || 500).json({
+        success: false,
+        message: error.response?.data?.message || error.response?.data?.error || "Booking service error",
+        error: error.response?.data,
+      });
+      return;
     }
-  );
-} catch (error: any) {
 
-   res.status(error.response?.status || 500).json({
-    success: false,
-    message:
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      "Booking service error",
-    error: error.response?.data,
-  });
-  return
-}
+    const dob = booking?.data?.data?.patient_dob;
+    let formattedDob = null;
+    if (dob) {
+      const [day, month, year] = dob.split("/");
+      formattedDob = `${year}-${month}-${day}`;
+    }
 
-
-const dob = booking?.data?.data?.patient_dob;
-
-let formattedDob = null;
-
-if (dob) {
-  const [day, month, year] = dob.split("/");
-  formattedDob = `${year}-${month}-${day}`;
-}
-
-    
     if (user) {
       patientExists = await Patient.create({
         userId: user.id,
         hospitalId: hospitalId,
+        hospitalName: fetchedHospitalName || "Unknown Hospital",
         name: booking?.data?.data?.patient_name,
         gender: booking?.data?.data?.patient_gender,
         age: booking?.data?.data?.patient_age,
@@ -102,8 +99,6 @@ if (dob) {
       });
       
       finalPatientId = patientExists.id;
-
-      
     } else {
       errors.push(`User with ID ${userId} does not exist. Cannot auto-create patient.`);
     }
@@ -111,30 +106,15 @@ if (dob) {
     errors.push(`Patient with ID ${patientId} does not exist and no userId provided to auto-create.`);
   }
 
-  // 2. Validate Doctor (Cross-Service: doctor-service)
+  // 3. Validate Doctor (Cross-Service: doctor-service)
   try {
     const doctorResponse = await httpClient.get(`${process.env.DOCTOR_SERVICE_URL}/doctor/${doctorId}`, {
       headers: { Authorization: req.headers.authorization }
     });
-    const doctorName = doctorResponse.data.data.name; // adjust according to your API response
-
-    console.log("Doctor Response:", doctorResponse.data);
-    
+    const doctorName = doctorResponse.data.data.name; 
   } catch (error: any) {
     console.error("Doctor validation failed:", error.message);
     errors.push(`Doctor with ID ${doctorId} does not exist or is unreachable.`);
-  }
-
-  // 3. Validate Hospital (Cross-Service: hospital-service)
-  try {
-    await httpClient.get(`${process.env.HOSPITAL_SERVICE_URL}/hospital/${hospitalId}`, {
-      headers: { Authorization: req.headers.authorization }
-    });
-
-    
-  } catch (error: any) {
-    console.error("Hospital validation failed:", error.message);
-    errors.push(`Hospital with ID ${hospitalId} does not exist or is unreachable.`);
   }
 
   // 4. Return all errors if any
@@ -149,12 +129,12 @@ if (dob) {
 
   const finalUserId = patientExists ? patientExists.userId : userId;
 
-  // 5. Create Prescription
+  // 4. Create Prescription
   const prescription = await Prescription.create({
     bookingId, hospitalId, doctorId, patientId: finalPatientId, userId: finalUserId, complaint, medications, investigations, advice, next_consultation, empty_stomach, prescribedBy, 
    canvasBg,
   design,
-   hospitalName,
+   hospitalName: fetchedHospitalName,
   patientName,
     age,
   contact,
