@@ -1,6 +1,8 @@
 import app from './app';
 import sequelize from './config/db';
 import dotenv from 'dotenv';
+import { connectRabbitMQ } from './events/publisher';
+import { connectRabbitMQConsumer } from './events/consumer';
 
 dotenv.config();
 
@@ -15,6 +17,11 @@ const startServer = async () => {
     await sequelize.sync({ alter: true }); 
     console.log('Database synced.');
 
+    // Connect RabbitMQ publisher & consumer
+    await connectRabbitMQ();
+    await connectRabbitMQConsumer();
+    console.log('🐰 Auth Service RabbitMQ initialized');
+
     app.listen(PORT, () => {
       console.log(`Auth service running on port ${PORT}`);
     });
@@ -25,3 +32,4 @@ const startServer = async () => {
 };
 
 startServer();
+

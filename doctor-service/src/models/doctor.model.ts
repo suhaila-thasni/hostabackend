@@ -71,6 +71,7 @@ interface IDoctor {
   joiningDate?: Date;
   todayBookingAcceptCount: number;
   roleId: number;
+  status?: string;
   isActive?: boolean;
   isDelete?: boolean;
   deleteDate?: Date;
@@ -91,7 +92,7 @@ interface IDoctor {
 
 type DoctorCreationAttributes = Optional<
   IDoctor,
-  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consultingTwo" | "consultingOne" | "department" | "specialist" | "displayName" | "hospitalId" | "deleteDate"
+  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consultingTwo" | "consultingOne" | "department" | "specialist" | "displayName" | "hospitalId" | "deleteDate" | "status"
 >;
 
 /* =======================
@@ -128,6 +129,7 @@ class Doctor
   public outDoorConsulting?: IOutDoorConsulting;
   public hospitalId?: number;
   public roleId: number;
+  public status?: string;
   public imageUrl?: string;
   public deleteDate?: Date;
   public experience?: string;
@@ -286,6 +288,11 @@ Doctor.init(
       type: DataTypes.INTEGER,
       defaultValue: 0,
       allowNull: true,
+    },
+    status: {
+      type: DataTypes.STRING,
+      defaultValue: 'PENDING',
+      allowNull: false,
     },
     isActive: {
       type: DataTypes.BOOLEAN,

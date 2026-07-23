@@ -185,41 +185,21 @@ if (exist) {
       appointmentCount,
       regNo,
       hospitalName,
+      status: 'PENDING',
     });
 
-
-
-
- try {
-   await axios.post(
-    `${process.env.AUTH_SERVICE_URL}/auth`,
-    {
-      email,
-      phone,
-      password,
-      role: "doctor",
+    // Publish DOCTOR_CREATED event to RabbitMQ for Auth Service to consume
+    await publishEvent("auth_events", "DOCTOR_CREATED", {
       doctorId: newDoctor.id,
-      roleId,
+      email: newDoctor.email,
+      phone: newDoctor.phone,
+      password: password, // raw password - Auth Service will hash it via its own beforeCreate hook
+      role: "doctor",
+      roleId: newDoctor.roleId,
       doctorName: newDoctor.displayName,
-      hospitalId,
-      hospitalName
-    },
-     {
-      headers: {
-        Authorization: req.headers.authorization || "",
-      },
-    }
-  );
-
-} catch (error: any) {
-  console.error(
-    "Failed to create auth doctor:",
-    error.response?.data || error.message
-  );
-
-  throw new Error("Failed to create authentication doctor");
-}
-
+      hospitalId: newDoctor.hospitalId,
+      hospitalName: newDoctor.hospitalName,
+    });
 
     await publishEvent("doctor_events", "DOCTOR_REGISTERED", {
       doctorId: newDoctor.id,
@@ -230,8 +210,8 @@ if (exist) {
 
     res.status(201).json({
       success: true,
-      message: "Registeration completed successfully",
-      data: null,
+      message: "Registration completed successfully. Account activation in progress.",
+      data: { doctorId: newDoctor.id, status: newDoctor.status },
       error: null,
     });
   },
