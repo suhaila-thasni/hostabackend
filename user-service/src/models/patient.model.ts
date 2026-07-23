@@ -202,7 +202,7 @@ Patient.init(
     },
     hospitalName:{
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
 
     password: {
