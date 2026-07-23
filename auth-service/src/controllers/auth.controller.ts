@@ -903,55 +903,162 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
 
 
 
+// export const update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+//   const { id, roles }: any = req.params;
+
+//   const {
+//     email,
+//     phone,
+//     password,
+//     role,
+//     roleId,
+//     superadminId,
+//     doctorId,
+//     staffId,
+//     hospitalId,
+//     hospitalName,
+//     doctorName,
+//     staffName,
+//     deviceId,
+//     fcmToken,
+//     platform,
+//   } = req.body;
+
+//   let where: any = {};
+
+//   switch (roles) {
+//     case "doctor":
+//       where.doctorId = id;
+//       break;
+
+//     case "staff":
+//       where.staffId = id;
+//       break;
+
+//     case "hospital":
+//       where.hospitalId = id;
+//       break;
+
+//     case "superadmin":
+//       where.superadminId = id;
+//       break;
+
+//     default:
+//       res.status(400).json({
+//         success: false,
+//         message: "Invalid role",
+//       });
+//       return;
+//   }
+
+//   const auth: any = await Auth.findOne({ where });
+
+//   if (!auth) {
+//     res.status(404).json({
+//       success: false,
+//       message: "User not found.",
+//     });
+//     return;
+//   }
+
+//   // Update normal fields
+//   await auth.update({
+//     email,
+//     phone,
+//     password,
+//     role,
+//     roleId,
+//     superadminId,
+//     doctorId,
+//     staffId,
+//     hospitalId,
+//     hospitalName,
+//     doctorName,
+//     staffName,
+//   });
+
+//   // Update FCM token array based on role
+//   if (deviceId && fcmToken && platform) {
+//     const fieldMap: any = {
+//       doctor: "doctor_fcmtoken",
+//       staff: "staff_fcmtoken",
+//       hospital: "hospital_fcmtoken",
+//       superadmin: "superadmin_fcmtoken",
+//     };
+
+//     const field = fieldMap[auth.role];
+
+//     if (field) {
+//       const tokens = auth[field] || [];
+
+//       const index = tokens.findIndex(
+//         (item: any) => item.deviceId === deviceId
+//       );
+
+//       const tokenData = {
+//         deviceId,
+//         fcmToken,
+//         platform,
+//       };
+
+//       if (index !== -1) {
+//         tokens[index] = tokenData;
+//       } else {
+//         tokens.push(tokenData);
+//       }
+
+//       await auth.update({
+//         [field]: tokens,
+//       });
+//     }
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     message: "User updated successfully.",
+//     data: auth,
+//   });
+// });
 export const update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const { id, roles }: any = req.params;
+    console.log("===== UPDATE CONTROLLER CALLED =====");
 
-  const {
-    email,
-    phone,
-    password,
-    role,
-    roleId,
-    superadminId,
-    doctorId,
-    staffId,
-    hospitalId,
-    hospitalName,
-    doctorName,
-    staffName,
-    deviceId,
-    fcmToken,
-    platform,
-  } = req.body;
+  const { id, roles } : any = req.params; 
 
-  let where: any = {};
 
-  switch (roles) {
-    case "doctor":
-      where.doctorId = id;
-      break;
+    const { updatePayload } : any = req.body;
 
-    case "staff":
-      where.staffId = id;
-      break;
+console.log("up",updatePayload,id,roles)
+ 
+  
 
-    case "hospital":
-      where.hospitalId = id;
-      break;
+let where: any = {};
 
-    case "superadmin":
-      where.superadminId = id;
-      break;
+switch (roles) {
+  case "doctor":
+    where.doctorId = id;
+    break;
 
-    default:
-      res.status(400).json({
-        success: false,
-        message: "Invalid role",
-      });
-      return;
-  }
+  case "staff":
+    where.staffId = id;
+    break;
 
-  const auth: any = await Auth.findOne({ where });
+  case "hospital":
+    where.hospitalId = id;
+    break;
+
+  case "superadmin":
+    where.superadminId = id;
+    break;
+
+  default:
+     res.status(400).json({
+      success: false,
+      message: "Invalid role",
+    });
+    return;
+}
+
+const auth: any = await Auth.findOne({ where });
 
   if (!auth) {
     res.status(404).json({
@@ -963,22 +1070,33 @@ export const update = asyncHandler(async (req: Request, res: Response): Promise<
 
   // Update normal fields
   await auth.update({
-    email,
-    phone,
-    password,
-    role,
-    roleId,
-    superadminId,
-    doctorId,
-    staffId,
-    hospitalId,
-    hospitalName,
-    doctorName,
-    staffName,
+    updatePayload
   });
 
+console.log("roles:", roles);
+console.log("id:", id);
+console.log("updatePayload:", updatePayload);
+console.log("hospital name:",updatePayload.hospitalName)
+
+if(roles == "hospital" && updatePayload.hospitalName){
+console.log("hospital name:",updatePayload.hospitalName)
+      await Auth.update(
+    {
+      hospitalName: updatePayload.hospitalName,
+    },
+    {
+      where: {
+        hospitalId: id,
+      },
+    },
+  );
+  console.log("hospital name:",updatePayload.hospitalName)
+
+     
+  }
+
   // Update FCM token array based on role
-  if (deviceId && fcmToken && platform) {
+  if (updatePayload.deviceId && updatePayload.fcmToken && updatePayload.platform) {
     const fieldMap: any = {
       doctor: "doctor_fcmtoken",
       staff: "staff_fcmtoken",
@@ -992,13 +1110,13 @@ export const update = asyncHandler(async (req: Request, res: Response): Promise<
       const tokens = auth[field] || [];
 
       const index = tokens.findIndex(
-        (item: any) => item.deviceId === deviceId
+        (item: any) => item.deviceId === updatePayload.deviceId
       );
 
       const tokenData = {
-        deviceId,
-        fcmToken,
-        platform,
+       deviceId: updatePayload.deviceId,
+        fcmToken: updatePayload.fcmToken,
+        platform: updatePayload.platform,
       };
 
       if (index !== -1) {
@@ -1019,7 +1137,6 @@ export const update = asyncHandler(async (req: Request, res: Response): Promise<
     data: auth,
   });
 });
-
 
 export const deleteAuth = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {

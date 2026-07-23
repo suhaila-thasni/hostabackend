@@ -69,7 +69,7 @@ router.get("/hospital",  getHospital);
 router.get("/hospital/blacklist", authenticate, checkPermission("hospital", "view"),  getBlacklistedHospitals);
 router.get("/hospital/:id",  getanHospital);
 router.put("/hospital/recover/:id", authenticate, checkPermission("hospital", "edit"), recoverHospital);
-router.put("/hospital/:id",authenticate,checkPermission("hospital","edit"), updateData);
+router.put("/hospital/:id", updateData);
 
 router.put(
   "/internal/hospital/:id/password",

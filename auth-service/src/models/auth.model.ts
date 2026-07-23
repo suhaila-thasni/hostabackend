@@ -73,7 +73,6 @@ Auth.init(
     },
     email: {
       type: DataTypes.STRING,
-      unique: true,
       allowNull: true,
       validate: {
         isEmail: true,
@@ -81,7 +80,6 @@ Auth.init(
     },
     phone: {
       type: DataTypes.STRING,
-      unique: true,
       allowNull: true,
     },
     password: {

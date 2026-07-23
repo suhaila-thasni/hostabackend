@@ -87,9 +87,14 @@ router.put("/users/auth/change-password", authenticate, checkPermission("users",
 router.post("/users/refresh", refreshUserToken);
 router.post("/users/logout/:id", authenticate, checkPermission("users", "create"), logout);
 
-router.get("/users", authenticate, checkPermission("users", "view"),   getUsers);
-router.get("/users/blacklist", authenticate, checkPermission("users", "view"), getBlacklistedUsers);
-router.get("/users/:id", authenticate, validateParams(idParamSchema), checkPermission("users", "view"), getUser);
+router.get("/users", authenticate,   getUsers);
+router.get("/users/blacklist", authenticate, getBlacklistedUsers);
+router.get("/users/:id", authenticate, validateParams(idParamSchema), (req: any, res: any, next: any) => {
+  if (req.user.id === parseInt(req.params.id)) {
+    return next();
+  }
+  return checkPermission("users", "view")(req, res, next);
+}, getUser);
 router.put("/users/recover/:id", authenticate, checkPermission("users", "edit"), recoverUser);
 router.put("/users/:id", authenticate, validateParams(idParamSchema), validate(updateUserSchema), checkPermission("users", "edit"), updateUser);
 router.delete("/users/:id", authenticate, validateParams(idParamSchema), checkPermission("users", "delete"), deleteUser);

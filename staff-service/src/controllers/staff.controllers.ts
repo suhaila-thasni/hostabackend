@@ -529,6 +529,10 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 
       // update auth staff
 
+      
+   if(updatePayload.email || updatePayload.phone || updatePayload.password  ||updatePayload.roleId || updatePayload.staffName ){
+
+
    try {
    await axios.put(
     `${process.env.AUTH_SERVICE_URL}/auth/${staff.id}/role/${"staff"}`,
@@ -549,7 +553,7 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
   );
 
   throw new Error("Failed to update authentication staff");
-}
+}}
 
     await publishEvent("staff_events", "STAFF_UPDATED", {
       staffId: staff.id,
@@ -608,13 +612,16 @@ export const staffDelete: any = asyncHandler(async (req: Request, res: Response)
 
       // delete auth staff
 
+      const deletePayload = {
+        isActive: false,
+        isDelete: true,
+        deleteDate: new Date(),
+      }
    try {
    await axios.put(
     `${process.env.AUTH_SERVICE_URL}/auth/${staff.id}/role/${"staff"}`,
     {
-      isActive: false,
-      isDelete: true,
-      deleteDate: new Date(),
+     deletePayload
     },
      {
       headers: {
@@ -895,13 +902,18 @@ export const recoverStaff: any = asyncHandler(async (req: Request, res: Response
 
       // update auth staff
 
+
+
+      const updatePayload = {
+        isActive: true,
+        isDelete: false,
+        deleteDate: null,
+      }
    try {
    await axios.put(
     `${process.env.AUTH_SERVICE_URL}/auth/${staff.id}/role/${"staff"}`,
     {
-      isActive: true,
-      isDelete: false,
-      deleteDate: null,
+     updatePayload
     },
      {
       headers: {

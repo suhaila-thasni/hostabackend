@@ -78,17 +78,15 @@ export const sendDoctorOtpEmail = async (
 export const Registeration: any = asyncHandler(
   async (req: any, res: Response) => {
     const {
-      hospitalId,
       firstName,
       lastName,
+      department,
+      specialist,
       phone,
-      joiningDate,
       email,
       password,
       roleId,
       fees,
-      department,
-      specialist,
       dob,
       gender,
       knowLanguages,
@@ -97,12 +95,14 @@ export const Registeration: any = asyncHandler(
       bookingOpen,
       qualification,
       address,
+      joiningDate,
+      hospitalId,
       displayName,
       outDoorConsulting,
       experience,
       appointmentCount,
       regNo,
-      hospitalName,
+      hospitalName
     } = req.body;
 
 
@@ -112,6 +112,8 @@ export const Registeration: any = asyncHandler(
         .json({ success: false, message: "Hospital ID is required" });
       return;
     }
+
+    // let hospitalName = "";
 
     // 2. Validate hospitalId via hospital-service
     try {
@@ -127,6 +129,7 @@ export const Registeration: any = asyncHandler(
           .json({ success: false, message: "Invalid hospital ID" });
         return;
       }
+      // hospitalName = hospitalResponse.data.data.name; // Extract name from hospital service
     } catch (error) {
       res.status(404).json({
         success: false,
@@ -613,6 +616,10 @@ export const updateData: any = asyncHandler(
 
       // update auth doctor
 
+
+      if(updatePayload.email || updatePayload.phone || updatePayload.password  ||updatePayload.roleId || updatePayload.doctorName){
+
+
    try {
    await axios.put(
     `${process.env.AUTH_SERVICE_URL}/auth/${doctor[1][0].id}/role/${"doctor"}`,
@@ -633,7 +640,7 @@ export const updateData: any = asyncHandler(
   );
 
   throw new Error("Failed to update authentication doctor");
-}
+}}
 
     await publishEvent("doctor_events", "DOCTOR_UPDATED", {
       doctorId: doctor[1][0].id,
@@ -702,13 +709,17 @@ export const doctorDelete: any = asyncHandler(
 
       // delete auth doctor
 
+
+      const deletePayload = {
+        isActive: false,
+        isDelete: true,
+        deleteDate: new Date(),
+      }
    try {
    await axios.put(
     `${process.env.AUTH_SERVICE_URL}/auth/${id}/role/${"doctor"}`,
     {
-      isActive: false,
-      isDelete: true,
-      deleteDate: new Date(),
+      deletePayload
     },
      {
       headers: {
@@ -946,13 +957,17 @@ export const recoverDoctor: any = asyncHandler(async (req: Request, res: Respons
   });
 
 
+
+    const updatePayload = {
+      isActive: true,
+      isDelete: false,
+      deleteDate: null,
+    }
    try {
    await axios.put(
     `${process.env.AUTH_SERVICE_URL}/auth/${doctor.id}/role/${"doctor"}`,
     {
-      isActive: true,
-      isDelete: false,
-      deleteDate: null,
+     updatePayload
     },
      {
       headers: {

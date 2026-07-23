@@ -584,12 +584,18 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
   }
 
   // update auth hospital
+if(updatePayload.email || updatePayload.phone || updatePayload.password ||updatePayload.name){
+  
+updatePayload.hospitalName = updatePayload.name;
+delete updatePayload.name;
 
+console.log("updatePayload",updatePayload)
+    
    try {
    await axios.put(
-    `${process.env.AUTH_SERVICE_URL}/auth/${hospital[1].id}/role/${"hospital"}`,
+    `${process.env.AUTH_SERVICE_URL}/auth/${hospital[1][0].id}/role/${"hospital"}`,
     {
-     updatePayload
+      updatePayload,
     },
     {
       headers: {
@@ -605,6 +611,7 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
   );
 
   throw new Error("Failed to update authentication hospital");
+}
 }
 
 
@@ -710,13 +717,16 @@ export const hospitalDelete: any = asyncHandler(async (req: Request, res: Respon
 
       // update auth hospital
 
+      const updatePayload = {
+        isActive: false,
+        isDelete: true,
+        deleteDate: new Date(),
+      }
    try {
    await axios.put(
     `${process.env.AUTH_SERVICE_URL}/auth/${id}/role/${"hospital"}`,
     {
-      isActive: false,
-      isDelete: true,
-      deleteDate: new Date(),
+      updatePayload
     },
      {
       headers: {
@@ -737,6 +747,11 @@ export const hospitalDelete: any = asyncHandler(async (req: Request, res: Respon
   await publishEvent("hospital_events", "HOSPITAL_BLACKLISTED", {
     hospitalId: id,
   });
+
+
+
+
+
 
   try {
     await axios.post(`${process.env.BULMQ_SERVICE_URL}/blacklist-reminder/hospital`, {
@@ -1072,13 +1087,19 @@ export const recoverHospital: any = asyncHandler(async (req: Request, res: Respo
 
         // update auth doctor
 
+
+        const updatePayload = {
+          isDelete: false,
+          isActive: true,
+          deleteDate: null,
+          deleteRequested: false,
+        }
    try {
    await axios.put(
     `${process.env.AUTH_SERVICE_URL}/auth/${hospital.id}/role/${"hospital"}`,
     {
-      isActive: true,
-      isDelete: false,
-      deleteDate: null,
+      updatePayload
+    
     },
      {
       headers: {
