@@ -377,9 +377,6 @@ export const login: any = asyncHandler(
       ...safeDoctor
     } = doctor.get();
 
-    // Debug: Log hospitalName to check if it exists
-    console.log("Doctor hospitalName:", safeDoctor.hospitalName);
-    console.log("Doctor hospitalId:", safeDoctor.hospitalId);
 
 
     let authPermission = [];

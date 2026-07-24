@@ -72,6 +72,9 @@ const startConsumers = async () => {
                         doctorId: data.doctorId,
                         hospitalId: data.hospitalId,
                         phone: data.phone,
+                        hospitalName: data.hospitalName,
+                        doctorName: data.doctorName,
+                        roleId: data.roleId,
                     });
                     console.log(`✅ Auth record created for Doctor ID: ${data.doctorId}`);
                 } else {
