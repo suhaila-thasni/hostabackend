@@ -89,10 +89,42 @@ const startConsumers = async () => {
 
                 // 4. Acknowledge message processing successfully
                 channel.ack(msg);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("❌ Error processing DOCTOR_CREATED event:", error);
-                // Nack the message to put it back in queue or DLQ
-                channel.nack(msg, false, false);
+
+                // Determine error type: Business vs Infrastructure
+                const isBusinessError = [
+                    'SequelizeUniqueConstraintError',
+                    'SequelizeValidationError',
+                    'SequelizeForeignKeyConstraintError',
+                ].includes(error?.name);
+
+                if (isBusinessError) {
+                    // ===== BUSINESS ERROR (e.g. duplicate phone/email) =====
+                    // Data is invalid — rollback the pending doctor
+                    console.log(`⚠️ Business error detected: ${error?.name}. Triggering rollback...`);
+                    try {
+                        const data = JSON.parse(msg.content.toString());
+                        if (data && data.doctorId && data.hospitalId) {
+                            await publishEvent('doctor_events', 'AUTH_FAILED', {
+                                doctorId: data.doctorId,
+                                hospitalId: data.hospitalId,
+                                reason: error?.errors?.[0]?.message || error?.message || 'Unknown business error'
+                            });
+                            console.log(`🔙 Published AUTH_FAILED event for Doctor ID: ${data.doctorId}`);
+                        }
+                    } catch (publishError) {
+                        console.error("❌ Failed to publish AUTH_FAILED event:", publishError);
+                    }
+                    // Ack — remove from queue, rollback was triggered
+                    channel.ack(msg);
+                } else {
+                    // ===== INFRASTRUCTURE ERROR (e.g. DB down, connection refused) =====
+                    // Data is valid — keep the message in RabbitMQ for retry
+                    console.log(`🔄 Infrastructure error detected. Nacking message for retry...`);
+                    // nack(msg, allUpTo=false, requeue=true) — requeue so RabbitMQ retries later
+                    channel.nack(msg, false, true);
+                }
             }
         }
     });

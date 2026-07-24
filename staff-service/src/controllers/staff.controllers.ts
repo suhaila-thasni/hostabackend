@@ -163,7 +163,7 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
       roleId,
       staffName: newStaff.name,
       hospitalId,
-      hospitalName
+      hospitalName,
     }
   );
 

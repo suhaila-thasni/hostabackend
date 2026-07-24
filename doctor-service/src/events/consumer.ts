@@ -81,5 +81,34 @@ const startConsumers = async () => {
         }
     });
 
+    // Listen for AUTH_FAILED events from Auth Service (Compensating Transaction)
+    const authFailedQueue = await channel.assertQueue('doctor_auth_failed_queue', { durable: true });
+    await channel.bindQueue(authFailedQueue.queue, exchange, 'AUTH_FAILED');
+
+    channel.consume(authFailedQueue.queue, async (msg) => {
+        if (msg !== null) {
+            try {
+                const data = JSON.parse(msg.content.toString());
+                console.log("📨 Doctor Service received AUTH_FAILED event:", data);
+
+                // Rollback: Delete the stuck PENDING Doctor record
+                const deletedCount = await Doctor.destroy({
+                    where: { id: data.doctorId, hospitalId: data.hospitalId, status: 'PENDING' }
+                });
+
+                if (deletedCount > 0) {
+                    console.log(`✅ Rolled back: Doctor ID ${data.doctorId} deleted successfully`);
+                } else {
+                    console.warn(`⚠️ Rollback warning: Doctor ID ${data.doctorId} not found or not in PENDING state`);
+                }
+
+                channel.ack(msg);
+            } catch (error) {
+                console.error("❌ Error processing AUTH_FAILED event:", error);
+                channel.nack(msg, false, false);
+            }
+        }
+    });
+
     console.log("🎧 Doctor Service listening for AUTH_CREATED events");
 };
