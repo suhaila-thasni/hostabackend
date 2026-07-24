@@ -95,7 +95,7 @@ import { httpClient } from "../utils/httpClient";
 // REGISTER - POST /staff/register                             
 export const Registeration: any = asyncHandler(async (req: any, res: Response) => {
   
-  const { hospitalId, name, phone, email, password, roleId,  designation, joiningDate, jobType, staffType,  dob, gender, knowLanguages, qualification, address, hospitalName } = req.body;
+  let { hospitalId, name, phone, email, password, roleId,  designation, joiningDate, jobType, staffType,  dob, gender, knowLanguages, qualification, address, hospitalName } = req.body;
 
 
   if (!hospitalId) {
@@ -113,6 +113,7 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
       res.status(400).json({ success: false, message: "Invalid hospital ID" });
       return;
     }
+    hospitalName = hospitalResponse.data?.data?.name || hospitalName;
   } catch (error) {
     res.status(404).json({
       success: false,
@@ -512,6 +513,7 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
         res.status(400).json({ success: false, message: "Invalid hospital ID" });
         return;
       }
+      updatePayload.hospitalName = hospitalResponse.data?.data?.name || updatePayload.hospitalName;
     } catch (error) {
       res.status(400).json({
         success: false,

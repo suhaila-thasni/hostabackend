@@ -77,7 +77,7 @@ export const sendDoctorOtpEmail = async (
 // REGISTER - POST /doctor/register
 export const Registeration: any = asyncHandler(
   async (req: any, res: Response) => {
-    const {
+    let {
       firstName,
       lastName,
       department,
@@ -129,7 +129,7 @@ export const Registeration: any = asyncHandler(
           .json({ success: false, message: "Invalid hospital ID" });
         return;
       }
-      // hospitalName = hospitalResponse.data.data.name; // Extract name from hospital service
+      hospitalName = hospitalResponse.data?.data?.name || hospitalName;
     } catch (error) {
       res.status(404).json({
         success: false,
@@ -140,24 +140,24 @@ export const Registeration: any = asyncHandler(
     }
 
     const numericPhone = phone.replace(/\D/g, "").slice(-10);
- const exist = await Doctor.findOne({
-  where: {
-    phone: numericPhone,
-    hospitalId: hospitalId,
+    const exist = await Doctor.findOne({
+      where: {
+        phone: numericPhone,
+        hospitalId: hospitalId,
 
-  },
+      },
 
-});
+    });
 
-if (exist) {
-  res.status(409).json({
-    success: false,
-    message: "Doctor already exists in this hospital",
-    data: null,
-    error: { code: "DOCTOR_ALREADY_EXISTS", details: null },
-  });
-  return;
-}
+    if (exist) {
+      res.status(409).json({
+        success: false,
+        message: "Doctor already exists in this hospital",
+        data: null,
+        error: { code: "DOCTOR_ALREADY_EXISTS", details: null },
+      });
+      return;
+    }
 
     const newDoctor = await Doctor.create({
       firstName,
@@ -223,7 +223,7 @@ if (exist) {
 export const login: any = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { email, phone, password, fcmToken, hospitalId } = req.body;
-    
+
 
     if ((!email && !phone) || !password) {
       res.status(400).json({
@@ -248,7 +248,7 @@ export const login: any = asyncHandler(
       },
     });
 
-    
+
 
     if (!doctors.length) {
       res.status(401).json({
@@ -279,7 +279,7 @@ export const login: any = asyncHandler(
     }
 
     if (matchedDoctors.length > 1 && !hospitalId) {
-      
+
       res.status(200).json({
         success: true,
 
@@ -303,45 +303,45 @@ export const login: any = asyncHandler(
 
 
 
-if (fcmToken) {
-  const doctor = await Doctor.findOne({
-    where: { email },
-  });
+    if (fcmToken) {
+      const doctor = await Doctor.findOne({
+        where: { email },
+      });
 
-  if (doctor) {
-    const existingTokens: FCMTOKEN[] = Array.isArray(doctor.fcmToken)
-      ? doctor.fcmToken
-      : [];
+      if (doctor) {
+        const existingTokens: FCMTOKEN[] = Array.isArray(doctor.fcmToken)
+          ? doctor.fcmToken
+          : [];
 
-    // Convert single object to array
-    const newTokens: FCMTOKEN[] = Array.isArray(fcmToken)
-      ? fcmToken
-      : [fcmToken];
+        // Convert single object to array
+        const newTokens: FCMTOKEN[] = Array.isArray(fcmToken)
+          ? fcmToken
+          : [fcmToken];
 
-    const updatedTokens = [
-      // Remove old token for same device
-      ...existingTokens.filter(
-        (oldToken) =>
-          !newTokens.some(
-            (newToken) =>
-              newToken.deviceId === oldToken.deviceId
-          )
-      ),
+        const updatedTokens = [
+          // Remove old token for same device
+          ...existingTokens.filter(
+            (oldToken) =>
+              !newTokens.some(
+                (newToken) =>
+                  newToken.deviceId === oldToken.deviceId
+              )
+          ),
 
-      // Add new tokens
-      ...newTokens,
-    ];
+          // Add new tokens
+          ...newTokens,
+        ];
 
-    await doctor.update({
-      fcmToken: updatedTokens,
-    });
+        await doctor.update({
+          fcmToken: updatedTokens,
+        });
 
-  }
-}
-      
+      }
+    }
 
 
- 
+
+
     const jwtKey = process.env.JWT_SECRET!;
 
     const token = jwt.sign(
@@ -377,51 +377,54 @@ if (fcmToken) {
       ...safeDoctor
     } = doctor.get();
 
+    // Debug: Log hospitalName to check if it exists
+    console.log("Doctor hospitalName:", safeDoctor.hospitalName);
+    console.log("Doctor hospitalId:", safeDoctor.hospitalId);
 
 
-let authPermission = [];
+    let authPermission = [];
 
-if (doctor.roleId) {
-  try {
-    const res = await axios.get(
-      `${process.env.ROLE_SERVICE_URL}/rolepermission`,
-      {
-        params: {
-          roleId: doctor.roleId,
-          hospitalId: doctor.hospitalId,
-        },
+    if (doctor.roleId) {
+      try {
+        const res = await axios.get(
+          `${process.env.ROLE_SERVICE_URL}/rolepermission`,
+          {
+            params: {
+              roleId: doctor.roleId,
+              hospitalId: doctor.hospitalId,
+            },
+          }
+        );
+
+        authPermission = res.data;
+      } catch (err: any) {
+        console.error("Role service failed:", err.response?.status);
+        authPermission = [];
       }
-    );
+    }
 
-    authPermission = res.data;
-  } catch (err: any) {
-    console.error("Role service failed:", err.response?.status);
-    authPermission = [];
-  }
-}
-
-   if(safeDoctor.isDelete === true) {
-       res.status(401).json({
-      success: false,
-      message: "You'r account has been deactivated.",
-      data: null,
-      error: { code: "DOCTOR_BLACKLISTED", details: null },
-    });
-    return;
+    if (safeDoctor.isDelete === true) {
+      res.status(401).json({
+        success: false,
+        message: "You'r account has been deactivated.",
+        data: null,
+        error: { code: "DOCTOR_BLACKLISTED", details: null },
+      });
+      return;
     }
 
 
     res.status(200).json({
-  success: true,
-  message: "Logged in successfully",
-  status: 200,
-  token,
-  data: safeDoctor,
-  error: null,
-  authDefaultPermission: 1,
-  authPermission, 
+      success: true,
+      message: "Logged in successfully",
+      status: 200,
+      token,
+      data: safeDoctor,
+      error: null,
+      authDefaultPermission: 1,
+      authPermission,
 
-});
+    });
 
   },
 );
@@ -481,10 +484,10 @@ export const loginWithPhone: any = asyncHandler(
 export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) => {
   const { phone, otp, fcmToken } = req.body;
 
-    let numericPhone = phone.replace(/\D/g, "").slice(-10);
-    const doctor = await Doctor.scope("withPassword").findOne({
-      where: { phone: numericPhone },
-    });
+  let numericPhone = phone.replace(/\D/g, "").slice(-10);
+  const doctor = await Doctor.scope("withPassword").findOne({
+    where: { phone: numericPhone },
+  });
 
 
   // Persist FCM token if provided, then clear OTPs
@@ -495,54 +498,54 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   }
 
 
-    // Clear OTP fields after verification
-    await doctor.update({ otp: null, otpExpiry: null });
+  // Clear OTP fields after verification
+  await doctor.update({ otp: null, otpExpiry: null });
 
-    const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
-    const token = jwt.sign(
-      {
-        id: doctor.id,
-        name: `${doctor.firstName} ${doctor.lastName}`,
-        role: "doctor",
-        roleId: doctor.roleId,
-        isRefresh: false,
-      },
-      jwtKey,
-      {
-        expiresIn: "15m",
-      },
-    );
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+  const token = jwt.sign(
+    {
+      id: doctor.id,
+      name: `${doctor.firstName} ${doctor.lastName}`,
+      role: "doctor",
+      roleId: doctor.roleId,
+      isRefresh: false,
+    },
+    jwtKey,
+    {
+      expiresIn: "15m",
+    },
+  );
 
-    const {
-      password: _,
-      otp: __,
-      otpExpiry: ___,
-      ...safeDoctor
-    } = doctor.get();
+  const {
+    password: _,
+    otp: __,
+    otpExpiry: ___,
+    ...safeDoctor
+  } = doctor.get();
 
-    const refreshToken = jwt.sign(
-      {
-        id: doctor.id,
-        name: `${doctor.firstName} ${doctor.lastName}`,
-        role: "doctor",
-        roleId: doctor.roleId,
-        isRefresh: true,
-      },
-      jwtKey,
-      {
-        expiresIn: "2w",
-      },
-    );
+  const refreshToken = jwt.sign(
+    {
+      id: doctor.id,
+      name: `${doctor.firstName} ${doctor.lastName}`,
+      role: "doctor",
+      roleId: doctor.roleId,
+      isRefresh: true,
+    },
+    jwtKey,
+    {
+      expiresIn: "2w",
+    },
+  );
 
-    setRefreshTokenCookie(res, refreshToken);
+  setRefreshTokenCookie(res, refreshToken);
 
-    res.status(200).json({
-      success: true,
-      message: "OTP verified successfully",
-      token,
-      data: safeDoctor,
-    });
-  },
+  res.status(200).json({
+    success: true,
+    message: "OTP verified successfully",
+    token,
+    data: safeDoctor,
+  });
+},
 );
 
 // GET ONE - GET /doctor/:id
@@ -576,6 +579,27 @@ export const updateData: any = asyncHandler(
     const { id } = req.params;
     const updatePayload = req.body;
 
+    if (updatePayload.hospitalId) {
+      try {
+        const hospitalResponse = await axios.get(
+          `${process.env.HOSPITAL_SERVICE_URL}/hospital/${updatePayload.hospitalId}`,
+          { headers: { Authorization: req.headers.authorization } }
+        );
+        if (!hospitalResponse.data || !hospitalResponse.data.success) {
+          res.status(400).json({ success: false, message: "Invalid hospital ID" });
+          return;
+        }
+        updatePayload.hospitalName = hospitalResponse.data?.data?.name || updatePayload.hospitalName;
+      } catch (error) {
+        res.status(400).json({
+          success: false,
+          message: "Hospital validation failed. Please ensure the hospital exists.",
+          error: { code: "HOSPITAL_VALIDATION_FAILED" }
+        });
+        return;
+      }
+    }
+
     const doctor = await Doctor.update(updatePayload, {
       where: { id: id, isDelete: false },
       returning: true,
@@ -594,33 +618,34 @@ export const updateData: any = asyncHandler(
     }
 
 
-      // update auth doctor
+    // update auth doctor
 
 
-      if(updatePayload.email || updatePayload.phone || updatePayload.password  ||updatePayload.roleId || updatePayload.doctorName){
+    if (updatePayload.email || updatePayload.phone || updatePayload.password || updatePayload.roleId || updatePayload.doctorName) {
 
 
-   try {
-   await axios.put(
-    `${process.env.AUTH_SERVICE_URL}/auth/${doctor[1][0].id}/role/${"doctor"}`,
-    {
-     updatePayload
-    },
-     {
-      headers: {
-        Authorization: req.headers.authorization || "",
-      },
+      try {
+        await axios.put(
+          `${process.env.AUTH_SERVICE_URL}/auth/${doctor[1][0].id}/role/${"doctor"}`,
+          {
+            updatePayload
+          },
+          {
+            headers: {
+              Authorization: req.headers.authorization || "",
+            },
+          }
+        );
+
+      } catch (error: any) {
+        console.error(
+          "Failed to update auth doctor:",
+          error.response?.data || error.message
+        );
+
+        throw new Error("Failed to update authentication doctor");
+      }
     }
-  );
-
-} catch (error: any) {
-  console.error(
-    "Failed to update auth doctor:",
-    error.response?.data || error.message
-  );
-
-  throw new Error("Failed to update authentication doctor");
-}}
 
     await publishEvent("doctor_events", "DOCTOR_UPDATED", {
       doctorId: doctor[1][0].id,
@@ -642,25 +667,25 @@ export const updateDoctorPassword = async (
   res: Response
 ) => {
 
-    const { password } = req.body;
+  const { password } = req.body;
 
-    const doctor = await Doctor.findByPk(req.params.id);
+  const doctor = await Doctor.findByPk(req.params.id);
 
-    if (!doctor) {
-        return res.status(404).json({
-            success:false,
-            message:"Doctor not found"
-        });
-    }
-
-    doctor.password = password;
-
-    await doctor.save();
-
-    res.json({
-        success:true,
-        message:"Password updated"
+  if (!doctor) {
+    return res.status(404).json({
+      success: false,
+      message: "Doctor not found"
     });
+  }
+
+  doctor.password = password;
+
+  await doctor.save();
+
+  res.json({
+    success: true,
+    message: "Password updated"
+  });
 };
 
 // DELETE - DELETE /doctor/:id
@@ -687,35 +712,35 @@ export const doctorDelete: any = asyncHandler(
     });
 
 
-      // delete auth doctor
+    // delete auth doctor
 
 
-      const deletePayload = {
-        isActive: false,
-        isDelete: true,
-        deleteDate: new Date(),
-      }
-   try {
-   await axios.put(
-    `${process.env.AUTH_SERVICE_URL}/auth/${id}/role/${"doctor"}`,
-    {
-      deletePayload
-    },
-     {
-      headers: {
-        Authorization: req.headers.authorization || "",
-      },
+    const deletePayload = {
+      isActive: false,
+      isDelete: true,
+      deleteDate: new Date(),
     }
-  );
+    try {
+      await axios.put(
+        `${process.env.AUTH_SERVICE_URL}/auth/${id}/role/${"doctor"}`,
+        {
+          deletePayload
+        },
+        {
+          headers: {
+            Authorization: req.headers.authorization || "",
+          },
+        }
+      );
 
-} catch (error: any) {
-  console.error(
-    "Failed to update auth doctor:",
-    error.response?.data || error.message
-  );
+    } catch (error: any) {
+      console.error(
+        "Failed to update auth doctor:",
+        error.response?.data || error.message
+      );
 
-  throw new Error("Failed to update authentication doctor");
-}
+      throw new Error("Failed to update authentication doctor");
+    }
 
     await publishEvent("doctor_events", "DOCTOR_DELETED", {
       doctorId: id,
@@ -823,7 +848,7 @@ export const getDoctors = asyncHandler(
             },
           ),
 
-            Sequelize.where(
+          Sequelize.where(
             Sequelize.fn("COALESCE", Sequelize.col("hospitalName"), ""),
             {
               [Op.iLike]: `%${search}%`,
@@ -938,32 +963,32 @@ export const recoverDoctor: any = asyncHandler(async (req: Request, res: Respons
 
 
 
-    const updatePayload = {
-      isActive: true,
-      isDelete: false,
-      deleteDate: null,
-    }
-   try {
-   await axios.put(
-    `${process.env.AUTH_SERVICE_URL}/auth/${doctor.id}/role/${"doctor"}`,
-    {
-     updatePayload
-    },
-     {
-      headers: {
-        Authorization: req.headers.authorization || "",
+  const updatePayload = {
+    isActive: true,
+    isDelete: false,
+    deleteDate: null,
+  }
+  try {
+    await axios.put(
+      `${process.env.AUTH_SERVICE_URL}/auth/${doctor.id}/role/${"doctor"}`,
+      {
+        updatePayload
       },
-    }
-  );
+      {
+        headers: {
+          Authorization: req.headers.authorization || "",
+        },
+      }
+    );
 
-} catch (error: any) {
-  console.error(
-    "Failed to update auth doctor:",
-    error.response?.data || error.message
-  );
+  } catch (error: any) {
+    console.error(
+      "Failed to update auth doctor:",
+      error.response?.data || error.message
+    );
 
-  throw new Error("Failed to update authentication doctor");
-}
+    throw new Error("Failed to update authentication doctor");
+  }
 
 
   await publishEvent("doctor_events", "DOCTOR_RECOVERED", {
@@ -1140,7 +1165,7 @@ export const verifyDoctorOtp: any = asyncHandler(
 // RESET DOCTOR PASSWORD - POST /doctor/auth/reset-password
 export const resetDoctorPassword: any = asyncHandler(
   async (req: any, res: Response) => {
-    const { email,newPassword } = req.body;
+    const { email, newPassword } = req.body;
 
     const doctor = await Doctor.scope("withPassword").findOne({
       where: { email },
@@ -1264,23 +1289,23 @@ export const refreshDoctorToken: any = asyncHandler(
 export const logout: any = asyncHandler(async (req: Request, res: Response) => {
 
 
-const { deviceId } = req.body;
+  const { deviceId } = req.body;
 
-const doctor = await Doctor.findByPk(req.params.id);
+  const doctor = await Doctor.findByPk(req.params.id);
 
-if (!doctor) {
-   res.status(404).json({
-    success: false,
-    message: "Doctor not found",
-  });
-  return;
-}
+  if (!doctor) {
+    res.status(404).json({
+      success: false,
+      message: "Doctor not found",
+    });
+    return;
+  }
 
-doctor.fcmToken = doctor.fcmToken.filter(
-  (device: any) => device.deviceId !== deviceId
-);
+  doctor.fcmToken = doctor.fcmToken.filter(
+    (device: any) => device.deviceId !== deviceId
+  );
 
-await doctor.save();
+  await doctor.save();
 
   // Redis Blacklist (REMOVED)
   res.clearCookie("refreshToken", {
