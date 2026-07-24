@@ -243,7 +243,7 @@ export const createPatient: any = asyncHandler(async (req: Request, res: Respons
             name: name || mobileNumber,
             email: userEmail,
             phone: mobileNumber,
-            roleId: roleId || 3 // Default patient role
+            roleId: roleId || 5 // Default patient role
           }, { transaction: t });
           
           finalUserId = newUser.id;
