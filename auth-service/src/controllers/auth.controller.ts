@@ -344,32 +344,33 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
 
   // 8. Generate tokens
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+
+  // Determine the name based on the role
+  let userName = "";
+  if (user.role === "doctor") userName = user.doctorName || "";
+  else if (user.role === "staff") userName = user.staffName || "";
+  else if (user.role === "hospital") userName = user.hospitalName || "";
+  else if (user.role === "superadmin") userName = "Super Admin";
+
+  const tokenPayload = {
+    id: user.id,
+    name: userName,
+    role: user.role,
+    roleId: user.roleId,
+    hospitalId: user.hospitalId,
+    staffId: user.staffId,
+    doctorId: user.doctorId,
+    superadminId: user.superadminId,
+  };
+
   const token = jwt.sign(
-    {
-      id: user.id,
-      role: user.role,
-      isRefresh: false,
-      roleId: user.roleId,
-      hospitalId: user.hospitalId,
-      staffId: user.staffId,
-      doctorId: user.doctorId,
-      superadminId: user.superadminId,
-    },
+    { ...tokenPayload, isRefresh: false },
     jwtKey,
     { expiresIn: "15m" }
   );
 
   const refreshToken = jwt.sign(
-    {
-      id: user.id,
-      role: user.role,
-      isRefresh: true,
-      roleId: user.roleId,
-      hospitalId: user.hospitalId,
-      staffId: user.staffId,
-      doctorId: user.doctorId,
-      superadminId: user.superadminId,
-    },
+    { ...tokenPayload, isRefresh: true },
     jwtKey,
     { expiresIn: "2w" }
   );

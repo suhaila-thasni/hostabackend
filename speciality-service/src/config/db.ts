@@ -29,12 +29,13 @@ const sequelize = new Sequelize(env.DATABASE_URL, {
       }
     : {},
 
-  pool: {
-    max: 10,
-    min: 2,
-    acquire: 30000,
-    idle: 10000,
-  },
+   pool: {
+  max: 5,
+  min: 0,
+  acquire: 30000,
+  idle: 10000,
+  evict: 1000,
+},
 });
 
 export const connectDB = async () => {

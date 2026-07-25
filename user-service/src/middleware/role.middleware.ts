@@ -10,6 +10,8 @@ export const checkPermission =
 
       const roleId = req.user.roleId;      
       
+      console.log(`[ROLE DEBUG] User token decoded:`, req.user);
+      console.log(`[ROLE DEBUG] Checking permission for module: ${module}, action: ${action}, roleId: ${roleId}`);
 
       const response = await axios.post(
         `${process.env.ROLE_SERVICE_URL}/check-permission`,
@@ -24,6 +26,8 @@ export const checkPermission =
           },
         }
       );
+
+      console.log(`[ROLE DEBUG] Role-service response:`, response.data);
 
       if (!response.data.allowed) {
 

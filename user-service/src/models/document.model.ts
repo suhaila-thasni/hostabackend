@@ -5,6 +5,7 @@ interface IDocument {
   id: number;
   patientId: number;
   userId: number;
+  hospitalId: number;
   name: string;
   date: Date;
   imageUrl: string;
@@ -20,7 +21,7 @@ class Document extends Model<IDocument, DocumentCreationAttributes> implements I
   public date!: Date;
   public imageUrl!: string;
   public isActive?: boolean;
-
+  public hospitalId!: number;
   public userId: number;
 
   public readonly createdAt!: Date;
@@ -41,6 +42,10 @@ Document.init(
     },
 
        userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    hospitalId: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
@@ -77,7 +82,7 @@ Document.init(
     modelName: "Document",
     tableName: "documents",
     timestamps: true,
-    indexes: [{ fields: ["patientId"] }, { fields: ["date"] }],
+    indexes: [{ fields: ["patientId"] }, { fields: ["date"] } , { fields: ["hospitalId"] }],
   }
 );
 

@@ -268,15 +268,19 @@ export const updateData: any = asyncHandler(
 
        let userToken;
       if (booking[1][0].userId) {
-        const userRes = await httpClient.get(
-          `${process.env.USER_SERVICE_URL}/users/${booking[1][0].userId}`,
-          {
-            headers: {
-              Authorization: req.headers.authorization,
-            },
-          }
-        );
-        userToken = userRes?.data?.data?.fcmToken?.map((d: any) => d.fcmToken) ?? [];
+        try {
+          const userRes = await httpClient.get(
+            `${process.env.USER_SERVICE_URL}/users/${booking[1][0].userId}`,
+            {
+              headers: {
+                Authorization: req.headers.authorization,
+              },
+            }
+          );
+          userToken = userRes?.data?.data?.fcmToken?.map((d: any) => d.fcmToken) ?? [];
+        } catch (userError: any) {
+          console.error("⚠️ Failed to fetch user details for notification:", userError.message);
+        }
       }
 
       if (updatedBooking.status === "cancel") {

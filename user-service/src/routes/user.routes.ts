@@ -115,7 +115,7 @@ router.delete("/patients/:id", authenticate, checkPermission("patient", "delete"
 
 // Prescription
 
-router.post("/prescription",  authenticate, checkPermission("vitals", "create"),  createPrescription);
+router.post("/prescription",  authenticate, checkPermission("prescription", "create"),  createPrescription);
 router.get("/prescription", authenticate, checkPermission("prescription", "view"), getPrescription);
 router.get("/prescription/:id", authenticate, checkPermission("prescription", "view"), getAPrescription);
 router.put("/prescription/:id", authenticate, checkPermission("prescription", "edit"), updateData);
