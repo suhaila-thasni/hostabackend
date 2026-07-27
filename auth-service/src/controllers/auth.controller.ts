@@ -1455,6 +1455,10 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     console.log(req.body);
     console.log("typeof fcmToken:", typeof req.body.fcmToken);
     console.log("fcmToken:", req.body.fcmToken);
+   console.log("========== LOGIN REQUEST ==========");
+    console.log(req.body);
+    console.log("typeof fcmToken:", typeof req.body.fcmToken);
+    console.log("fcmToken:", req.body.fcmToken);
   const { email, phone, password, fcmToken, hospitalId } = req.body;
 
   // 1. Validate input

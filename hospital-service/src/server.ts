@@ -2,6 +2,7 @@ import app from "./app";
 
 import { connectDB } from "./config/db";
 import { connectRabbitMQ } from "./events/publisher";
+import { connectRabbitMQConsumer } from "./events/consumer";
 import { env } from "./config/env";
 import { logger } from "./utils/logger";
 import { startCleanupJob } from "./utils/cleanup";
@@ -13,12 +14,18 @@ const startServer = async () => {
     try {
         await connectDB();
         await connectRabbitMQ();
-        // Ensure tables are in sync
-        const { default: Hospital } = await import("./models/hospital.model");
-         const { default: TemplateItem } = await import("./models/prescription.model");
-
-        await Hospital.sync({ alter: true });
-        await TemplateItem.sync({ alter: true });
+        await connectRabbitMQConsumer();
+        // Ensure tables are in sync — DEV ONLY
+        // In production, schema is managed by SQL migrations (src/migrations/)
+        if (env.NODE_ENV === 'development') {
+            const { default: Hospital } = await import("./models/hospital.model");
+            const { default: TemplateItem } = await import("./models/prescription.model");
+            await Hospital.sync({ alter: true });
+            await TemplateItem.sync({ alter: true });
+            console.warn('⚠️  Dev mode: schema auto-synced. Use migrations in production!');
+        } else {
+            console.log('ℹ️  Production mode: schema managed by SQL migrations.');
+        }
         
         // Start background cleanup for blacklisted hospitals
         startCleanupJob();

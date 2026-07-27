@@ -66,7 +66,8 @@ export interface IHospital {
   otpExpiry?: Date;
   roleId: number;
   imageUrl?: string;
-  fcmToken?: FCMTOKEN[]
+  fcmToken?: FCMTOKEN[];
+  status?: string;
 }
 
 /* =======================
@@ -88,6 +89,7 @@ type HospitalCreationAttributes = Optional<
   | "isDelete"
   | "otp"
   | "otpExpiry"
+  | "status"
 >;
 
 /* =======================
@@ -123,6 +125,7 @@ class Hospital
   public otpExpiry!: Date;
   public imageUrl: string;
   public fcmToken?: FCMTOKEN[];
+  public status?: string;
 }
 
 /* =======================
@@ -259,6 +262,12 @@ Hospital.init(
      fcmToken: {
       type: DataTypes.ARRAY(DataTypes.JSONB),
         defaultValue: [],
+    },
+
+    status: {
+      type: DataTypes.STRING,
+      defaultValue: 'PENDING',
+      allowNull: true,
     },
     
   },

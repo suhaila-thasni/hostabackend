@@ -47,6 +47,7 @@ interface IStaff {
   imageUrl: string;
   hospitalName: string;
   fcmToken: FCMTOKEN[];
+  status?: string;
 
 }
 
@@ -73,6 +74,7 @@ type StaffCreationAttributes = Optional<
   | "deleteDate"
   | "otp"
   | "otpExpiry"
+  | "status"
 >;
 
 /* =======================
@@ -109,6 +111,7 @@ class Staff
   public imageUrl: string;
   public hospitalName: string;
   public fcmToken: FCMTOKEN[];
+  public status?: string;
 
   // timestamps
   public readonly createdAt!: Date;
@@ -216,6 +219,12 @@ Staff.init(
         roleId: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
+      allowNull: true,
+    },
+
+    status: {
+      type: DataTypes.STRING,
+      defaultValue: 'PENDING',
       allowNull: true,
     },
 
