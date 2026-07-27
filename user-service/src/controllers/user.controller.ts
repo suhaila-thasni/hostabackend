@@ -739,10 +739,17 @@ export const saveFcmToken: any = asyncHandler(async (req: Request, res: Response
   }
 
   const parseToken = (token: any): any => {
-    if (typeof token === 'string') {
-      try { return JSON.parse(token); } catch { return token; }
+    let parsed = token;
+    while (typeof parsed === 'string') {
+      try {
+        const next = JSON.parse(parsed);
+        if (next === parsed) break;
+        parsed = next;
+      } catch {
+        break;
+      }
     }
-    return token;
+    return parsed;
   };
 
   const existingRaw = (user.get("fcmToken") as any[]) || [];
