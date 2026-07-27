@@ -347,6 +347,7 @@ export const login: any = asyncHandler(
     const token = jwt.sign(
       {
         id: doctor.id,
+        name: doctor.displayName,
         role: "doctor",
         roleId: doctor.roleId,
         hospitalId: doctor.hospitalId,
@@ -360,6 +361,7 @@ export const login: any = asyncHandler(
     const refreshToken = jwt.sign(
       {
         id: doctor.id,
+        name: doctor.displayName, 
         isRefresh: true,
       },
       jwtKey,
@@ -618,7 +620,7 @@ export const updateData: any = asyncHandler(
     // update auth doctor
 
 
-    if (updatePayload.email || updatePayload.phone || updatePayload.password || updatePayload.roleId || updatePayload.doctorName) {
+    if (updatePayload.email || updatePayload.phone || updatePayload.password || updatePayload.roleId || updatePayload.displayName) {
 
 
       try {

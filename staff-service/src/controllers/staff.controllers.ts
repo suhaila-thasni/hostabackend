@@ -209,15 +209,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
-     if(staff.isDelete === true) {
-       res.status(401).json({
-      success: false,
-      message: "You'r account has been deactivated.",
-      data: null,
-      error: { code: "STAFF_BLACKLISTED", details: null },
-    });
-    return;
-    }
+  
 
 
   if (!staff) {
@@ -230,7 +222,15 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-
+   if(staff.isDelete === true) {
+       res.status(401).json({
+      success: false,
+      message: "You'r account has been deactivated.",
+      data: null,
+      error: { code: "STAFF_BLACKLISTED", details: null },
+    });
+    return;
+    }
 
 
 
@@ -482,6 +482,33 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 
 
 
+
+  const authPayload: any = {};
+
+if (updatePayload.email)
+  authPayload.email = updatePayload.email;
+
+if (updatePayload.phone)
+  authPayload.phone = updatePayload.phone;
+
+if (updatePayload.password)
+  authPayload.password = updatePayload.password;
+
+if (updatePayload.roleId)
+  authPayload.roleId = updatePayload.roleId;
+
+if (updatePayload.name)
+  authPayload.staffName = updatePayload.name;
+
+if (updatePayload.hospitalId)
+  authPayload.hospitalId = updatePayload.hospitalId;
+
+if (updatePayload.hospitalName)
+  authPayload.hospitalName = updatePayload.hospitalName;
+
+
+
+
   const staff = await Staff.findOne({ where: { id, isDelete: false } });
 
   if (!staff) {
@@ -522,14 +549,14 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
       // update auth staff
 
       
-   if(updatePayload.email || updatePayload.phone || updatePayload.password  ||updatePayload.roleId || updatePayload.staffName ){
+   if(updatePayload.email || updatePayload.phone || updatePayload.password  ||updatePayload.roleId || updatePayload.name ||updatePayload.hospitalId ||updatePayload.hospitalName ){
 
 
    try {
    await axios.put(
     `${process.env.AUTH_SERVICE_URL}/auth/${staff.id}/role/${"staff"}`,
     {
-     updatePayload
+     updatePayload: authPayload
     },
      {
       headers: {
