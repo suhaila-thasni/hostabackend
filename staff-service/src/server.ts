@@ -2,6 +2,7 @@ import app from "./app";
 
 import { connectDB } from "./config/db";
 import { connectRabbitMQ } from "./events/publisher";
+import { connectRabbitMQConsumer } from "./events/consumer";
 import { env } from "./config/env";
 import { logger } from "./utils/logger";
 import { startCleanupJob } from "./utils/cleanup";
@@ -13,6 +14,7 @@ const startServer = async () => {
     try {
         await connectDB();
         await connectRabbitMQ();
+        await connectRabbitMQConsumer();
         
         // Start background blacklist cleanup job
         startCleanupJob();

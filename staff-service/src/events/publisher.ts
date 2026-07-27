@@ -9,24 +9,37 @@ let channel: amqp.Channel;
 let connection: any;
 
 export const connectRabbitMQ = async () => {
-    try {
-        connection = await amqp.connect(env.RABBITMQ_URL);
+    let connected = false;
+    let attempts = 0;
+    const maxAttempts = 5;
 
-        connection.on('error', (err) => {
-            console.error('❌ Staff Service RabbitMQ Connection Error:', err);
-        });
+    while (!connected && attempts < maxAttempts) {
+        try {
+            connection = await amqp.connect(env.RABBITMQ_URL);
 
-        connection.on('close', () => {
-            console.warn('⚠️ Staff Service RabbitMQ Connection closed. Retrying...');
-            channel = null as any;
-            setTimeout(connectRabbitMQ, 5000);
-        });
+            connection.on('error', (err) => {
+                console.error('❌ Staff Service RabbitMQ Connection Error:', err);
+            });
 
-        channel = await connection.createChannel();
-        console.log('🐰 Staff Service connected to RabbitMQ');
-    } catch (error) {
-        console.error('❌ Staff Service RabbitMQ Error:', error);
-        setTimeout(connectRabbitMQ, 5000);
+            connection.on('close', () => {
+                console.warn('⚠️ Staff Service RabbitMQ Connection closed. Retrying...');
+                channel = null as any;
+                setTimeout(connectRabbitMQ, 5000);
+            });
+
+            channel = await connection.createChannel();
+            console.log('🐰 Staff Service connected to RabbitMQ');
+            connected = true;
+        } catch (error) {
+            attempts++;
+            console.error(`❌ RabbitMQ Connection attempt ${attempts} failed:`, error instanceof Error ? error.message : error);
+            if (attempts < maxAttempts) {
+                console.log("Retrying in 5 seconds...");
+                await new Promise((resolve) => setTimeout(resolve, 5000));
+            } else {
+                console.error("Max RabbitMQ connection attempts reached.");
+            }
+        }
     }
 };
 
@@ -37,7 +50,7 @@ export const publishEvent = async (exchange: string, routingKey: string, data: a
         }
         await channel.assertExchange(exchange, 'direct', { durable: true });
         channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(data)), { persistent: true });
-        
+      
             await axios.post(`${process.env.SOCKETIO_SERVICE_URL}/emit-event`, {
             event: routingKey,
             userId : null,

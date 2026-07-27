@@ -202,6 +202,10 @@ const updateFCMTokenInService = async (role: string, entityId: number, email: st
 // ===================== LOGIN (Email/Password) =====================
 
 export const login: any = asyncHandler(async (req: Request, res: Response) => {
+   console.log("========== LOGIN REQUEST ==========");
+    console.log(req.body);
+    console.log("typeof fcmToken:", typeof req.body.fcmToken);
+    console.log("fcmToken:", req.body.fcmToken);
   const { email, phone, password, fcmToken, hospitalId } = req.body;
 
   // 1. Validate input
@@ -337,10 +341,58 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
       ...newTokens,
     ];
 
+
+console.log("updatedTokens =", updatedTokens);
+console.log(JSON.stringify(updatedTokens, null, 2));
+
+
     await user.update({
       [fieldName]: updatedTokens,
     });
   }
+
+
+
+// if (fcmToken) {
+//   const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
+
+//   // Helper to parse a token if it's a string
+//   const parseToken = (token: any): any => {
+//     if (typeof token === 'string') {
+//       try {
+//         return JSON.parse(token);
+//       } catch {
+//         // If parsing fails, return as-is (or skip)
+//         return token;
+//       }
+//     }
+//     return token;
+//   };
+
+//   // Read existing tokens and ensure they are all objects
+//   const existingRaw = user[fieldName] || [];
+//   const existingTokens = Array.isArray(existingRaw)
+//     ? existingRaw.map(parseToken)
+//     : [];
+
+//   // Ensure new token(s) are objects
+//   const newRaw = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
+//   const newTokens = newRaw.map(parseToken);
+
+//   // Merge, removing duplicates by deviceId
+//   const updatedTokens = [
+//     ...existingTokens.filter(
+//       (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
+//     ),
+//     ...newTokens,
+//   ];
+
+//   await user.update({
+//     [fieldName]: updatedTokens,
+//   });
+// }
+
+
 
   // 8. Generate tokens
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
@@ -553,6 +605,44 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
     ];
     await user.update({ [fieldName]: updatedTokens });
   }
+//   if (fcmToken) {
+//   const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
+
+//   // Helper to parse a token if it's a string
+//   const parseToken = (token: any): any => {
+//     if (typeof token === 'string') {
+//       try {
+//         return JSON.parse(token);
+//       } catch {
+//         // If parsing fails, return as-is (or skip)
+//         return token;
+//       }
+//     }
+//     return token;
+//   };
+
+//   // Read existing tokens and ensure they are all objects
+//   const existingRaw = user[fieldName] || [];
+//   const existingTokens = Array.isArray(existingRaw)
+//     ? existingRaw.map(parseToken)
+//     : [];
+
+//   // Ensure new token(s) are objects
+//   const newRaw = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
+//   const newTokens = newRaw.map(parseToken);
+
+//   // Merge, removing duplicates by deviceId
+//   const updatedTokens = [
+//     ...existingTokens.filter(
+//       (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
+//     ),
+//     ...newTokens,
+//   ];
+
+//   await user.update({
+//     [fieldName]: updatedTokens,
+//   });
+// }
 
   await user.update({ otp: null as any, otpExpiry: null as any });
 

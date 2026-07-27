@@ -121,31 +121,19 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
     working_hours_clinic_nobreak,
     web,
     fcmToken,
+    status: 'PENDING',
   });
 
-
- try {
-   await axios.post(
-    `${process.env.AUTH_SERVICE_URL}/auth`,
-    {
-      email,
-      phone,
-      password,
-      role: "hospital",
-      hospitalId: newHospital.id,
-       roleId:2,
-      hospitalName: name,
-    }
-  );
-
-} catch (error: any) {
-  console.error(
-    "Failed to create auth hospital:",
-    error.response?.data || error.message
-  );
-
-  throw new Error("Failed to create authentication hospital");
-}
+  // Publish HOSPITAL_CREATED event to RabbitMQ for Auth Service to consume
+  await publishEvent("auth_events", "HOSPITAL_CREATED", {
+    hospitalId: newHospital.id,
+    email: newHospital.email,
+    phone: newHospital.phone,
+    password: password, // raw password - Auth Service will hash it via its own beforeCreate hook
+    role: "hospital",
+    roleId: 2,
+    hospitalName: newHospital.name,
+  });
 
   await publishEvent("hospital_events", "HOSPITAL_REGISTERED", {
     hospitalId: newHospital.id,
@@ -156,8 +144,8 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
 
   res.status(201).json({
     success: true,
-    message: "Registeration completed successfully",
-    data: null,
+    message: "Registration completed successfully. Account activation in progress.",
+    data: { hospitalId: newHospital.id, status: newHospital.status },
     error: null,
   });
 });

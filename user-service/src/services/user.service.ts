@@ -188,6 +188,7 @@ if (data.fcmToken) {
   }
 }
 
+
     const token = generateToken({ id: user.id, email: user.email, role: "user", roleId: user.roleId });
 
 

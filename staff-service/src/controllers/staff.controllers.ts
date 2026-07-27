@@ -145,47 +145,37 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
 
   try {
     const newStaff = await Staff.create({
-      hospitalId, name, phone, email, password,roleId, dob, gender,
+      hospitalId, name, phone, email, password, roleId, dob, gender,
       knowLanguages, qualification, address,
-      designation, joiningDate, jobType, staffType,hospitalName
+      designation, joiningDate, jobType, staffType, hospitalName,
+      status: 'PENDING',
     });
 
-    
-     try {
-   await axios.post(
-    `${process.env.AUTH_SERVICE_URL}/auth`,
-    {
-      email,
-      phone,
-      password,
-      role: "staff",
+    // Publish STAFF_CREATED event to RabbitMQ for Auth Service to consume
+    await publishEvent("auth_events", "STAFF_CREATED", {
       staffId: newStaff.id,
-      roleId,
+      email: newStaff.email,
+      phone: newStaff.phone,
+      password: password, // raw password - Auth Service will hash it via its own beforeCreate hook
+      role: "staff",
+      roleId: newStaff.roleId,
       staffName: newStaff.name,
-      hospitalId,
-      hospitalName,
-    }
-  );
-
-} catch (error: any) {
-  console.error(
-    "Failed to create auth staff:",
-    error.response?.data || error.message
-  );
-
-  throw new Error("Failed to create authentication staff");
-}
+      hospitalId: newStaff.hospitalId,
+      hospitalName: newStaff.hospitalName,
+    });
 
     await publishEvent("staff_events", "STAFF_REGISTERED", {
       staffId: newStaff.id,
       staffName: newStaff.name,
       phone: newStaff.phone,
-      hospitalId: newStaff.hospitalId
+      hospitalId: newStaff.hospitalId,
     });
 
     res.status(201).json({
       success: true,
-      message: "Registration completed successfully",
+      message: "Registration completed successfully. Account activation in progress.",
+      data: { staffId: newStaff.id, status: newStaff.status },
+      error: null,
     });
   } catch (error: any) {
     if (error.name === "SequelizeUniqueConstraintError") {
