@@ -738,7 +738,27 @@ export const saveFcmToken: any = asyncHandler(async (req: Request, res: Response
     return;
   }
 
-  await user.update({ fcmToken });
+  const parseToken = (token: any): any => {
+    if (typeof token === 'string') {
+      try { return JSON.parse(token); } catch { return token; }
+    }
+    return token;
+  };
+
+  const existingRaw = (user.get("fcmToken") as any[]) || [];
+  const existingTokens = Array.isArray(existingRaw) ? existingRaw.map(parseToken) : [];
+
+  const newRaw = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
+  const newTokens = newRaw.map(parseToken);
+
+  const updatedTokens = [
+    ...existingTokens.filter(
+      (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
+    ),
+    ...newTokens,
+  ];
+
+  await user.update({ fcmToken: updatedTokens });
 
   res.status(200).json({
     success: true,

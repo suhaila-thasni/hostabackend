@@ -164,20 +164,24 @@ if (data.fcmToken) {
   });
 
   if (user) {
-    const existingTokens: FCMTOKEN[] =
-      (user.get("fcmToken") as FCMTOKEN[]) || [];
+    const parseToken = (token: any): any => {
+      if (typeof token === 'string') {
+        try { return JSON.parse(token); } catch { return token; }
+      }
+      return token;
+    };
 
-    // Convert to array if a single object is received
-    const newTokens: FCMTOKEN[] = Array.isArray(data.fcmToken)
-      ? data.fcmToken
-      : [data.fcmToken];
+    const existingRaw = (user.get("fcmToken") as any[]) || [];
+    const existingTokens: FCMTOKEN[] = Array.isArray(existingRaw)
+      ? existingRaw.map(parseToken)
+      : [];
+
+    const newRaw = Array.isArray(data.fcmToken) ? data.fcmToken : [data.fcmToken];
+    const newTokens: FCMTOKEN[] = newRaw.map(parseToken);
 
     const updatedTokens = [
       ...existingTokens.filter(
-        existing =>
-          !newTokens.some(
-            incoming => incoming.deviceId === existing.deviceId
-          )
+        existing => !newTokens.some(incoming => incoming.deviceId === existing.deviceId)
       ),
       ...newTokens,
     ];
@@ -296,26 +300,25 @@ if (data.fcmToken) {
   });
 
   if (user) {
-    const existingTokens: FCMTOKEN[] = Array.isArray(user.fcmToken)
-      ? user.fcmToken
+    const parseToken = (token: any): any => {
+      if (typeof token === 'string') {
+        try { return JSON.parse(token); } catch { return token; }
+      }
+      return token;
+    };
+
+    const existingRaw = (user.get("fcmToken") as any[]) || [];
+    const existingTokens: FCMTOKEN[] = Array.isArray(existingRaw)
+      ? existingRaw.map(parseToken)
       : [];
 
-    // Convert single object to array
-    const newTokens: FCMTOKEN[] = Array.isArray(data.fcmToken)
-      ? data.fcmToken
-      : [data.fcmToken];
+    const newRaw = Array.isArray(data.fcmToken) ? data.fcmToken : [data.fcmToken];
+    const newTokens: FCMTOKEN[] = newRaw.map(parseToken);
 
     const updatedTokens = [
-      // Remove old token for same device
       ...existingTokens.filter(
-        (oldToken) =>
-          !newTokens.some(
-            (newToken) =>
-              newToken.deviceId === oldToken.deviceId
-          )
+        existing => !newTokens.some(incoming => incoming.deviceId === existing.deviceId)
       ),
-
-      // Add new tokens
       ...newTokens,
     ];
 
