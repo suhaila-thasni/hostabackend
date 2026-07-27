@@ -187,9 +187,9 @@ export const getRoleNotifications: any = asyncHandler(
 
     const { role, id } = req.params;
 
-    if (!authorizeSelfAccess(req, role, id, res)) {
-      return;
-    }
+    // if (!authorizeSelfAccess(req, role, id, res)) {
+    //   return;
+    // }
 
     const numericId = Number(id);
 

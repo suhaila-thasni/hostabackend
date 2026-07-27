@@ -134,27 +134,27 @@ const fetchRelatedProfile = async (user: any): Promise<any> => {
 /**
  * Fetch role-based permissions from the role-service.
  */
-const fetchRolePermissions = async (roleId: number | undefined,hospitalId:number|undefined,role:string|undefined): Promise<any> => {
+const fetchRolePermissions = async (roleId: number | undefined, hospitalId: number | undefined, role: string | undefined): Promise<any> => {
   if (!roleId) return null;
 
   try {
-   
 
-       const res = await axios.get(`${process.env.ROLE_SERVICE_URL}/rolepermission`, {
+
+    const res = await axios.get(`${process.env.ROLE_SERVICE_URL}/rolepermission`, {
       params:
         role === "doctor" || role === "staff"
           ? {
-              roleId,
-              hospitalId,
-            }
+            roleId,
+            hospitalId,
+          }
           : {
-              roleId,
-            },
+            roleId,
+          },
     });
 
 
 
-    
+
     return res.data;
   } catch (err: any) {
     console.error("Failed to fetch role permissions:", err.message);
@@ -208,14 +208,14 @@ const updateFCMTokenInService = async (role: string, entityId: number, email: st
 // ===================== LOGIN (Email/Password) =====================
 
 export const login: any = asyncHandler(async (req: Request, res: Response) => {
-   console.log("========== LOGIN REQUEST ==========");
-    console.log(req.body);
-    console.log("typeof fcmToken:", typeof req.body.fcmToken);
-    console.log("fcmToken:", req.body.fcmToken);
-   console.log("========== LOGIN REQUEST ==========");
-    console.log(req.body);
-    console.log("typeof fcmToken:", typeof req.body.fcmToken);
-    console.log("fcmToken:", req.body.fcmToken);
+  console.log("========== LOGIN REQUEST ==========");
+  console.log(req.body);
+  console.log("typeof fcmToken:", typeof req.body.fcmToken);
+  console.log("fcmToken:", req.body.fcmToken);
+  console.log("========== LOGIN REQUEST ==========");
+  console.log(req.body);
+  console.log("typeof fcmToken:", typeof req.body.fcmToken);
+  console.log("fcmToken:", req.body.fcmToken);
   const { email, phone, password, fcmToken, hospitalId } = req.body;
 
   // 1. Validate input
@@ -336,71 +336,71 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   const user = selectedUser;
 
   // 7. Update FCM token
-//   if (fcmToken) {
-//     const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
-//     const existingTokens: FCMTOKEN[] = Array.isArray(user[fieldName])
-//       ? (user[fieldName] as unknown as FCMTOKEN[])
-//       : [];
+  //   if (fcmToken) {
+  //     const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
+  //     const existingTokens: FCMTOKEN[] = Array.isArray(user[fieldName])
+  //       ? (user[fieldName] as unknown as FCMTOKEN[])
+  //       : [];
 
-//     const newTokens: FCMTOKEN[] = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
+  //     const newTokens: FCMTOKEN[] = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
 
-//     const updatedTokens = [
-//       ...existingTokens.filter(
-//         (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
-//       ),
-//       ...newTokens,
-//     ];
-
-
-// console.log("updatedTokens =", updatedTokens);
-// console.log(JSON.stringify(updatedTokens, null, 2));
+  //     const updatedTokens = [
+  //       ...existingTokens.filter(
+  //         (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
+  //       ),
+  //       ...newTokens,
+  //     ];
 
 
-//     await user.update({
-//       [fieldName]: updatedTokens,
-//     });
-//   }
+  // console.log("updatedTokens =", updatedTokens);
+  // console.log(JSON.stringify(updatedTokens, null, 2));
+
+
+  //     await user.update({
+  //       [fieldName]: updatedTokens,
+  //     });
+  //   }
 
 
 
-if (fcmToken) {
-  const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
+  if (fcmToken) {
+    const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
 
-  // Helper to parse a token if it's a string
-  const parseToken = (token: any): any => {
-    if (typeof token === 'string') {
-      try {
-        return JSON.parse(token);
-      } catch {
-        // If parsing fails, return as-is (or skip)
-        return token;
+    // Helper to parse a token if it's a string
+    const parseToken = (token: any): any => {
+      if (typeof token === 'string') {
+        try {
+          return JSON.parse(token);
+        } catch {
+          // If parsing fails, return as-is (or skip)
+          return token;
+        }
       }
-    }
-    return token;
-  };
+      return token;
+    };
 
-  // Read existing tokens and ensure they are all objects
-  const existingRaw = user[fieldName] || [];
-  const existingTokens = Array.isArray(existingRaw)
-    ? existingRaw.map(parseToken)
-    : [];
+    // Read existing tokens and ensure they are all objects
+    const existingRaw = user[fieldName] || [];
+    const existingTokens = Array.isArray(existingRaw)
+      ? existingRaw.map(parseToken)
+      : [];
 
-  // Ensure new token(s) are objects
-  const newRaw = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
-  const newTokens = newRaw.map(parseToken);
+    // Ensure new token(s) are objects
+    const newRaw = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
+    const newTokens = newRaw.map(parseToken);
 
-  // Merge, removing duplicates by deviceId
-  const updatedTokens = [
-    ...existingTokens.filter(
-      (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
-    ),
-    ...newTokens,
-  ];
+    // Merge, removing duplicates by deviceId
+    const updatedTokens = [
+      ...existingTokens.filter(
+        (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
+      ),
+      ...newTokens,
+    ];
 
-  await user.update({
-    [fieldName]: updatedTokens,
-  });
-}
+    await user.update({
+      [fieldName]: updatedTokens,
+    });
+  }
 
 
 
@@ -616,59 +616,59 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   //   await user.update({ [fieldName]: updatedTokens });
   // }
   if (fcmToken) {
-  const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
+    const fieldName = `${user.role}_fcmtoken` as keyof typeof user;
 
-  // Helper to parse a token if it's a string
-  const parseToken = (token: any): any => {
-    if (typeof token === 'string') {
-      try {
-        return JSON.parse(token);
-      } catch {
-        // If parsing fails, return as-is (or skip)
-        return token;
+    // Helper to parse a token if it's a string
+    const parseToken = (token: any): any => {
+      if (typeof token === 'string') {
+        try {
+          return JSON.parse(token);
+        } catch {
+          // If parsing fails, return as-is (or skip)
+          return token;
+        }
       }
-    }
-    return token;
-  };
+      return token;
+    };
 
-  // Read existing tokens and ensure they are all objects
-  const existingRaw = user[fieldName] || [];
-  const existingTokens = Array.isArray(existingRaw)
-    ? existingRaw.map(parseToken)
-    : [];
+    // Read existing tokens and ensure they are all objects
+    const existingRaw = user[fieldName] || [];
+    const existingTokens = Array.isArray(existingRaw)
+      ? existingRaw.map(parseToken)
+      : [];
 
-  // Ensure new token(s) are objects
-  const newRaw = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
-  const newTokens = newRaw.map(parseToken);
+    // Ensure new token(s) are objects
+    const newRaw = Array.isArray(fcmToken) ? fcmToken : [fcmToken];
+    const newTokens = newRaw.map(parseToken);
 
-  // Merge, removing duplicates by deviceId
-  const updatedTokens = [
-    ...existingTokens.filter(
-      (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
-    ),
-    ...newTokens,
-  ];
+    // Merge, removing duplicates by deviceId
+    const updatedTokens = [
+      ...existingTokens.filter(
+        (oldToken) => !newTokens.some((newToken) => newToken.deviceId === oldToken.deviceId)
+      ),
+      ...newTokens,
+    ];
 
-  await user.update({
-    [fieldName]: updatedTokens,
-  });
-}
+    await user.update({
+      [fieldName]: updatedTokens,
+    });
+  }
 
   await user.update({ otp: null as any, otpExpiry: null as any });
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
   const token = jwt.sign(
-    { 
-      id: user.id, 
-      role: user.role, 
-      isRefresh: false, 
+    {
+      id: user.id,
+      role: user.role,
+      isRefresh: false,
       roleId: user.roleId,
       hospitalId: user.hospitalId,
       staffId: user.staffId,
       doctorId: user.doctorId,
       superadminId: user.superadminId
-    }, 
-    jwtKey, 
+    },
+    jwtKey,
     { expiresIn: "15m" }
   );
 
@@ -678,17 +678,17 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   delete safeUser.otpExpiry;
 
   const refreshToken = jwt.sign(
-    { 
-      id: user.id, 
-      role: user.role, 
+    {
+      id: user.id,
+      role: user.role,
       isRefresh: true,
       roleId: user.roleId,
       hospitalId: user.hospitalId,
       staffId: user.staffId,
       doctorId: user.doctorId,
       superadminId: user.superadminId
-    }, 
-    jwtKey, 
+    },
+    jwtKey,
     { expiresIn: "2w" }
   );
 
@@ -698,7 +698,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   const profileData = await fetchRelatedProfile(user);
 
   // Fetch role permissions from role-service (use user.roleId as fallback if profileData doesn't carry it)
-  const authPermission = await fetchRolePermissions(profileData?.roleId,profileData.hospitalId,profileData.role);
+  const authPermission = await fetchRolePermissions(profileData?.roleId, profileData.hospitalId, profileData.role);
 
   res.status(200).json({
     success: true,
@@ -729,49 +729,49 @@ export const resetPassword: any = asyncHandler(async (req: Request, res: Respons
   user.otpExpiry = null as any;
 
   await user.save();
-  if(user.role=="hospital"){
- 
-  await axios.put(
-  `${process.env.HOSPITAL_SERVICE_URL}/internal/hospital/${user.hospitalId}/password`,
-  {
-    password: newPassword,
-  },
-  {
-    headers: {
-      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
-    },
+  if (user.role == "hospital") {
+
+    await axios.put(
+      `${process.env.HOSPITAL_SERVICE_URL}/internal/hospital/${user.hospitalId}/password`,
+      {
+        password: newPassword,
+      },
+      {
+        headers: {
+          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+
+    );
   }
-  
-);
-   }
-  else if(user.role=="staff"){
-  await axios.put(
-  `${process.env.STAFF_SERVICE_URL}/internal/staff/${user.staffId}/password`,
-  {
-    password: newPassword,
-  },
-  {
-    headers: {
-      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
-    },
+  else if (user.role == "staff") {
+    await axios.put(
+      `${process.env.STAFF_SERVICE_URL}/internal/staff/${user.staffId}/password`,
+      {
+        password: newPassword,
+      },
+      {
+        headers: {
+          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+
+    );
   }
-  
-);
-}
-  else if(user.role=="doctor"){
-  await axios.put(
-  `${process.env.DOCTOR_SERVICE_URL}/internal/doctor/${user.doctorId}/password`,
-  {
-    password: newPassword,
-  },
-  {
-    headers: {
-      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
-    },
+  else if (user.role == "doctor") {
+    await axios.put(
+      `${process.env.DOCTOR_SERVICE_URL}/internal/doctor/${user.doctorId}/password`,
+      {
+        password: newPassword,
+      },
+      {
+        headers: {
+          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+
+    );
   }
-  
-);
- }
 
   res.json({ success: true, message: "Password reset successful" });
 });
@@ -797,54 +797,54 @@ export const changePassword: any = asyncHandler(async (req: AuthRequest, res: Re
   await user.save();
 
 
-    if(user.role=="hospital"){
- 
-  await axios.put(
-  `${process.env.HOSPITAL_SERVICE_URL}/internal/hospital/${user.hospitalId}/password`,
-  {
-    password: newPassword,
-  },
-  {
-    headers: {
-      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
-    },
+  if (user.role == "hospital") {
+
+    await axios.put(
+      `${process.env.HOSPITAL_SERVICE_URL}/internal/hospital/${user.hospitalId}/password`,
+      {
+        password: newPassword,
+      },
+      {
+        headers: {
+          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+
+    );
   }
-  
-);
-   }
-  else if(user.role=="staff"){
-  await axios.put(
-  `${process.env.STAFF_SERVICE_URL}/internal/staff/${user.staffId}/password`,
-  {
-    password: newPassword,
-  },
-  {
-    headers: {
-      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
-    },
+  else if (user.role == "staff") {
+    await axios.put(
+      `${process.env.STAFF_SERVICE_URL}/internal/staff/${user.staffId}/password`,
+      {
+        password: newPassword,
+      },
+      {
+        headers: {
+          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+
+    );
   }
-  
-);
-}
-  else if(user.role=="doctor"){
-  await axios.put(
-  `${process.env.DOCTOR_SERVICE_URL}/internal/doctor/${user.doctorId}/password`,
-  {
-    password: newPassword,
-  },
-  {
-    headers: {
-      "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
-    },
+  else if (user.role == "doctor") {
+    await axios.put(
+      `${process.env.DOCTOR_SERVICE_URL}/internal/doctor/${user.doctorId}/password`,
+      {
+        password: newPassword,
+      },
+      {
+        headers: {
+          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+
+    );
   }
-  
-);
- }
 
 
 
 
-  
+
 
   res.json({ success: true, message: "Password changed successfully" });
 });
@@ -871,10 +871,10 @@ export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: 
       }
 
       const accessToken = jwt.sign(
-        { 
-          id: user.id, 
-          role: user.role, 
-          isRefresh: false, 
+        {
+          id: user.id,
+          role: user.role,
+          isRefresh: false,
           roleId: user.roleId,
           hospitalId: user.hospitalId,
           staffId: user.staffId,
@@ -1121,45 +1121,45 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
 //   });
 // });
 export const update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    console.log("===== UPDATE CONTROLLER CALLED =====");
+  console.log("===== UPDATE CONTROLLER CALLED =====");
 
-  const { id, roles } : any = req.params; 
+  const { id, roles }: any = req.params;
 
 
-    const { updatePayload } : any = req.body;
+  const { updatePayload }: any = req.body;
 
-console.log("up",updatePayload,id,roles)
- 
-  
+  console.log("up", updatePayload, id, roles)
 
-let where: any = {};
 
-switch (roles) {
-  case "doctor":
-    where.doctorId = id;
-    break;
 
-  case "staff":
-    where.staffId = id;
-    break;
+  let where: any = {};
 
-  case "hospital":
-    where.hospitalId = id;
-    break;
+  switch (roles) {
+    case "doctor":
+      where.doctorId = id;
+      break;
 
-  case "superadmin":
-    where.superadminId = id;
-    break;
+    case "staff":
+      where.staffId = id;
+      break;
 
-  default:
-     res.status(400).json({
-      success: false,
-      message: "Invalid role",
-    });
-    return;
-}
+    case "hospital":
+      where.hospitalId = id;
+      break;
 
-const auth: any = await Auth.findOne({ where });
+    case "superadmin":
+      where.superadminId = id;
+      break;
+
+    default:
+      res.status(400).json({
+        success: false,
+        message: "Invalid role",
+      });
+      return;
+  }
+
+  const auth: any = await Auth.findOne({ where });
 
   if (!auth) {
     res.status(404).json({
@@ -1177,33 +1177,33 @@ const auth: any = await Auth.findOne({ where });
 
 
   if (updatePayload.displayName) {
-  updatePayload.doctorName = updatePayload.displayName;
-  delete updatePayload.displayName;
-}
+    updatePayload.doctorName = updatePayload.displayName;
+    delete updatePayload.displayName;
+  }
 
-// await auth.update(updatePayload);
+  // await auth.update(updatePayload);
   await auth.update(updatePayload);
 
-console.log("roles:", roles);
-console.log("id:", id);
-console.log("updatePayload:", updatePayload);
-console.log("hospital name:",updatePayload.hospitalName)
+  console.log("roles:", roles);
+  console.log("id:", id);
+  console.log("updatePayload:", updatePayload);
+  console.log("hospital name:", updatePayload.hospitalName)
 
-if(roles == "hospital" && updatePayload.hospitalName){
-console.log("hospital name:",updatePayload.hospitalName)
-      await Auth.update(
-    {
-      hospitalName: updatePayload.hospitalName,
-    },
-    {
-      where: {
-        hospitalId: id,
+  if (roles == "hospital" && updatePayload.hospitalName) {
+    console.log("hospital name:", updatePayload.hospitalName)
+    await Auth.update(
+      {
+        hospitalName: updatePayload.hospitalName,
       },
-    },
-  );
-  console.log("hospital name:",updatePayload.hospitalName)
+      {
+        where: {
+          hospitalId: id,
+        },
+      },
+    );
+    console.log("hospital name:", updatePayload.hospitalName)
 
-     
+
   }
 
   // Update FCM token array based on role
@@ -1225,7 +1225,7 @@ console.log("hospital name:",updatePayload.hospitalName)
       );
 
       const tokenData = {
-       deviceId: updatePayload.deviceId,
+        deviceId: updatePayload.deviceId,
         fcmToken: updatePayload.fcmToken,
         platform: updatePayload.platform,
       };
