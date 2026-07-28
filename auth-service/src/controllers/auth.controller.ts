@@ -138,7 +138,9 @@ const fetchRolePermissions = async (roleId: number | undefined, hospitalId: numb
   if (!roleId) return null;
 
   try {
-
+  
+    console.log(role,roleId,hospitalId,"auyhfbnmdfghjk");
+    
 
     const res = await axios.get(`${process.env.ROLE_SERVICE_URL}/rolepermission`, {
       params:
@@ -151,6 +153,8 @@ const fetchRolePermissions = async (roleId: number | undefined, hospitalId: numb
             roleId,
           },
     });
+    console.log(res.data,"hiii");
+    
 
 
 
