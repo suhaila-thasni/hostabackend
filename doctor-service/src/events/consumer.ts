@@ -5,44 +5,84 @@ import Doctor from '../models/doctor.model';
 let channel: amqp.Channel;
 let connection: any;
 
-export const connectRabbitMQConsumer = async () => {
-    let connected = false;
-    let attempts = 0;
-    const maxAttempts = 5;
+// export const connectRabbitMQConsumer = async () => {
+//     let connected = false;
+//     let attempts = 0;
+//     const maxAttempts = 5;
 
-    while (!connected && attempts < maxAttempts) {
+//     while (!connected && attempts < maxAttempts) {
+//         try {
+//             connection = await amqp.connect(env.RABBITMQ_URL);
+
+//             connection.on('error', (err: any) => {
+//                 console.error('❌ Doctor Service RabbitMQ Consumer Error:', err);
+//             });
+
+//             connection.on('close', () => {
+//                 console.warn('⚠️ Doctor Service RabbitMQ Consumer closed. Retrying...');
+//                 channel = null as any;
+//                 setTimeout(connectRabbitMQConsumer, 5000);
+//             });
+
+//             channel = await connection.createChannel();
+//             console.log('🐰 Doctor Service connected to RabbitMQ (Consumer)');
+//             connected = true;
+
+//             await startConsumers();
+
+//         } catch (error) {
+//             attempts++;
+//             console.error(`❌ RabbitMQ Consumer Connection attempt ${attempts} failed:`, error instanceof Error ? error.message : error);
+//             if (attempts < maxAttempts) {
+//                 console.log("Retrying in 5 seconds...");
+//                 await new Promise((resolve) => setTimeout(resolve, 5000));
+//             } else {
+//                 console.error("Max RabbitMQ consumer connection attempts reached.");
+//             }
+//         }
+//     }
+// };
+
+
+export const connectRabbitMQConsumer = async () => {
+    while (true) {
         try {
             connection = await amqp.connect(env.RABBITMQ_URL);
 
-            connection.on('error', (err: any) => {
-                console.error('❌ Doctor Service RabbitMQ Consumer Error:', err);
+            connection.on("error", (err: any) => {
+                console.error("❌ Doctor Service RabbitMQ Consumer Error:", err);
             });
 
-            connection.on('close', () => {
-                console.warn('⚠️ Doctor Service RabbitMQ Consumer closed. Retrying...');
+            connection.on("close", () => {
+                console.warn("⚠️ Doctor Service RabbitMQ Consumer closed. Reconnecting...");
                 channel = null as any;
-                setTimeout(connectRabbitMQConsumer, 5000);
+
+                // Restart consumer
+                setTimeout(() => {
+                    connectRabbitMQConsumer();
+                }, 5000);
             });
 
             channel = await connection.createChannel();
-            console.log('🐰 Doctor Service connected to RabbitMQ (Consumer)');
-            connected = true;
+
+            console.log("🐰 Doctor Service connected to RabbitMQ (Consumer)");
 
             await startConsumers();
 
+            // Exit retry loop after successful connection
+            break;
+
         } catch (error) {
-            attempts++;
-            console.error(`❌ RabbitMQ Consumer Connection attempt ${attempts} failed:`, error instanceof Error ? error.message : error);
-            if (attempts < maxAttempts) {
-                console.log("Retrying in 5 seconds...");
-                await new Promise((resolve) => setTimeout(resolve, 5000));
-            } else {
-                console.error("Max RabbitMQ consumer connection attempts reached.");
-            }
+            console.error(
+                "❌ RabbitMQ Consumer Connection failed:",
+                error instanceof Error ? error.message : error
+            );
+
+            console.log("Retrying in 5 seconds...");
+            await new Promise((resolve) => setTimeout(resolve, 5000));
         }
     }
 };
-
 const startConsumers = async () => {
     if (!channel) return;
 
