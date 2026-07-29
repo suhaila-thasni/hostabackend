@@ -702,7 +702,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   const profileData = await fetchRelatedProfile(user);
 
   // Fetch role permissions from role-service (use user.roleId as fallback if profileData doesn't carry it)
-  const authPermission = await fetchRolePermissions(profileData?.roleId, profileData.hospitalId, profileData.role);
+  const authPermission = await fetchRolePermissions(profileData?.roleId, profileData?.hospitalId, profileData?.role);
 
   res.status(200).json({
     success: true,

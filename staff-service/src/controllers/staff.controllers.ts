@@ -1147,6 +1147,27 @@ export const changeStaffPassword: any = asyncHandler(async (req: any, res: Respo
 
   res.json({ success: true, message: "Password changed successfully" });
 });
+export const updateStaffPassword = async (req: Request, res: Response) => {
+  const { password } = req.body;
+
+  const staff = await Staff.findByPk(req.params.id);
+
+  if (!staff) {
+    return res.status(404).json({
+      success: false,
+      message: "Staff not found",
+    });
+  }
+
+  staff.password = password;
+
+  await staff.save();
+
+  res.json({
+    success: true,
+    message: "Password updated",
+  });
+};
 
 // REFRESH TOKEN - POST /staff/refresh
 export const refreshStaffToken: any = asyncHandler(async (req: Request, res: Response) => {
@@ -1306,3 +1327,5 @@ export const updateFcmTokenByEmail: any = asyncHandler(async (req: Request, res:
     error: null,
   });
 });
+
+

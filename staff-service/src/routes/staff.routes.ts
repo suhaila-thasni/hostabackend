@@ -17,7 +17,8 @@ import {
   changeStaffPassword,
   refreshStaffToken,
   logout,
-  updateFcmTokenByEmail
+  updateFcmTokenByEmail,
+  updateStaffPassword
 } from "../controllers/staff.controllers";
 
 import { validate, validateParams } from "../middleware/validate.middleware";
@@ -34,6 +35,7 @@ import {
 } from "../validators/staff.validator";
 import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
+import { verifyInternalRequest } from "../middleware/internalAuth";
 
 
 
@@ -71,7 +73,9 @@ router.get("/staff/blacklist", authenticate, checkPermission("staff", "view"), g
 router.get("/staff/:id",authenticate, validateParams(idParamSchema), checkPermission("staff", "view"),getanStaff);
 router.put("/staff/recover/:id", authenticate, checkPermission("staff", "edit"), recoverStaff);
 router.put("/staff/:id",authenticate, validateParams(idParamSchema), validate(updateStaffSchema), checkPermission("staff", "edit"), updateData);
+router.put("/internal/staff/:id/password", verifyInternalRequest, updateStaffPassword);
 router.delete("/staff/:id",authenticate, validateParams(idParamSchema), checkPermission("staff", "delete"), staffDelete);
 
 export default router;
+
 

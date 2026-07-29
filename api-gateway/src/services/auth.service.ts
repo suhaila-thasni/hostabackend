@@ -41,6 +41,8 @@ export const proxyRequest = async (req: Request, res: Response) => {
         validateStatus: (status: number) => status < 600, // Handle 4xxx/5xxx manually
     };
 
+
+    console.log("Forwarding URL:", options.url);
     const response: any = await breaker.fire(options);
 
     if (response.headers && response.headers['set-cookie']) {
