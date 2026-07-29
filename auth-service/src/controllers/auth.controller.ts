@@ -102,7 +102,11 @@ const fetchRelatedProfile = async (user: any): Promise<any> => {
         serviceUrl = process.env.STAFF_SERVICE_URL || "";
         entityId = user.staffId;
         if (serviceUrl && entityId) {
-          const res = await axios.get(`${serviceUrl}/staff/${entityId}`);
+          const res = await axios.get(`${serviceUrl}/internal/staff/${entityId}`, {
+            headers: {
+              "x-service-secret": process.env.INTERNAL_SERVICE_SECRET
+            }
+          });
           profileData = res.data?.data || res.data;
         }
         break;
@@ -701,12 +705,17 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   // Fetch related profile from other microservices
   const profileData = await fetchRelatedProfile(user);
 
+  console.log("PROFILE DATA");
+  console.log(profileData);
+  console.log("roleId:", profileData?.roleId);
+  console.log("hospitalId:", profileData?.hospitalId);
+  console.log("role:", profileData?.role);
   // Fetch role permissions from role-service (use user.roleId as fallback if profileData doesn't carry it)
   const authPermission = await fetchRolePermissions(profileData?.roleId, profileData?.hospitalId, profileData?.role);
 
-  res.status(200).json({
+  res.status(200).json({  
     success: true,
-    message: "OTP verified",
+    message: "OTP verified",  
     token,
     data: safeUser,
     profile: profileData,

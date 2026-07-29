@@ -74,6 +74,7 @@ router.get("/staff/:id",authenticate, validateParams(idParamSchema), checkPermis
 router.put("/staff/recover/:id", authenticate, checkPermission("staff", "edit"), recoverStaff);
 router.put("/staff/:id",authenticate, validateParams(idParamSchema), validate(updateStaffSchema), checkPermission("staff", "edit"), updateData);
 router.put("/internal/staff/:id/password", verifyInternalRequest, updateStaffPassword);
+router.get("/internal/staff/:id", verifyInternalRequest, validateParams(idParamSchema), getanStaff);
 router.delete("/staff/:id",authenticate, validateParams(idParamSchema), checkPermission("staff", "delete"), staffDelete);
 
 export default router;
