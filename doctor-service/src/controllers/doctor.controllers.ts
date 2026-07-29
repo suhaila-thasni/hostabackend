@@ -7,6 +7,7 @@ import { publishEvent } from "../events/publisher";
 import { Op, Sequelize } from "sequelize";
 import twilio from "twilio";
 import axios from "axios";
+import { logger } from "../utils/logger";
 import { sendEmail } from "../services/mail.service";
 import dotenv from "dotenv";
 dotenv.config();
@@ -661,31 +662,31 @@ export const updateData: any = asyncHandler(
 
 
 
-export const updateDoctorPassword = async (
-  req: Request,
-  res: Response
-) => {
+// export const updateDoctorPassword = async (
+//   req: Request,
+//   res: Response
+// ) => {
 
-  const { password } = req.body;
+//   const { password } = req.body;
 
-  const doctor = await Doctor.findByPk(req.params.id);
+//   const doctor = await Doctor.findByPk(req.params.id);
 
-  if (!doctor) {
-    return res.status(404).json({
-      success: false,
-      message: "Doctor not found"
-    });
-  }
+//   if (!doctor) {
+//     return res.status(404).json({
+//       success: false,
+//       message: "Doctor not found"
+//     });
+//   }
 
-  doctor.password = password;
+//   doctor.password = password;
 
-  await doctor.save();
+//   await doctor.save();
 
-  res.json({
-    success: true,
-    message: "Password updated"
-  });
-};
+//   res.json({
+//     success: true,
+//     message: "Password updated"
+//   });
+// };
 
 // DELETE - DELETE /doctor/:id
 export const doctorDelete: any = asyncHandler(
@@ -1229,6 +1230,89 @@ export const changeDoctorPassword: any = asyncHandler(
     res.json({ success: true, message: "Password changed successfully" });
   },
 );
+
+
+
+
+
+
+
+export const updateDoctorPassword = async (req: Request, res: Response) => {
+  const { newPassword, confirmPassword } = req.body;
+
+  if (!newPassword || !confirmPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "newPassword and confirmPassword are required",
+    });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Passwords do not match",
+    });
+  }
+
+
+  const doctor = await Doctor.findByPk(req.params.id);
+
+  if (!doctor) {
+    return res.status(404).json({
+      success: false,
+      message: "Doctor not found",
+    });
+  }
+
+
+
+  doctor.password = newPassword;
+
+
+  await doctor.save();
+
+  try {
+    // Notify auth-service to update the password there as well
+    const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://auth-service:3020";
+    await axios.put(
+      `${authServiceUrl}/auth/internal/doctor/${doctor.id}/password`,
+      {
+        newPassword: newPassword, // Note: auth-service expects "newPassword"
+      },
+      {
+        headers: {
+          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+    );
+  } catch (error: any) {
+    logger.error("Failed to sync doctor password change with auth-service:", error.response?.data || error.message);
+    // We continue anyway since doctor DB is updated
+  }
+
+
+  res.json({
+    success: true,
+    message: "Password updated in doctor and auth service",
+  });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // REFRESH TOKEN - POST /doctor/refresh
 export const refreshDoctorToken: any = asyncHandler(

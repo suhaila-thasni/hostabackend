@@ -26,6 +26,13 @@ import {
   registerSchema,
   updateSchema
 } from '../validators/auth.validator';
+import { verifyInternalRequest } from "../middleware/auth.middleware";
+import { internalUpdateStaffPassword } from "../controllers/auth.controller";
+
+// import { verifyInternalRequest } from "../middleware/auth.middleware";
+import { internalUpdateDoctorPassword} from "../controllers/auth.controller";
+
+
 
 const router = Router();
 
@@ -40,6 +47,22 @@ router.delete("/:id/role/:roles", deleteAuth);
 router.get("/:id/role/:roles",  getAuthByid);
 
 
+
+
+
+router.put(
+  "/internal/staff/:id/password",
+  verifyInternalRequest,
+  internalUpdateStaffPassword
+);
+
+
+
+router.put(
+  "/internal/doctor/:id/password",
+  verifyInternalRequest,
+  internalUpdateDoctorPassword
+);
 
 
 // Production Auth Routes

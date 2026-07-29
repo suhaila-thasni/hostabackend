@@ -23,6 +23,85 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export const verifyInternalRequest = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const secret = req.headers["x-service-secret"];
+
+  console.log("========== AUTH INTERNAL MIDDLEWARE ==========");
+  console.log("Header received:", secret);
+  console.log("Expected secret:", process.env.INTERNAL_SERVICE_SECRET);
+
+  if (secret !== process.env.INTERNAL_SERVICE_SECRET) {
+    return res.status(403).json({
+      success: false,
+      message: "Forbidden",
+      received: secret,
+      expected: process.env.INTERNAL_SERVICE_SECRET,
+    });
+  }
+
+
+  next();
+};
+
+
+
+
+// export const verifyDoctorInternalRequest = (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const secret = req.headers["x-service-secret"];
+
+//   console.log("========== AUTH INTERNAL MIDDLEWARE ==========");
+//   console.log("Header received:", secret);
+//   console.log("Expected secret:", process.env.INTERNAL_SERVICE_SECRET);
+
+//   if (secret !== process.env.INTERNAL_SERVICE_SECRET) {
+//     return res.status(403).json({
+//       success: false,
+//       message: "Forbidden",
+//       received: secret,
+//       expected: process.env.INTERNAL_SERVICE_SECRET,
+//     });
+//   }
+
+
+//   next();
+// };
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const checkPermission = (resource: string, action: string) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     // Basic stub for permissions. In a real app, this should check the user's role/permissions.

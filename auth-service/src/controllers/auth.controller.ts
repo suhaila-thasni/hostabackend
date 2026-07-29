@@ -15,6 +15,7 @@ import axios from "axios";
 import { sendEmail } from "../services/mail.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 
+
 const APPLE_TEST_NUMBER = "9999999999";
 const APPLE_TEST_OTP = "123456";
 
@@ -102,7 +103,32 @@ const fetchRelatedProfile = async (user: any): Promise<any> => {
         serviceUrl = process.env.STAFF_SERVICE_URL || "";
         entityId = user.staffId;
         if (serviceUrl && entityId) {
-          const res = await axios.get(`${serviceUrl}/internal/staff/${entityId}`, {
+
+
+
+
+
+
+
+
+
+
+          const res = await axios.get(`${serviceUrl}/staff/internal/${entityId}`, {
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
             headers: {
               "x-service-secret": process.env.INTERNAL_SERVICE_SECRET
             }
@@ -115,7 +141,17 @@ const fetchRelatedProfile = async (user: any): Promise<any> => {
         serviceUrl = process.env.DOCTOR_SERVICE_URL || "";
         entityId = user.doctorId;
         if (serviceUrl && entityId) {
-          const res = await axios.get(`${serviceUrl}/doctor/${entityId}`);
+          // const res = await axios.get(`${serviceUrl}/doctor/${entityId}`);
+          
+
+          const res = await axios.get(`${serviceUrl}/doctor/internal/${entityId}`, {
+           
+                      
+            headers: {
+              "x-service-secret": process.env.INTERNAL_SERVICE_SECRET
+            }
+          });
+          
           profileData = res.data?.data || res.data;
         }
         break;
@@ -759,7 +795,49 @@ export const resetPassword: any = asyncHandler(async (req: Request, res: Respons
   }
   else if (user.role == "staff") {
     await axios.put(
-      `${process.env.STAFF_SERVICE_URL}/internal/staff/${user.staffId}/password`,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      `${process.env.STAFF_SERVICE_URL}/staff/internal/${user.staffId}/password`,
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       {
         password: newPassword,
       },
@@ -773,7 +851,7 @@ export const resetPassword: any = asyncHandler(async (req: Request, res: Respons
   }
   else if (user.role == "doctor") {
     await axios.put(
-      `${process.env.DOCTOR_SERVICE_URL}/internal/doctor/${user.doctorId}/password`,
+      `${process.env.DOCTOR_SERVICE_URL}/doctor/staff/${user.doctorId}/password`,
       {
         password: newPassword,
       },
@@ -788,6 +866,235 @@ export const resetPassword: any = asyncHandler(async (req: Request, res: Respons
 
   res.json({ success: true, message: "Password reset successful" });
 });
+
+
+
+
+// export const internalUpdateStaffPassword = async (
+
+  
+//   req: Request,
+//   res: Response
+// ): Promise<void> => {
+//   try {
+//     const { id } = req.params;
+//     const { newPassword } = req.body;
+
+//     if (!newPassword) {
+//       res.status(400).json({
+//         success: false,
+//         message: "New password is required",
+//       });
+//       return;
+//     }
+
+//     const auth = await Auth.scope("withPassword").findOne({
+//       where: {
+//         role: "staff",
+//         roleId: id,
+//       },
+//     });
+
+//     if (!auth) {
+//       res.status(404).json({
+//         success: false,
+//         message: "Staff authentication record not found",
+//       });
+//       return;
+//     }
+
+//     // Set the raw password.
+//     // Your Sequelize beforeUpdate hook should hash it automatically.
+//     auth.password = newPassword;
+
+//     await auth.save();
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Staff password updated successfully in auth service",
+//     });
+//   } catch (error: any) {
+//     console.error("Internal staff password update failed:", error);
+
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to update staff password",
+//       error: error.message,
+//     });
+//   }
+// };
+
+export const internalUpdateStaffPassword = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    console.log("========== INTERNAL UPDATE ==========");
+    console.log("Params:", req.params);
+    console.log("Body:", req.body);
+
+    const { id } = req.params;
+
+
+
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password is required",
+      });
+    }
+
+
+    const auth = await Auth.scope("withPassword").findOne({
+      where: {
+        role: "staff",
+        staffId: Number(id),
+      },
+    });
+
+    console.log("Auth result:", auth);
+
+    if (!auth) {
+      console.log("❌ No auth found for staffId:", id);
+      return res.status(404).json({
+        success: false,
+        message: "Staff authentication record not found",
+      });
+    }
+
+    console.log("✅ Found auth:", auth.id);
+
+    // Update the password - let Sequelize beforeUpdate hook hash it!
+    auth.password = newPassword;
+    await auth.save();
+
+    console.log("✅ Staff password updated in auth service");
+
+    return res.status(200).json({
+      success: true,
+      message: "Staff password updated successfully in auth service",
+    });
+  } catch (err: any) {
+    console.error("Internal staff password update failed:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update staff password",
+      error: err.message,
+    });
+  }
+};
+
+
+
+
+export const internalUpdateDoctorPassword = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    console.log("========== INTERNAL UPDATE ==========");
+    console.log("Params:", req.params);
+    console.log("Body:", req.body);
+
+    const { id } = req.params;
+
+
+
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password is required",
+      });
+    }
+
+
+    const auth = await Auth.scope("withPassword").findOne({
+      where: {
+        role: "doctor",
+        doctorId: Number(id),
+      },
+    });
+
+    console.log("Auth result:", auth);
+
+    if (!auth) {
+      console.log("❌ No auth found for doctorId:", id);
+      return res.status(404).json({
+        success: false,
+        message: "doctor authentication record not found",
+      });
+    }
+
+    console.log("✅ Found auth:", auth.id);
+
+    // Update the password - let Sequelize beforeUpdate hook hash it!
+    auth.password = newPassword;
+    await auth.save();
+
+    console.log("✅ doctor password updated in auth service");
+
+    return res.status(200).json({
+      success: true,
+      message: "doctor password updated successfully in auth service",
+    });
+  } catch (err: any) {
+    console.error("Internal doctor password update failed:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update doctor password",
+      error: err.message,
+    });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // ===================== CHANGE PASSWORD =====================
@@ -827,7 +1134,74 @@ export const changePassword: any = asyncHandler(async (req: AuthRequest, res: Re
   }
   else if (user.role == "staff") {
     await axios.put(
-      `${process.env.STAFF_SERVICE_URL}/internal/staff/${user.staffId}/password`,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      `${process.env.STAFF_SERVICE_URL}/staff/internal/${user.staffId}/password`,
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
       {
         password: newPassword,
       },
@@ -1133,6 +1507,9 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
 //     data: auth,
 //   });
 // });
+
+
+
 export const update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   console.log("===== UPDATE CONTROLLER CALLED =====");
 

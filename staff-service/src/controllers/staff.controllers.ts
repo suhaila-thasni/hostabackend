@@ -1147,8 +1147,36 @@ export const changeStaffPassword: any = asyncHandler(async (req: any, res: Respo
 
   res.json({ success: true, message: "Password changed successfully" });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const updateStaffPassword = async (req: Request, res: Response) => {
-  const { password } = req.body;
+  const { newPassword, confirmPassword } = req.body;
+
+  if (!newPassword || !confirmPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "newPassword and confirmPassword are required",
+    });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Passwords do not match",
+    });
+  }
+
 
   const staff = await Staff.findByPk(req.params.id);
 
@@ -1159,15 +1187,72 @@ export const updateStaffPassword = async (req: Request, res: Response) => {
     });
   }
 
-  staff.password = password;
+
+
+  staff.password = newPassword;
+
 
   await staff.save();
 
+  try {
+    // Notify auth-service to update the password there as well
+    const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://auth-service:3020";
+    await axios.put(
+      `${authServiceUrl}/auth/internal/staff/${staff.id}/password`,
+      {
+        newPassword: newPassword, // Note: auth-service expects "newPassword"
+      },
+      {
+        headers: {
+          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+    );
+  } catch (error: any) {
+    logger.error("Failed to sync staff password change with auth-service:", error.response?.data || error.message);
+    // We continue anyway since staff DB is updated
+  }
+
+
   res.json({
     success: true,
-    message: "Password updated",
+    message: "Password updated in staff and auth service",
   });
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // REFRESH TOKEN - POST /staff/refresh
 export const refreshStaffToken: any = asyncHandler(async (req: Request, res: Response) => {

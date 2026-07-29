@@ -33,7 +33,9 @@ import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
 import { check } from "zod";
 import { verifyInternalRequest } from "../middleware/internalAuth";
-import{updateDoctorPassword} from "../controllers/doctor.controllers";
+import { updateDoctorPassword } from "../controllers/doctor.controllers";
+import { validateParams } from "../middleware/validate.middleware";
+import { idParamSchema } from "../validators/doctor.validator";
 
 const router = Router();
 
@@ -58,6 +60,18 @@ router.post("/doctor/update-fcm-token", updateFcmTokenByEmail);
 // router.put("/doctor/change-password", authenticate, validate(changePasswordSchema), changeDoctorPassword);
 
 
+
+
+
+
+
+
+
+router.put("/doctor/internal/:id/password", verifyInternalRequest, updateDoctorPassword);
+router.get("/doctor/internal/:id", verifyInternalRequest, validateParams(idParamSchema), getanDoctor);
+
+
+
 // CRUD
 
 router.get("/doctor", getDoctors);
@@ -66,11 +80,11 @@ router.get("/doctor/:id", getanDoctor);
 router.put("/doctor/recover/:id", authenticate, checkPermission('doctor', 'edit'), recoverDoctor);
 router.put("/doctor/:id", authenticate, checkPermission('doctor','edit'), updateData);
 
-router.put(
-  "/internal/doctor/:id/password",
-  verifyInternalRequest,  
-  updateDoctorPassword
-);
+// router.put(
+//   "/internal/doctor/:id/password",
+//   verifyInternalRequest,  
+//   updateDoctorPassword
+// );
 
 
 router.delete("/doctor/:id", authenticate, checkPermission('doctor','delete'), doctorDelete);

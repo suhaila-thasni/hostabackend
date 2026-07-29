@@ -21,6 +21,8 @@
 import { Sequelize } from "sequelize";
 import { env } from "./env";
 
+
+
 const isProduction = env.NODE_ENV === "production";
 
 const useSSL = env.DATABASE_URL.includes("neon.tech");
