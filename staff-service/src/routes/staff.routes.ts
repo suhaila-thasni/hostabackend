@@ -82,8 +82,8 @@ router.put("/staff/:id",authenticate, validateParams(idParamSchema), validate(up
 
 
 
-router.put("/staff/internal/:id/password", verifyInternalRequest, updateStaffPassword);
-router.get("/staff/internal/:id", verifyInternalRequest, validateParams(idParamSchema), getanStaff);
+router.put("/staff/internal/:id/password", authenticate,verifyInternalRequest, updateStaffPassword);
+router.get("/staff/internal/:id", authenticate,verifyInternalRequest, validateParams(idParamSchema), getanStaff);
 
 
 
