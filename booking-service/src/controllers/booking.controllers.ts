@@ -3,7 +3,6 @@ import asyncHandler from "express-async-handler";
 import Booking from "../models/booking.model";
 import { publishEvent } from "../events/publisher";
 import { httpClient } from "../utils/httpClient";
-import { sendBookingPushNotifications } from "../utils/sendBookingPush";
 import axios from "axios";
 import dotenv from "dotenv";
 import { Op, Sequelize } from "sequelize";
@@ -172,31 +171,8 @@ export const Registeration: any = asyncHandler(
     
 
 
-    try {
-      // TOKENS
-        const authHospitalToken =  await axios.get(`${process.env.AUTH_SERVICE_URL}/auth/${hospitalRes?.data?.data?.id}/role/${"hospital"}`);
-        const authDoctorToken =  await axios.get(`${process.env.AUTH_SERVICE_URL}/auth/${doctor?.data?.id}/role/${"doctor"}`);
+    // Push notifications are now completely handled asynchronously via the BOOKING_REGISTERED event in notification-service
 
-      const hospitalToken = authHospitalToken?.data?.data?.hospital_fcmtoken?.map((d: any) => d.fcmToken) ?? [];
-      const doctorToken = authDoctorToken?.data?.doctor_fcmtoken?.map((d: any) => d.fcmToken) ?? [];
-  
-
-      await sendBookingPushNotifications({
-        hospitalToken,
-        doctorToken,
-        patient_name,
-        doctorName,
-        booking_date,
-        type: "BOOKING_REGISTERED",
-        
-      });
-
-    } catch (error: any) {
-      console.error(
-        "Push notification failed:",
-        error.message
-      );
-    }
     // ==============================
     // 9. RESPONSE
     // ==============================
@@ -266,43 +242,13 @@ export const updateData: any = asyncHandler(
       let eventName: "BOOKING_UPDATED" | "BOOKING_CANCELLED" | "BOOKING_ACCEPTED" | "BOOKING_COMPLETED" = "BOOKING_UPDATED";
 
 
-       let userToken;
-      if (booking[1][0].userId) {
-        try {
-          const userRes = await httpClient.get(
-            `${process.env.USER_SERVICE_URL}/users/${booking[1][0].userId}`,
-            {
-              headers: {
-                Authorization: req.headers.authorization,
-              },
-            }
-          );
-          userToken = userRes?.data?.data?.fcmToken?.map((d: any) => d.fcmToken) ?? [];
-        } catch (userError: any) {
-          console.error("⚠️ Failed to fetch user details for notification:", userError.message);
-        }
-      }
-
       if (updatedBooking.status === "cancel") {
         eventName = "BOOKING_CANCELLED";
       } else if (updatedBooking.status === "accepted") {
         eventName = "BOOKING_ACCEPTED";
-               await sendBookingPushNotifications({
-        userToken,
-        type: "BOOKING_ACCEPTED",
-      });
       } else if (updatedBooking.status === "completed") {
         eventName = "BOOKING_COMPLETED";
-               await sendBookingPushNotifications({
-                doctorName:updatedBooking?.doctor_name,
-        userToken,
-        type: "BOOKING_COMPLETED",
-      });
       }
-      
-
-
-
       const eventPayload = {
         bookingId: updatedBooking.id,
         userId: updatedBooking.userId,

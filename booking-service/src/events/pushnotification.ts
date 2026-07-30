@@ -55,6 +55,17 @@ export const sendPushNotification = async ({
         click_action: "FLUTTER_NOTIFICATION_CLICK",
         imageUrl: imageUrl ?? "",
       },
+
+      webpush: {
+        notification: {
+          title,
+          body,
+          icon: imageUrl ?? undefined,
+        },
+        fcmOptions: {
+          link: "/", // Default link for web
+        },
+      },
     };
 
     const response = await admin.messaging().send(message);

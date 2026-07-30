@@ -1,15 +1,19 @@
 import { admin } from "../config/firebase-admin";
+import dotenv from "dotenv";
+dotenv.config();
 
 interface SendNotificationParams {
   token: string;
   title: string;
   body: string;
+  imageUrl?: string;
 }
 
 export const sendPushNotification = async ({
   token,
   title,
   body,
+  imageUrl=process.env.PUSHNOTIFICATION_IMAGE_URL,
 }: SendNotificationParams) => {
   try {
     const message: admin.messaging.Message = {
@@ -25,6 +29,7 @@ export const sendPushNotification = async ({
           sound: 'default',
           icon: 'ic_notification',
           channelId: 'default-channel',
+          imageUrl: imageUrl,
         },
       },
 
@@ -34,10 +39,25 @@ export const sendPushNotification = async ({
             sound: 'default',
           },
         },
+        fcmOptions: {
+          imageUrl: imageUrl,
+        },
       },
 
       data: {
-        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+        imageUrl: imageUrl ?? "",
+      },
+
+      webpush: {
+        notification: {
+          title,
+          body,
+          icon: imageUrl ?? undefined,
+        },
+        fcmOptions: {
+          link: "/", // Default link for web
+        },
       },
     };
 
