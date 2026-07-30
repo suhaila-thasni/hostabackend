@@ -51,60 +51,72 @@ asyncHandler(
     ========================== */
 
     let user: any;
+    let bookings: any[] = [];
 
-    try {
-      // 1. Check User
-    user = await axios.get(`${process.env.USER_SERVICE_URL}/users/${userId}`, {
-        headers: { Authorization: req.headers.authorization }
-      });
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    const reqConfig = { headers: { Authorization: req.headers.authorization } };
+
+    const promises = [
+      axios.get(`${process.env.USER_SERVICE_URL}/users/${userId}`, reqConfig),
+      hospitalId ? axios.get(`${process.env.HOSPITAL_SERVICE_URL}/hospital/${hospitalId}`, reqConfig) : Promise.resolve(null),
+      doctorId ? axios.get(`${process.env.DOCTOR_SERVICE_URL}/doctor/${doctorId}`, reqConfig) : Promise.resolve(null),
+      axios.get(`${process.env.BOOKING_SERVICE_URL}/booking`, reqConfig)
+    ];
+
+    const results = await Promise.allSettled(promises);
+
+    // 1. Check User
+    const userResult = results[0];
+    if (userResult.status === "rejected") {
+      const err = userResult.reason;
+      if (err.response?.status === 404) {
         res.status(404).json({ success: false, message: `User with ID ${userId} does not exist` });
-        return;
+      } else {
+        res.status(err.response?.status || 500).json({ success: false, message: "Error fetching user data" });
       }
+      return;
     }
+    user = userResult.value;
 
-    try {
-      // 2. Check Hospital
-      if (hospitalId) {
-        await axios.get(`${process.env.HOSPITAL_SERVICE_URL}/hospital/${hospitalId}`, {
-          headers: { Authorization: req.headers.authorization }
-        });
-      }
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    // 2. Check Hospital
+    const hospitalResult = results[1];
+    if (hospitalId && hospitalResult.status === "rejected") {
+      const err = hospitalResult.reason;
+      if (err.response?.status === 404) {
         res.status(404).json({ success: false, message: `Hospital with ID ${hospitalId} does not exist` });
-        return;
+      } else {
+        res.status(err.response?.status || 500).json({ success: false, message: "Error fetching hospital data" });
       }
+      return;
     }
 
-    try {
-      // 3. Check Doctor
-      if (doctorId) {
-        await axios.get(`${process.env.DOCTOR_SERVICE_URL}/doctor/${doctorId}`, {
-          headers: { Authorization: req.headers.authorization }
-        });
-      }
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    // 3. Check Doctor
+    const doctorResult = results[2];
+    if (doctorId && doctorResult.status === "rejected") {
+      const err = doctorResult.reason;
+      if (err.response?.status === 404) {
         res.status(404).json({ success: false, message: `Doctor with ID ${doctorId} does not exist` });
-        return;
+      } else {
+        res.status(err.response?.status || 500).json({ success: false, message: "Error fetching doctor data" });
       }
+      return;
     }
 
-    /* =========================
-       GET BOOKINGS
-       (Temporary method)
-    ========================== */
-
-    const appointmentResponse = await axios.get(`${process.env.BOOKING_SERVICE_URL}/booking`, {
-      headers: {
-        Authorization: req.headers.authorization
+    // 4. Check Bookings
+    const bookingResult = results[3];
+    if (bookingResult.status === "rejected") {
+      const err = bookingResult.reason;
+      if (err.response?.status === 404) {
+        bookings = []; // No bookings found
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "Failed to fetch bookings from booking service"
+        });
+        return;
       }
-    });
-
-    const bookings =
-      appointmentResponse.data.data;
+    } else {
+      bookings = bookingResult.value?.data?.data || [];
+    }
 
     /* =========================
        FILTER BOOKINGS
@@ -190,68 +202,35 @@ if (existingReview) {
 
 let newReview : any;
 
-    if(hospitalId && doctorId){
-
-    //   newReview =
-    //   await Review.create({
-    //     userId,
-    //     doctorId,
-    //     comment,
-    //     rating,
-    //     imageUrl: user?.data?.data?.imageUrl,
-    //     name: user?.data?.data?.name,
-    //   });
-
-    // }else{
-         
-    // newReview =  await Review.create({
-    //     userId,
-    //     hospitalId,
-    //     comment,
-    //     rating,
-    //     imageUrl: user?.data?.data?.imageUrl,
-    //     name: user?.data?.data?.name,
-    //   });
-
     try {
-
-    if (hospitalId && doctorId) {
-
-        newReview = await Review.create({
-            userId,
-            doctorId,
-            comment,
-            rating,
-            imageUrl: user?.data?.data?.imageUrl,
-            name: user?.data?.data?.name,
-        });
-
-    } else {
-
-        newReview = await Review.create({
-            userId,
-            hospitalId,
-            comment,
-            rating,
-            imageUrl: user?.data?.data?.imageUrl,
-            name: user?.data?.data?.name,
-        });
-
-    }
-
-} catch (error: any) {
-
-    if (error.name === "SequelizeUniqueConstraintError") {
-        res.status(409).json({
-            success: false,
-            message: "You have already submitted a review.",
-        });
-        return;
-    }
-
-    throw error;
-}
-
+        if (hospitalId && doctorId) {
+            newReview = await Review.create({
+                userId,
+                doctorId,
+                comment,
+                rating,
+                imageUrl: user?.data?.data?.imageUrl,
+                name: user?.data?.data?.name,
+            });
+        } else {
+            newReview = await Review.create({
+                userId,
+                hospitalId,
+                comment,
+                rating,
+                imageUrl: user?.data?.data?.imageUrl,
+                name: user?.data?.data?.name,
+            });
+        }
+    } catch (error: any) {
+        if (error.name === "SequelizeUniqueConstraintError") {
+            res.status(409).json({
+                success: false,
+                message: "You have already submitted a review.",
+            });
+            return;
+        }
+        throw error;
     }
 
 
