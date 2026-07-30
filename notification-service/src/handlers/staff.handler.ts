@@ -26,9 +26,9 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
   if (routingKey === "STAFF_PASSWORD_RESET" || routingKey === "STAFF_PASSWORD_CHANGED") {
     let msgText = "";
     if (routingKey === "STAFF_PASSWORD_RESET") {
-      msgText = `Security Alert: Staff member ${content.staffName || "Staff"} has successfully reset their password.`;
+      msgText = `Security Alert: Staff member ${content.staffName || "Staff"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
     } else {
-      msgText = `Security Update: Staff member ${content.staffName || "Staff"} has changed their password.`;
+      msgText = `Security Update: Staff member ${content.staffName || "Staff"} has changed their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
     }
 
     await Notification.create({
@@ -45,6 +45,30 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
 
     // 2. Also Notify SuperAdmin for security oversight
     socketEmitter.to("role_1").emit("hospital_event", { event: routingKey, message: msgText, data: content });
+  }
+
+  // ── Notify STAFF when Hospital Admin changes their password ──
+  if (routingKey === "STAFF_PASSWORD_CHANGED_BY_ADMIN") {
+    const staffMsg = `Your password has been changed by the hospital admin.${content.newPassword ? ` Your new password: ${content.newPassword}` : ""}`;
+
+    await Notification.create({
+      staffIds: content.staffId ? [content.staffId] : [],
+      message: staffMsg,
+    }).catch((err) => console.error("Failed to save STAFF_PASSWORD_CHANGED_BY_ADMIN notification", err));
+
+    // Notify the specific staff member via socket
+    if (content.staffId) {
+      const staffRoom = `user_${content.staffId}`;
+      socketEmitter.to(staffRoom).emit("staff_event", { event: routingKey, message: staffMsg, data: content });
+      socketEmitter.to(staffRoom).emit("emergency_alert", { event: routingKey, message: staffMsg, data: content });
+    }
+
+    // Also notify hospital for confirmation
+    if (content.hospitalId) {
+      const hospitalMsg = `Password for staff member ${content.staffName || "Staff"} has been changed successfully.`;
+      const targetRoom = `user_${content.hospitalId}`;
+      socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: hospitalMsg, data: content });
+    }
   }
 
   if (routingKey === "STAFF_DELETED" || routingKey === "STAFF_RECOVERED") {

@@ -26,6 +26,7 @@ export interface IAuth {
   staff_fcmtoken?: FCMTOKEN[];
   hospital_fcmtoken?: FCMTOKEN[];
   superadmin_fcmtoken?: FCMTOKEN[];
+  notificationEnabled?: boolean; // <-- NEW FIELD
   createdAt?: Date;
   updatedAt?: Date;
   deleteDate?: Date;
@@ -35,7 +36,7 @@ export interface IAuth {
   otpExpiry?: Date;
 }
 
-type AuthCreationAttributes = Optional<IAuth, 'id' | 'email' | 'phone' | 'password' | 'roleId'  | 'superadminId' | 'doctorId' | 'staffId' | 'hospitalId' | 'hospitalName' | 'doctorName' | 'staffName' | 'doctor_fcmtoken' | 'staff_fcmtoken' | 'hospital_fcmtoken' | 'superadmin_fcmtoken' | 'deleteDate' | 'isActive' | 'isDelete' | 'otp' | 'otpExpiry'>;
+type AuthCreationAttributes = Optional<IAuth, 'id' | 'email' | 'phone' | 'password' | 'roleId'  | 'superadminId' | 'doctorId' | 'staffId' | 'hospitalId' | 'hospitalName' | 'doctorName' | 'staffName' | 'doctor_fcmtoken' | 'staff_fcmtoken' | 'hospital_fcmtoken' | 'superadmin_fcmtoken'  | 'notificationEnabled'| 'deleteDate' | 'isActive' | 'isDelete' | 'otp' | 'otpExpiry'>;
 
 class Auth extends Model<IAuth, AuthCreationAttributes> implements IAuth {
   public id!: number;
@@ -55,7 +56,8 @@ class Auth extends Model<IAuth, AuthCreationAttributes> implements IAuth {
   public staff_fcmtoken?: FCMTOKEN[];
   public hospital_fcmtoken?: FCMTOKEN[];
   public superadmin_fcmtoken?: FCMTOKEN[];
-  public readonly createdAt!: Date;
+  public notificationEnabled?: boolean; 
+  public readonly createdAt!: Date; 
   public readonly updatedAt!: Date;
   public deleteDate?: Date;
   public isActive?: boolean;
@@ -157,6 +159,10 @@ Auth.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    notificationEnabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true, // by default notifications will be enabled
+    },  
   },
   {
     sequelize,

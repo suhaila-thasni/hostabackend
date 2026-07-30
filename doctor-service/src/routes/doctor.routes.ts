@@ -67,7 +67,7 @@ router.post("/doctor/update-fcm-token", updateFcmTokenByEmail);
 
 
 
-router.put("/doctor/internal/:id/password", authenticate,verifyInternalRequest, updateDoctorPassword);
+router.put("/doctor/internal/:id/password", authenticate, checkPermission("doctor", "edit"), updateDoctorPassword);
 router.get("/doctor/internal/:id", authenticate,verifyInternalRequest, validateParams(idParamSchema), getanDoctor);
 
 

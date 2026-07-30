@@ -118,6 +118,7 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "doctor_events", "DOCTOR_RECOVERED");
         await channel.bindQueue(queue, "doctor_events", "DOCTOR_PASSWORD_RESET");
         await channel.bindQueue(queue, "doctor_events", "DOCTOR_PASSWORD_CHANGED");
+        await channel.bindQueue(queue, "doctor_events", "DOCTOR_PASSWORD_CHANGED_BY_ADMIN");
 
         // 4. Blood Bank
         await channel.assertExchange("blood_bank_events", "direct", { durable: true });
@@ -157,6 +158,7 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "staff_events", "STAFF_RECOVERED");
         await channel.bindQueue(queue, "staff_events", "STAFF_PASSWORD_RESET");
         await channel.bindQueue(queue, "staff_events", "STAFF_PASSWORD_CHANGED");
+        await channel.bindQueue(queue, "staff_events", "STAFF_PASSWORD_CHANGED_BY_ADMIN");
 
         // 10. Lab & Test & Report
         await channel.assertExchange("lab_events", "direct", { durable: true });

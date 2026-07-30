@@ -155,6 +155,35 @@ asyncHandler(
     
 
 
+
+
+
+
+
+
+    const whereClause: any = { userId };
+
+if (doctorId) {
+    whereClause.doctorId = doctorId;
+}
+
+if (hospitalId) {
+    whereClause.hospitalId = hospitalId;
+}
+
+const existingReview = await Review.findOne({
+    where: whereClause,
+});
+
+if (existingReview) {
+    res.status(409).json({
+        success: false,
+        message: "You have already submitted a review.",
+    });
+    return;
+}
+
+
     /* =========================
        CREATE REVIEW
     ========================== */
@@ -163,26 +192,65 @@ let newReview : any;
 
     if(hospitalId && doctorId){
 
-      newReview =
-      await Review.create({
-        userId,
-        doctorId,
-        comment,
-        rating,
-        imageUrl: user?.data?.data?.imageUrl,
-        name: user?.data?.data?.name,
-      });
+    //   newReview =
+    //   await Review.create({
+    //     userId,
+    //     doctorId,
+    //     comment,
+    //     rating,
+    //     imageUrl: user?.data?.data?.imageUrl,
+    //     name: user?.data?.data?.name,
+    //   });
 
-    }else{
+    // }else{
          
-    newReview =  await Review.create({
-        userId,
-        hospitalId,
-        comment,
-        rating,
-        imageUrl: user?.data?.data?.imageUrl,
-        name: user?.data?.data?.name,
-      });
+    // newReview =  await Review.create({
+    //     userId,
+    //     hospitalId,
+    //     comment,
+    //     rating,
+    //     imageUrl: user?.data?.data?.imageUrl,
+    //     name: user?.data?.data?.name,
+    //   });
+
+    try {
+
+    if (hospitalId && doctorId) {
+
+        newReview = await Review.create({
+            userId,
+            doctorId,
+            comment,
+            rating,
+            imageUrl: user?.data?.data?.imageUrl,
+            name: user?.data?.data?.name,
+        });
+
+    } else {
+
+        newReview = await Review.create({
+            userId,
+            hospitalId,
+            comment,
+            rating,
+            imageUrl: user?.data?.data?.imageUrl,
+            name: user?.data?.data?.name,
+        });
+
+    }
+
+} catch (error: any) {
+
+    if (error.name === "SequelizeUniqueConstraintError") {
+        res.status(409).json({
+            success: false,
+            message: "You have already submitted a review.",
+        });
+        return;
+    }
+
+    throw error;
+}
 
     }
 

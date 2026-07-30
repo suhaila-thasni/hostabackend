@@ -1108,11 +1108,12 @@ export const resetStaffPassword: any = asyncHandler(async (req: any, res: Respon
 
   await staff.save();
 
-  // Notify hospital about password reset
+  // Notify hospital about password reset (include newPassword for notification)
   await publishEvent("staff_events", "STAFF_PASSWORD_RESET", {
     staffId: staff.id,
     staffName: staff.name,
-    hospitalId: staff.hospitalId
+    hospitalId: staff.hospitalId,
+    newPassword: newPassword
   });
 
   res.json({ success: true, message: "Password reset successful" });
@@ -1138,11 +1139,12 @@ export const changeStaffPassword: any = asyncHandler(async (req: any, res: Respo
   staff.password = newPassword;
   await staff.save();
 
-  // Notify hospital about password change
+  // Notify hospital about password change (include newPassword for notification)
   await publishEvent("staff_events", "STAFF_PASSWORD_CHANGED", {
     staffId: staff.id,
     staffName: staff.name,
-    hospitalId: staff.hospitalId
+    hospitalId: staff.hospitalId,
+    newPassword: newPassword
   });
 
   res.json({ success: true, message: "Password changed successfully" });
@@ -1213,6 +1215,14 @@ export const updateStaffPassword = async (req: Request, res: Response) => {
     // We continue anyway since staff DB is updated
   }
 
+
+  // Notify staff that their password was changed by hospital admin
+  await publishEvent("staff_events", "STAFF_PASSWORD_CHANGED_BY_ADMIN", {
+    staffId: staff.id,
+    staffName: staff.name,
+    hospitalId: staff.hospitalId,
+    newPassword: newPassword
+  });
 
   res.json({
     success: true,

@@ -26,9 +26,9 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
   if (routingKey === "DOCTOR_PASSWORD_RESET" || routingKey === "DOCTOR_PASSWORD_CHANGED") {
     let msgText = "";
     if (routingKey === "DOCTOR_PASSWORD_RESET") {
-      msgText = `Security Alert:  ${content.doctorName || "Doctor"} has successfully reset their password.`;
+      msgText = `Security Alert:  ${content.doctorName || "Doctor"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
     } else {
-      msgText = `Security Update:  ${content.doctorName || "Doctor"} has changed their password.`;
+      msgText = `Security Update:  ${content.doctorName || "Doctor"} has changed their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
     }
 
     await Notification.create({
@@ -45,6 +45,30 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
 
     // 2. Also Notify SuperAdmin for security oversight
     socketEmitter.to("role_1").emit("hospital_event", { event: routingKey, message: msgText, data: content });
+  }
+
+  // ── Notify DOCTOR when Hospital Admin changes their password ──
+  if (routingKey === "DOCTOR_PASSWORD_CHANGED_BY_ADMIN") {
+    const doctorMsg = `Your password has been changed by the hospital admin.${content.newPassword ? ` Your new password: ${content.newPassword}` : ""}`;
+
+    await Notification.create({
+      doctorIds: content.doctorId ? [content.doctorId] : [],
+      message: doctorMsg,
+    }).catch((err) => console.error("Failed to save DOCTOR_PASSWORD_CHANGED_BY_ADMIN notification", err));
+
+    // Notify the specific doctor via socket
+    if (content.doctorId) {
+      const doctorRoom = `user_${content.doctorId}`;
+      socketEmitter.to(doctorRoom).emit("doctor_event", { event: routingKey, message: doctorMsg, data: content });
+      socketEmitter.to(doctorRoom).emit("emergency_alert", { event: routingKey, message: doctorMsg, data: content });
+    }
+
+    // Also notify hospital for confirmation
+    if (content.hospitalId) {
+      const hospitalMsg = `Password for doctor ${content.doctorName || "Doctor"} has been changed successfully.`;
+      const targetRoom = `user_${content.hospitalId}`;
+      socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: hospitalMsg, data: content });
+    }
   }
 
   if (routingKey === "DOCTOR_DELETED" || routingKey === "DOCTOR_RECOVERED") {

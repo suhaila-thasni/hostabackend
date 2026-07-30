@@ -1187,6 +1187,7 @@ export const resetDoctorPassword: any = asyncHandler(
       doctorId: doctor.id,
       doctorName: doctor.displayName,
       hospitalId: doctor.hospitalId,
+      newPassword: newPassword,
     });
 
     res.json({ success: true, message: "Password reset successful" });
@@ -1225,6 +1226,7 @@ export const changeDoctorPassword: any = asyncHandler(
       doctorId: doctor.id,
       doctorName: doctor.displayName,
       hospitalId: doctor.hospitalId,
+      newPassword: newPassword,
     });
 
     res.json({ success: true, message: "Password changed successfully" });
@@ -1291,13 +1293,21 @@ export const updateDoctorPassword = async (req: Request, res: Response) => {
   }
 
 
+  // Notify doctor that their password was changed by hospital admin
+  await publishEvent("doctor_events", "DOCTOR_PASSWORD_CHANGED_BY_ADMIN", {
+    doctorId: doctor.id,
+    doctorName: doctor.displayName,
+    hospitalId: doctor.hospitalId,
+    newPassword: newPassword,
+  });
+
   res.json({
     success: true,
     message: "Password updated in doctor and auth service",
   });
 };
 
-
+ 
 
 
 
