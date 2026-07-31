@@ -12,7 +12,7 @@ export const generateToken = (payload: any) => {
 
 export const generateRefreshToken = (payload: any) => {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: "1d",
+    expiresIn: "2w",
   });
 };
 

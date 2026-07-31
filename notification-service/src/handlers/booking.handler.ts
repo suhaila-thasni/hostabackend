@@ -147,7 +147,7 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
       let pushBody = "";
 
       if (content.userId) {
-        const authUserToken = await axios.get(`${process.env.AUTH_SERVICE_URL}/auth/${content.userId}/role/patient`);
+        const authUserToken = await axios.get(`${process.env.USER_SERVICE_URL}/internal/users/${content.userId}`);
         const uTokens = authUserToken?.data?.data?.fcmToken?.map((d: any) => d.fcmToken) ?? [];
         tokensToNotify.push(...uTokens);
       }

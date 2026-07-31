@@ -89,6 +89,7 @@ router.post("/users/logout/:id", authenticate, checkPermission("users", "create"
 
 router.get("/users", authenticate,   getUsers);
 router.get("/users/blacklist", authenticate, getBlacklistedUsers);
+router.get("/internal/users/:id", validateParams(idParamSchema), getUser);
 router.get("/users/:id", authenticate, validateParams(idParamSchema), (req: any, res: any, next: any) => {
   if (req.user.id === parseInt(req.params.id)) {
     return next();

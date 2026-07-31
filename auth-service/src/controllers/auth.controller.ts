@@ -1698,6 +1698,8 @@ export const getAuthByid = asyncHandler(
 
 
     let where: any = {};
+    
+    where.role = roles;
 
     switch (roles) {
       case "doctor":
