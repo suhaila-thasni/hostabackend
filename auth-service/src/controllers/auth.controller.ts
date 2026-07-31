@@ -778,90 +778,31 @@ export const resetPassword: any = asyncHandler(async (req: Request, res: Respons
   user.otpExpiry = null as any;
 
   await user.save();
-  if (user.role == "hospital") {
 
-    await axios.put(
-      `${process.env.HOSPITAL_SERVICE_URL}/internal/hospital/${user.hospitalId}/password`,
-      {
-        password: newPassword,
-      },
-      {
-        headers: {
-          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
-        },
-      }
-
-    );
-  }
-  else if (user.role == "staff") {
-    await axios.put(
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      `${process.env.STAFF_SERVICE_URL}/staff/internal/${user.staffId}/password`,
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      {
-        password: newPassword,
-      },
-      {
-        headers: {
-          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
-        },
-      }
-
-    );
-  }
-  else if (user.role == "doctor") {
-    await axios.put(
-      `${process.env.DOCTOR_SERVICE_URL}/doctor/staff/${user.doctorId}/password`,
-      {
-        password: newPassword,
-      },
-      {
-        headers: {
-          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
-        },
-      }
-
-    );
+  // Sync password to the role-specific service
+  try {
+    if (user.role == "hospital") {
+      await axios.put(
+        `${process.env.HOSPITAL_SERVICE_URL}/internal/hospital/${user.hospitalId}/password`,
+        { password: newPassword },
+        { headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET } }
+      );
+    } else if (user.role == "staff") {
+      await axios.put(
+        `${process.env.STAFF_SERVICE_URL}/staff/internal/${user.staffId}/password`,
+        { newPassword: newPassword, confirmPassword: newPassword },
+        { headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET } }
+      );
+    } else if (user.role == "doctor") {
+      await axios.put(
+        `${process.env.DOCTOR_SERVICE_URL}/doctor/internal/${user.doctorId}/password`,
+        { newPassword: newPassword, confirmPassword: newPassword },
+        { headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET } }
+      );
+    }
+  } catch (syncError: any) {
+    console.error("⚠️ Failed to sync password to role service:", syncError.response?.data || syncError.message);
+    // Auth DB is already updated, so we continue
   }
 
   res.json({ success: true, message: "Password reset successful" });
@@ -870,61 +811,59 @@ export const resetPassword: any = asyncHandler(async (req: Request, res: Respons
 
 
 
-// export const internalUpdateStaffPassword = async (
 
-  
-//   req: Request,
-//   res: Response
-// ): Promise<void> => {
-//   try {
-//     const { id } = req.params;
-//     const { newPassword } = req.body;
 
-//     if (!newPassword) {
-//       res.status(400).json({
-//         success: false,
-//         message: "New password is required",
-//       });
-//       return;
-//     }
 
-//     const auth = await Auth.scope("withPassword").findOne({
-//       where: {
-//         role: "staff",
-//         roleId: id,
-//       },
-//     });
 
-//     if (!auth) {
-//       res.status(404).json({
-//         success: false,
-//         message: "Staff authentication record not found",
-//       });
-//       return;
-//     }
 
-//     // Set the raw password.
-//     // Your Sequelize beforeUpdate hook should hash it automatically.
-//     auth.password = newPassword;
 
-//     await auth.save();
 
-//     res.status(200).json({
-//       success: true,
-//       message: "Staff password updated successfully in auth service",
-//     });
-//   } catch (error: any) {
-//     console.error("Internal staff password update failed:", error);
 
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to update staff password",
-//       error: error.message,
-//     });
-//   }
-// };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+
+
+
+
+
+
+
+
 
 export const internalUpdateStaffPassword = async (
+
   req: Request,
   res: Response
 ) => {
