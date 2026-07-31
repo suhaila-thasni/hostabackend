@@ -52,6 +52,17 @@ router.post("/doctor/auth/send-otp", validate(loginWithEmailSchema), sendDoctorO
 router.post("/doctor/auth/verify-otp", validate(verifyOtpSchema), verifyDoctorOtp);
 router.post("/doctor/auth/reset-password", validate(resetPasswordSchema), resetDoctorPassword);
 router.put("/doctor/auth/change-password", authenticate, validate(changePasswordSchema),checkPermission('doctor','edit'), changeDoctorPassword);
+
+router.put(
+  "/doctor/auth/change-password/:id",
+  authenticate,
+  validateParams(idParamSchema),
+  validate(changePasswordSchema),
+  checkPermission('doctor', 'edit'),
+  changeDoctorPassword
+);
+
+
 router.post("/doctor/refresh", refreshDoctorToken);
 router.post("/doctor/logout/:id",authenticate, checkPermission("doctor", "create"), logout);
 router.post("/doctor/update-fcm-token", updateFcmTokenByEmail);

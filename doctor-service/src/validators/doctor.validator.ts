@@ -118,19 +118,28 @@ export const resetPasswordSchema = z.object({
 });
 
 
+// export const changePasswordSchema = z.object({
+//   currentPassword: z.string().min(1, "Current password is required"),
+//   newPassword: z.string().min(6, "New password must be at least 6 characters"),
+//   confirmPassword: z.string().min(6, "Confirm password must be at least 6 characters").optional(),
+// }).refine((data) => {
+//   if (data.confirmPassword !== undefined) {
+//     return data.newPassword === data.confirmPassword;
+//   }
+//   return true;
+// }, {
+//   message: "Passwords don't match",
+//   path: ["confirmPassword"],
+// });
+
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "New password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Confirm password must be at least 6 characters").optional(),
-}).refine((data) => {
-  if (data.confirmPassword !== undefined) {
-    return data.newPassword === data.confirmPassword;
-  }
-  return true;
-}, {
-  message: "Passwords don't match",
+  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
   path: ["confirmPassword"],
 });
+
 
 // ID parameter validation
 export const idParamSchema = z.object({

@@ -1120,37 +1120,101 @@ export const resetStaffPassword: any = asyncHandler(async (req: any, res: Respon
 });
 
 // CHANGE STAFF PASSWORD (JWT) - PUT /staff/auth/change-password
-export const changeStaffPassword: any = asyncHandler(async (req: any, res: Response) => {
-  const { currentPassword, newPassword, staffId } = req.body;
+// export const changeStaffPassword: any = asyncHandler(async (req: any, res: Response) => {
+//   const { currentPassword, newPassword, staffId } = req.body;
 
-  const staff = await Staff.scope("withPassword").findOne({ where: { id: req.user.id  || staffId, isDelete: false } });
+//   const staff = await Staff.scope("withPassword").findOne({ where: { id: req.user.id  || staffId, isDelete: false } });
+//   if (!staff) {
+//     res.status(404).json({ success: false, message: "Staff not found" });
+//     return;
+//   }
+
+//   const isMatch = await bcrypt.compare(currentPassword, staff.password || "");
+//   if (!isMatch) {
+//     res.status(401).json({ success: false, message: "Incorrect current password" });
+//     return;
+//   }
+
+
+//   staff.password = newPassword;
+//   await staff.save();
+
+//   // Notify hospital about password change (include newPassword for notification)
+//   await publishEvent("staff_events", "STAFF_PASSWORD_CHANGED", {
+//     staffId: staff.id,
+//     staffName: staff.name,
+//     hospitalId: staff.hospitalId,
+//     newPassword: newPassword
+//   });
+
+//   res.json({ success: true, message: "Password changed successfully" });
+// });
+
+
+// CHANGE STAFF PASSWORD (ADMIN) - PUT /staff/auth/change-password/:id
+export const changeStaffPassword: any = asyncHandler(async (req: any, res: Response) => {
+  const { id } = req.params;
+  const { newPassword, confirmPassword } = req.body;
+
+  // 1. Validate input (also enforced by the zod schema, kept here as a safety net)
+  if (!newPassword || !confirmPassword) {
+    res.status(400).json({
+      success: false,
+      message: "newPassword and confirmPassword are required",
+    });
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    res.status(400).json({
+      success: false,
+      message: "Passwords do not match",
+    });
+    return;
+  }
+
+  // 2. Find the staff member
+  const staff = await Staff.findOne({ where: { id, isDelete: false } });
   if (!staff) {
     res.status(404).json({ success: false, message: "Staff not found" });
     return;
   }
 
-  const isMatch = await bcrypt.compare(currentPassword, staff.password || "");
-  if (!isMatch) {
-    res.status(401).json({ success: false, message: "Incorrect current password" });
-    return;
-  }
-
-
+  // 3. Update password in staff-service DB (model hook hashes it)
   staff.password = newPassword;
   await staff.save();
 
-  // Notify hospital about password change (include newPassword for notification)
+  // 4. Sync the new password to auth-service
+  try {
+    const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://auth-service:3020";
+    await axios.put(
+      `${authServiceUrl}/auth/internal/staff/${staff.id}/password`,
+      { newPassword },
+      {
+        headers: {
+          "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+    );
+  } catch (error: any) {
+    logger.error(
+      "Failed to sync staff password change with auth-service:",
+      error.response?.data || error.message
+    );
+    // staff DB already updated; the two DBs are now out of sync
+    // until this is retried/reconciled
+  }
+
+  // 5. Notify other services (no plaintext password in the event)
   await publishEvent("staff_events", "STAFF_PASSWORD_CHANGED", {
     staffId: staff.id,
     staffName: staff.name,
     hospitalId: staff.hospitalId,
-    newPassword: newPassword
+    changedAt: new Date().toISOString(),
   });
 
   res.json({ success: true, message: "Password changed successfully" });
 });
-
-
 
 
 

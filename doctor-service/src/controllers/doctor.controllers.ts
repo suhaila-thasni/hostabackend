@@ -1195,43 +1195,128 @@ export const resetDoctorPassword: any = asyncHandler(
 );
 
 // CHANGE DOCTOR PASSWORD (JWT) - PUT /doctor/auth/change-password
+// export const changeDoctorPassword: any = asyncHandler(
+//   async (req: any, res: Response) => {
+//     const { currentPassword, newPassword } = req.body;
+
+//     const doctor = await Doctor.scope("withPassword").findOne({
+//       where: { id: req.user.id, isDelete: false },
+//     });
+//     if (!doctor) {
+//       res.status(404).json({ success: false, message: "Doctor not found" });
+//       return;
+//     }
+
+//     const isMatch = await bcrypt.compare(
+//       currentPassword,
+//       doctor.password || "",
+//     );
+//     if (!isMatch) {
+//       res
+//         .status(401)
+//         .json({ success: false, message: "Incorrect current password" });
+//       return;
+//     }
+
+//     doctor.password = newPassword;
+//     await doctor.save();
+
+//     // Notify hospital about password change
+//     await publishEvent("doctor_events", "DOCTOR_PASSWORD_CHANGED", {
+//       doctorId: doctor.id,
+//       doctorName: doctor.displayName,
+//       hospitalId: doctor.hospitalId,
+//       newPassword: newPassword,
+//     });
+
+//     res.json({ success: true, message: "Password changed successfully" });
+//   },
+// );
+
+
+
+
+
+
+
+
+// CHANGE DOCTOR PASSWORD (ADMIN) - PUT /doctor/auth/change-password/:id
 export const changeDoctorPassword: any = asyncHandler(
   async (req: any, res: Response) => {
-    const { currentPassword, newPassword } = req.body;
+    const { id } = req.params;
+    const { newPassword, confirmPassword } = req.body;
 
-    const doctor = await Doctor.scope("withPassword").findOne({
-      where: { id: req.user.id, isDelete: false },
+    // 1. Validate input
+    if (!newPassword || !confirmPassword) {
+      res.status(400).json({
+        success: false,
+        message: "newPassword and confirmPassword are required",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      res.status(400).json({
+        success: false,
+        message: "Passwords do not match",
+      });
+      return;
+    }
+
+    // 2. Find the doctor
+    const doctor = await Doctor.findOne({
+      where: { id, isDelete: false },
     });
+
     if (!doctor) {
       res.status(404).json({ success: false, message: "Doctor not found" });
       return;
     }
 
-    const isMatch = await bcrypt.compare(
-      currentPassword,
-      doctor.password || "",
-    );
-    if (!isMatch) {
-      res
-        .status(401)
-        .json({ success: false, message: "Incorrect current password" });
-      return;
-    }
-
+    // 3. Update password in doctor-service DB (model hook hashes it)
     doctor.password = newPassword;
     await doctor.save();
 
-    // Notify hospital about password change
+    // 4. Sync the new password to auth-service
+    try {
+      const authServiceUrl =
+        process.env.AUTH_SERVICE_URL || "http://auth-service:3020";
+
+      await axios.put(
+        `${authServiceUrl}/auth/internal/doctor/${doctor.id}/password`,
+        { newPassword },
+        {
+          headers: {
+            "x-service-secret": process.env.INTERNAL_SERVICE_SECRET,
+          },
+        },
+      );
+    } catch (error: any) {
+      logger.error(
+        "Failed to sync doctor password change with auth-service:",
+        error.response?.data || error.message,
+      );
+      // doctor DB already updated; the two DBs are now out of sync
+      // until this is retried/reconciled
+    }
+
+    // 5. Notify other services (no plaintext password in the event)
     await publishEvent("doctor_events", "DOCTOR_PASSWORD_CHANGED", {
       doctorId: doctor.id,
       doctorName: doctor.displayName,
       hospitalId: doctor.hospitalId,
-      newPassword: newPassword,
+      changedAt: new Date().toISOString(),
     });
 
     res.json({ success: true, message: "Password changed successfully" });
   },
 );
+
+
+
+
+
+
 
 
 

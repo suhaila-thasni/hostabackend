@@ -61,9 +61,16 @@ router.post("/staff/auth/verify-otp", validate(verifyOtpSchema), verifyStaffOtp)
 
 router.post("/staff/auth/reset-password", validate(resetPasswordSchema), resetStaffPassword);
 
-router.put("/staff/auth/change-password",authenticate, validate(changePasswordSchema),checkPermission("staff", "edit"),changeStaffPassword);
+// router.put("/staff/auth/change-password",authenticate, validate(changePasswordSchema),checkPermission("staff", "edit"),changeStaffPassword);
 
-
+router.put(
+  "/staff/auth/change-password/:id",
+  authenticate,
+  validateParams(idParamSchema),
+  validate(changePasswordSchema),
+  checkPermission("staff", "edit"),
+  changeStaffPassword
+);
 
 
 // CRUD
@@ -95,5 +102,11 @@ router.get("/staff/internal/:id",verifyInternalRequest, validateParams(idParamSc
 router.delete("/staff/:id",authenticate, validateParams(idParamSchema), checkPermission("staff", "delete"), staffDelete);
 
 export default router;
+
+
+
+
+
+
 
 

@@ -114,21 +114,21 @@ const fetchRelatedProfile = async (user: any): Promise<any> => {
 
 
           const res = await axios.get(`${serviceUrl}/staff/internal/${entityId}`, {
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             headers: {
               "x-service-secret": process.env.INTERNAL_SERVICE_SECRET
             }
@@ -142,16 +142,16 @@ const fetchRelatedProfile = async (user: any): Promise<any> => {
         entityId = user.doctorId;
         if (serviceUrl && entityId) {
           // const res = await axios.get(`${serviceUrl}/doctor/${entityId}`);
-          
+
 
           const res = await axios.get(`${serviceUrl}/doctor/internal/${entityId}`, {
-           
-                      
+
+
             headers: {
               "x-service-secret": process.env.INTERNAL_SERVICE_SECRET
             }
           });
-          
+
           profileData = res.data?.data || res.data;
         }
         break;
@@ -178,9 +178,9 @@ const fetchRolePermissions = async (roleId: number | undefined, hospitalId: numb
   if (!roleId) return null;
 
   try {
-  
-    console.log(role,roleId,hospitalId,"auyhfbnmdfghjk");
-    
+
+    console.log(role, roleId, hospitalId, "auyhfbnmdfghjk");
+
 
     const res = await axios.get(`${process.env.ROLE_SERVICE_URL}/rolepermission`, {
       params:
@@ -193,8 +193,8 @@ const fetchRolePermissions = async (roleId: number | undefined, hospitalId: numb
             roleId,
           },
     });
-    console.log(res.data,"hiii");
-    
+    console.log(res.data, "hiii");
+
 
 
 
@@ -749,9 +749,9 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   // Fetch role permissions from role-service (use user.roleId as fallback if profileData doesn't carry it)
   const authPermission = await fetchRolePermissions(profileData?.roleId, profileData?.hospitalId, profileData?.role);
 
-  res.status(200).json({  
+  res.status(200).json({
     success: true,
-    message: "OTP verified",  
+    message: "OTP verified",
     token,
     data: safeUser,
     profile: profileData,
@@ -839,19 +839,19 @@ export const resetPassword: any = asyncHandler(async (req: Request, res: Respons
 
 
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1104,43 +1104,43 @@ export const changePassword: any = asyncHandler(async (req: AuthRequest, res: Re
 
 
       `${process.env.STAFF_SERVICE_URL}/staff/internal/${user.staffId}/password`,
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       {
         password: newPassword,
       },
@@ -1637,7 +1637,7 @@ export const getAuthByid = asyncHandler(
 
 
     let where: any = {};
-    
+
     where.role = roles;
 
     switch (roles) {
