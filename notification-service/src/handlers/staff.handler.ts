@@ -63,11 +63,21 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
       socketEmitter.to(staffRoom).emit("emergency_alert", { event: routingKey, message: staffMsg, data: content });
     }
 
-    // Also notify hospital for confirmation
     if (content.hospitalId) {
-      const hospitalMsg = `Password for staff member ${content.staffName || "Staff"} has been changed successfully.`;
+      const hospitalMsg = `Password for staff member ${
+        content.staffName || "Staff"
+      } has been changed successfully.${content.newPassword
+          ? ` New password: ${content.newPassword}`
+          : ""
+        }`;
+
       const targetRoom = `user_${content.hospitalId}`;
-      socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: hospitalMsg, data: content });
+
+      socketEmitter.to(targetRoom).emit("hospital_event", {
+        event: routingKey,
+        message: hospitalMsg,
+        data: content,
+      });
     }
   }
 

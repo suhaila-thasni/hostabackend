@@ -51,7 +51,7 @@ router.get("/:id/role/:roles",  getAuthByid);
 
 
 router.put(
-  "/internal/staff/:id/password",authenticate,
+  "/internal/staff/:id/password",
   verifyInternalRequest,
   internalUpdateStaffPassword
 );
@@ -59,7 +59,7 @@ router.put(
 
 
 router.put(
-  "/internal/doctor/:id/password",authenticate,
+  "/internal/doctor/:id/password",
   verifyInternalRequest,
   internalUpdateDoctorPassword
 );

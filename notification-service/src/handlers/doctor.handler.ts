@@ -64,12 +64,33 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
     }
 
     // Also notify hospital for confirmation
-    if (content.hospitalId) {
-      const hospitalMsg = `Password for doctor ${content.doctorName || "Doctor"} has been changed successfully.`;
-      const targetRoom = `user_${content.hospitalId}`;
-      socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: hospitalMsg, data: content });
-    }
-  }
+  //   if (content.hospitalId) {
+  //     const hospitalMsg = `Password for doctor ${content.doctorName || "Doctor"} has been changed successfully.`;
+  //     const targetRoom = `user_${content.hospitalId}`;
+  //     socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: hospitalMsg, data: content });
+  //   }
+  // }
+  // Also notify hospital for confirmation
+if (content.hospitalId) {
+  const hospitalMsg = `Password for doctor ${
+    content.doctorName || "Doctor"
+  } has been changed successfully.${
+    content.newPassword
+      ? ` New password: ${content.newPassword}`
+      : ""
+  }`;
+
+  const targetRoom = `user_${content.hospitalId}`;
+
+  socketEmitter.to(targetRoom).emit("hospital_event", {
+    event: routingKey,
+    message: hospitalMsg,
+    data: content,
+  });
+}
+}
+
+  
 
   if (routingKey === "DOCTOR_DELETED" || routingKey === "DOCTOR_RECOVERED") {
     let msgText = "";
