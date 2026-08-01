@@ -545,6 +545,11 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
   const { id } = req.params;
   const updatePayload = req.body;
 
+  // Ensure type is always a string (not an ID)
+  if (updatePayload.type && typeof updatePayload.type !== 'string') {
+    updatePayload.type = String(updatePayload.type);
+  }
+
   let hospital: any;
   try {
     hospital = await Hospital.update(updatePayload, {
