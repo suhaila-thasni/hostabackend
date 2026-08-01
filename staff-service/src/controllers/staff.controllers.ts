@@ -631,7 +631,7 @@ export const staffDelete: any = asyncHandler(async (req: Request, res: Response)
 
       // delete auth staff
 
-      const deletePayload = {
+      const updatePayload = {
         isActive: false,
         isDelete: true,
         deleteDate: new Date(),
@@ -640,7 +640,7 @@ export const staffDelete: any = asyncHandler(async (req: Request, res: Response)
    await axios.put(
     `${process.env.AUTH_SERVICE_URL}/auth/${staff.id}/role/${"staff"}`,
     {
-     deletePayload
+     updatePayload
     },
      {
       headers: {
@@ -1113,7 +1113,7 @@ export const resetStaffPassword: any = asyncHandler(async (req: any, res: Respon
     staffId: staff.id,
     staffName: staff.name,
     hospitalId: staff.hospitalId,
-    newPassword: newPassword
+    newPassword:  staff.password,
   });
 
   res.json({ success: true, message: "Password reset successful" });
@@ -1210,6 +1210,7 @@ export const changeStaffPassword: any = asyncHandler(async (req: any, res: Respo
     staffId: staff.id,
     staffName: staff.name,
     hospitalId: staff.hospitalId,
+    newPassword: staff.password,
     changedAt: new Date().toISOString(),
   });
 

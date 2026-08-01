@@ -89,8 +89,65 @@ const startConsumers = async () => {
     const exchange = 'doctor_events';
     await channel.assertExchange(exchange, 'direct', { durable: true });
 
+    const dlxExchange = "doctor_dlx";
+    const dlqQueue = "doctor_dlq";
+    
+    await channel.assertExchange(dlxExchange, "direct", { durable: true });
+    await channel.assertQueue(dlqQueue, { durable: true });
+    await channel.bindQueue(dlqQueue, dlxExchange, "failed");
+
+    const assertQueueWithDLQ = async (queueName: string) => {
+        try {
+            await channel.assertQueue(queueName, {
+                durable: true,
+                deadLetterExchange: dlxExchange,
+                deadLetterRoutingKey: "failed",
+            });
+        } catch (err: any) {
+            if (err.code === 406 || (err.message && err.message.includes("PRECONDITION_FAILED"))) {
+                console.warn(`⚠️ Queue '${queueName}' exists with different arguments. Re-creating...`);
+                channel = await connection.createChannel();
+                await channel.deleteQueue(queueName).catch(() => { });
+                await channel.assertQueue(queueName, {
+                    durable: true,
+                    deadLetterExchange: dlxExchange,
+                    deadLetterRoutingKey: "failed",
+                });
+            } else { throw err; }
+        }
+        return { queue: queueName };
+    };
+
+    const assertRetryQueue = async (queueName: string) => {
+        const retryQueueName = `${queueName}_retry`;
+        await channel.assertQueue(retryQueueName, {
+            durable: true,
+            deadLetterExchange: "",
+            deadLetterRoutingKey: queueName,
+            messageTtl: 30000,
+        });
+        return retryQueueName;
+    };
+
+    const handleRetry = (msg: any, retryQueue: string) => {
+        const headers = msg.properties.headers || {};
+        const retries = headers["x-retries"] || 0;
+        if (retries >= 3) {
+            console.error(`❌ Retries exhausted (Attempt ${retries}). Moving message to Dead Letter Queue (DLQ).`);
+            channel.nack(msg, false, false);
+        } else {
+            console.warn(`⚠️ Processing failed (Attempt ${retries + 1}/3). Moving to Retry Queue for a 30s delay.`);
+            channel.sendToQueue(retryQueue, msg.content, {
+                persistent: true,
+                headers: { ...headers, "x-retries": retries + 1 }
+            });
+            channel.ack(msg);
+        }
+    };
+
     // Listen for AUTH_CREATED events from Auth Service
-    const authQueue = await channel.assertQueue('doctor_auth_created_queue', { durable: true });
+    const authQueue = await assertQueueWithDLQ('doctor_auth_created_queue');
+    const authRetryQueue = await assertRetryQueue('doctor_auth_created_queue');
     await channel.bindQueue(authQueue.queue, exchange, 'AUTH_CREATED');
 
     channel.consume(authQueue.queue, async (msg) => {
@@ -115,14 +172,14 @@ const startConsumers = async () => {
                 channel.ack(msg);
             } catch (error) {
                 console.error("❌ Error processing AUTH_CREATED event:", error);
-                // Nack - don't requeue to avoid infinite loop, send to DLQ
-                channel.nack(msg, false, false);
+                handleRetry(msg, authRetryQueue);
             }
         }
     });
 
     // Listen for AUTH_FAILED events from Auth Service (Compensating Transaction)
-    const authFailedQueue = await channel.assertQueue('doctor_auth_failed_queue', { durable: true });
+    const authFailedQueue = await assertQueueWithDLQ('doctor_auth_failed_queue');
+    const authFailedRetryQueue = await assertRetryQueue('doctor_auth_failed_queue');
     await channel.bindQueue(authFailedQueue.queue, exchange, 'AUTH_FAILED');
 
     channel.consume(authFailedQueue.queue, async (msg) => {
@@ -145,7 +202,7 @@ const startConsumers = async () => {
                 channel.ack(msg);
             } catch (error) {
                 console.error("❌ Error processing AUTH_FAILED event:", error);
-                channel.nack(msg, false, false);
+                handleRetry(msg, authFailedRetryQueue);
             }
         }
     });

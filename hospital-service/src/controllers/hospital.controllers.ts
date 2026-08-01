@@ -572,35 +572,42 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
   }
 
   // update auth hospital
-if(updatePayload.email || updatePayload.phone || updatePayload.password ||updatePayload.name){
-  
-updatePayload.hospitalName = updatePayload.name;
-delete updatePayload.name;
+  if (updatePayload.email || updatePayload.phone || updatePayload.password || updatePayload.name) {
 
-console.log("updatePayload",updatePayload)
-    
-   try {
-   await axios.put(
-    `${process.env.AUTH_SERVICE_URL}/auth/${hospital[1][0].id}/role/${"hospital"}`,
-    {
-      updatePayload,
-    },
-    {
-      headers: {
-        Authorization: req.headers.authorization || "",
-      },
+    updatePayload.hospitalName = updatePayload.name;
+    delete updatePayload.name;
+
+    console.log("updatePayload", updatePayload)
+
+    try {
+      // Only send fields that exist in auth model
+      const authUpdatePayload: any = {};
+      if (updatePayload.email) authUpdatePayload.email = updatePayload.email;
+      if (updatePayload.phone) authUpdatePayload.phone = updatePayload.phone;
+      if (updatePayload.password) authUpdatePayload.password = updatePayload.password;
+      if (updatePayload.hospitalName) authUpdatePayload.hospitalName = updatePayload.hospitalName;
+
+      await axios.put(
+        `${process.env.AUTH_SERVICE_URL}/auth/${hospital[1][0].id}/role/${"hospital"}`,
+        {
+          updatePayload: authUpdatePayload,
+        },
+        {
+          headers: {
+            Authorization: req.headers.authorization || "",
+          },
+        }
+      );
+
+    } catch (error: any) {
+      console.error(
+        "Failed to update auth hospital:",
+        error.response?.data || error.message
+      );
+
+      throw new Error("Failed to update authentication hospital");
     }
-  );
-
-} catch (error: any) {
-  console.error(
-    "Failed to update auth hospital:",
-    error.response?.data || error.message
-  );
-
-  throw new Error("Failed to update authentication hospital");
-}
-}
+  }
 
 
 
@@ -653,25 +660,25 @@ export const updateHospitalPassword = async (
   res: Response
 ) => {
 
-    const { password } = req.body;
+  const { password } = req.body;
 
-    const hospital = await Hospital.findByPk(req.params.id);
+  const hospital = await Hospital.findByPk(req.params.id);
 
-    if (!hospital) {
-        return res.status(404).json({
-            success:false,
-            message:"Hospital not found"
-        });
-    }
-
-    hospital.password = password;
-
-    await hospital.save();
-
-    res.json({
-        success:true,
-        message:"Password updated"
+  if (!hospital) {
+    return res.status(404).json({
+      success: false,
+      message: "Hospital not found"
     });
+  }
+
+  hospital.password = password;
+
+  await hospital.save();
+
+  res.json({
+    success: true,
+    message: "Password updated"
+  });
 };
 
 
@@ -703,34 +710,34 @@ export const hospitalDelete: any = asyncHandler(async (req: Request, res: Respon
 
 
 
-      // update auth hospital
+  // update auth hospital
 
-      const updatePayload = {
-        isActive: false,
-        isDelete: true,
-        deleteDate: new Date(),
-      }
-   try {
-   await axios.put(
-    `${process.env.AUTH_SERVICE_URL}/auth/${id}/role/${"hospital"}`,
-    {
-      updatePayload
-    },
-     {
-      headers: {
-        Authorization: req.headers.authorization || "",
+  const updatePayload = {
+    isActive: false,
+    isDelete: true,
+    deleteDate: new Date(),
+  }
+  try {
+    await axios.put(
+      `${process.env.AUTH_SERVICE_URL}/auth/${id}/role/${"hospital"}`,
+      {
+        updatePayload
       },
-    }
-  );
+      {
+        headers: {
+          Authorization: req.headers.authorization || "",
+        },
+      }
+    );
 
-} catch (error: any) {
-  console.error(
-    "Failed to update auth hospital:",
-    error.response?.data || error.message
-  );
+  } catch (error: any) {
+    console.error(
+      "Failed to update auth hospital:",
+      error.response?.data || error.message
+    );
 
-  throw new Error("Failed to update authentication hospital");
-}
+    throw new Error("Failed to update authentication hospital");
+  }
 
   await publishEvent("hospital_events", "HOSPITAL_BLACKLISTED", {
     hospitalId: id,
@@ -1073,37 +1080,36 @@ export const recoverHospital: any = asyncHandler(async (req: Request, res: Respo
   });
 
 
-        // update auth doctor
+  // update auth doctor
 
 
-        const updatePayload = {
-          isDelete: false,
-          isActive: true,
-          deleteDate: null,
-          deleteRequested: false,
-        }
-   try {
-   await axios.put(
-    `${process.env.AUTH_SERVICE_URL}/auth/${hospital.id}/role/${"hospital"}`,
-    {
-      updatePayload
-    
-    },
-     {
-      headers: {
-        Authorization: req.headers.authorization || "",
+  const updatePayload = {
+    isDelete: false,
+    isActive: true,
+    deleteDate: null,
+  }
+  try {
+    await axios.put(
+      `${process.env.AUTH_SERVICE_URL}/auth/${hospital.id}/role/${"hospital"}`,
+      {
+        updatePayload
+
       },
-    }
-  );
+      {
+        headers: {
+          Authorization: req.headers.authorization || "",
+        },
+      }
+    );
 
-} catch (error: any) {
-  console.error(
-    "Failed to update auth hospital:",
-    error.response?.data || error.message
-  );
+  } catch (error: any) {
+    console.error(
+      "Failed to update auth hospital:",
+      error.response?.data || error.message
+    );
 
-  throw new Error("Failed to update authentication hospital");
-}
+    throw new Error("Failed to update authentication hospital");
+  }
 
   await publishEvent("hospital_events", "HOSPITAL_RECOVERED", {
     hospitalId: hospital.id,

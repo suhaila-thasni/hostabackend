@@ -1,26 +1,88 @@
+// import app from "./app";
+// import { connectDB } from "./config/db";
+// import { connectRabbitMQ } from "./events/publisher";
+// import { env } from "./config/env";
+// import { logger } from "./utils/logger";
+
+// import "./models"; 
+
+// const PORT = env.PORT;
+
+// const startServer = async () => {
+//   try {
+//     await connectDB();
+//     await connectRabbitMQ();
+
+
+//     app.listen(PORT, () => {
+//       logger.info(`🚀 Role Service is running on port ${PORT}`);
+//     });
+//   } catch (error) {
+//     logger.error("❌ Failed to start server:", { error });
+//     process.exit(1);
+//   }
+// };
+
+// startServer();
+
+
+
 import app from "./app";
 import { connectDB } from "./config/db";
 import { connectRabbitMQ } from "./events/publisher";
 import { env } from "./config/env";
 import { logger } from "./utils/logger";
 
-import "./models"; 
+import "./models";
 
 const PORT = env.PORT;
 
+let rabbitReconnectDelay = 1000;
+
+const startRabbitMQ = async (): Promise<void> => {
+    try {
+        await connectRabbitMQ();
+
+        rabbitReconnectDelay = 1000;
+
+        logger.info("✅ RabbitMQ Connected");
+    } catch (err) {
+        logger.error("RabbitMQ connection failed", { err });
+
+        logger.info(`Retrying RabbitMQ in ${rabbitReconnectDelay / 1000}s`);
+
+        setTimeout(() => {
+            startRabbitMQ();
+        }, rabbitReconnectDelay);
+
+        rabbitReconnectDelay = Math.min(rabbitReconnectDelay * 2, 30000);
+    }
+};
+
 const startServer = async () => {
-  try {
-    await connectDB();
-    await connectRabbitMQ();
+    try {
+        // Database is mandatory
+        await connectDB();
 
+        const server = app.listen(PORT, () => {
+            logger.info(`🚀 Role Service is running on port ${PORT}`);
+        });
 
-    app.listen(PORT, () => {
-      logger.info(`🚀 Role Service is running on port ${PORT}`);
-    });
-  } catch (error) {
-    logger.error("❌ Failed to start server:", { error });
-    process.exit(1);
-  }
+        // RabbitMQ connects in background
+        startRabbitMQ();
+
+        // Graceful Shutdown Handler
+        process.on("SIGTERM", async () => {
+            logger.info("SIGTERM received. Shutting down gracefully...");
+            server.close(() => {
+                logger.info("HTTP server closed.");
+            });
+            process.exit(0);
+        });
+    } catch (error) {
+        logger.error("❌ Failed to start server:", { error });
+        process.exit(1);
+    }
 };
 
 startServer();

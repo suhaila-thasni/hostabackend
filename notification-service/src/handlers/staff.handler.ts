@@ -53,6 +53,7 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
 
     await Notification.create({
       staffIds: content.staffId ? [content.staffId] : [],
+      // hospitalIds: content.hospitalId ? [content.hospitalId] : [],
       message: staffMsg,
     }).catch((err) => console.error("Failed to save STAFF_PASSWORD_CHANGED_BY_ADMIN notification", err));
 

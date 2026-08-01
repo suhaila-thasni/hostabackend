@@ -715,7 +715,7 @@ export const doctorDelete: any = asyncHandler(
     // delete auth doctor
 
 
-    const deletePayload = {
+    const updatePayload = {
       isActive: false,
       isDelete: true,
       deleteDate: new Date(),
@@ -724,7 +724,7 @@ export const doctorDelete: any = asyncHandler(
       await axios.put(
         `${process.env.AUTH_SERVICE_URL}/auth/${id}/role/${"doctor"}`,
         {
-          deletePayload
+          updatePayload
         },
         {
           headers: {

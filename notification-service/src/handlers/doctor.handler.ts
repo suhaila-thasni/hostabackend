@@ -23,6 +23,8 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
     }
   }
 
+  
+
   if (routingKey === "DOCTOR_PASSWORD_RESET" || routingKey === "DOCTOR_PASSWORD_CHANGED") {
     let msgText = "";
     if (routingKey === "DOCTOR_PASSWORD_RESET") {

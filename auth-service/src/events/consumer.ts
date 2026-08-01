@@ -50,8 +50,65 @@ const startConsumers = async () => {
     const exchange = 'auth_events';
     await channel.assertExchange(exchange, 'direct', { durable: true });
 
+    const dlxExchange = "auth_dlx";
+    const dlqQueue = "auth_dlq";
+    
+    await channel.assertExchange(dlxExchange, "direct", { durable: true });
+    await channel.assertQueue(dlqQueue, { durable: true });
+    await channel.bindQueue(dlqQueue, dlxExchange, "failed");
+
+    const assertQueueWithDLQ = async (queueName: string) => {
+        try {
+            await channel.assertQueue(queueName, {
+                durable: true,
+                deadLetterExchange: dlxExchange,
+                deadLetterRoutingKey: "failed",
+            });
+        } catch (err: any) {
+            if (err.code === 406 || (err.message && err.message.includes("PRECONDITION_FAILED"))) {
+                console.warn(`⚠️ Queue '${queueName}' exists with different arguments. Re-creating...`);
+                channel = await connection.createChannel();
+                await channel.deleteQueue(queueName).catch(() => { });
+                await channel.assertQueue(queueName, {
+                    durable: true,
+                    deadLetterExchange: dlxExchange,
+                    deadLetterRoutingKey: "failed",
+                });
+            } else { throw err; }
+        }
+        return { queue: queueName };
+    };
+
+    const assertRetryQueue = async (queueName: string) => {
+        const retryQueueName = `${queueName}_retry`;
+        await channel.assertQueue(retryQueueName, {
+            durable: true,
+            deadLetterExchange: "",
+            deadLetterRoutingKey: queueName,
+            messageTtl: 30000,
+        });
+        return retryQueueName;
+    };
+
+    const handleRetry = (msg: any, retryQueue: string) => {
+        const headers = msg.properties.headers || {};
+        const retries = headers["x-retries"] || 0;
+        if (retries >= 3) {
+            console.error(`❌ Retries exhausted (Attempt ${retries}). Moving message to Dead Letter Queue (DLQ).`);
+            channel.nack(msg, false, false);
+        } else {
+            console.warn(`⚠️ Processing failed (Attempt ${retries + 1}/3). Moving to Retry Queue for a 30s delay.`);
+            channel.sendToQueue(retryQueue, msg.content, {
+                persistent: true,
+                headers: { ...headers, "x-retries": retries + 1 }
+            });
+            channel.ack(msg);
+        }
+    };
+
     // Queue for doctor creation
-    const doctorQueue = await channel.assertQueue('auth_doctor_creation_queue', { durable: true });
+    const doctorQueue = await assertQueueWithDLQ('auth_doctor_creation_queue');
+    const doctorRetryQueue = await assertRetryQueue('auth_doctor_creation_queue');
     await channel.bindQueue(doctorQueue.queue, exchange, 'DOCTOR_CREATED');
 
     channel.consume(doctorQueue.queue, async (msg) => {
@@ -119,11 +176,8 @@ const startConsumers = async () => {
                     // Ack — remove from queue, rollback was triggered
                     channel.ack(msg);
                 } else {
-                    // ===== INFRASTRUCTURE ERROR (e.g. DB down, connection refused) =====
-                    // Data is valid — keep the message in RabbitMQ for retry
-                    console.log(`🔄 Infrastructure error detected. Nacking message for retry...`);
-                    // nack(msg, allUpTo=false, requeue=true) — requeue so RabbitMQ retries later
-                    channel.nack(msg, false, true);
+                    console.log(`🔄 Infrastructure error detected. Triggering retry logic...`);
+                    handleRetry(msg, doctorRetryQueue);
                 }
             }
         }
@@ -131,7 +185,8 @@ const startConsumers = async () => {
 
     // ===================== STAFF CREATED CONSUMER =====================
     // Queue for staff creation (mirrors doctor creation flow)
-    const staffQueue = await channel.assertQueue('auth_staff_creation_queue', { durable: true });
+    const staffQueue = await assertQueueWithDLQ('auth_staff_creation_queue');
+    const staffRetryQueue = await assertRetryQueue('auth_staff_creation_queue');
     await channel.bindQueue(staffQueue.queue, exchange, 'STAFF_CREATED');
 
     channel.consume(staffQueue.queue, async (msg) => {
@@ -199,8 +254,8 @@ const startConsumers = async () => {
                     channel.ack(msg);
                 } else {
                     // ===== INFRASTRUCTURE ERROR (e.g. DB down, connection refused) =====
-                    console.log(`🔄 Infrastructure error detected. Nacking message for retry...`);
-                    channel.nack(msg, false, true);
+                    console.log(`🔄 Infrastructure error detected. Triggering retry logic...`);
+                    handleRetry(msg, staffRetryQueue);
                 }
             }
         }
@@ -208,7 +263,8 @@ const startConsumers = async () => {
 
     // ===================== HOSPITAL CREATED CONSUMER =====================
     // Queue for hospital creation (mirrors doctor/staff creation flow)
-    const hospitalQueue = await channel.assertQueue('auth_hospital_creation_queue', { durable: true });
+    const hospitalQueue = await assertQueueWithDLQ('auth_hospital_creation_queue');
+    const hospitalRetryQueue = await assertRetryQueue('auth_hospital_creation_queue');
     await channel.bindQueue(hospitalQueue.queue, exchange, 'HOSPITAL_CREATED');
 
     channel.consume(hospitalQueue.queue, async (msg) => {
@@ -272,8 +328,8 @@ const startConsumers = async () => {
                     channel.ack(msg);
                 } else {
                     // ===== INFRASTRUCTURE ERROR (e.g. DB down, connection refused) =====
-                    console.log(`🔄 Infrastructure error detected. Nacking message for retry...`);
-                    channel.nack(msg, false, true);
+                    console.log(`🔄 Infrastructure error detected. Triggering retry logic...`);
+                    handleRetry(msg, hospitalRetryQueue);
                 }
             }
         }
