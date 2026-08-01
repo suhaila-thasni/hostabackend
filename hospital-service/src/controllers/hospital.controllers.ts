@@ -605,7 +605,7 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
         error.response?.data || error.message
       );
 
-      throw new Error("Failed to update authentication hospital");
+      throw new Error(error.response?.data?.message || error.message || "Failed to update authentication hospital");
     }
   }
 
@@ -736,7 +736,7 @@ export const hospitalDelete: any = asyncHandler(async (req: Request, res: Respon
       error.response?.data || error.message
     );
 
-    throw new Error("Failed to update authentication hospital");
+    throw new Error(error.response?.data?.message || error.message || "Failed to update authentication hospital");
   }
 
   await publishEvent("hospital_events", "HOSPITAL_BLACKLISTED", {
@@ -1108,7 +1108,7 @@ export const recoverHospital: any = asyncHandler(async (req: Request, res: Respo
       error.response?.data || error.message
     );
 
-    throw new Error("Failed to update authentication hospital");
+    throw new Error(error.response?.data?.message || error.message || "Failed to update authentication hospital");
   }
 
   await publishEvent("hospital_events", "HOSPITAL_RECOVERED", {
