@@ -586,6 +586,8 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
       if (updatePayload.phone) authUpdatePayload.phone = updatePayload.phone;
       if (updatePayload.password) authUpdatePayload.password = updatePayload.password;
       if (updatePayload.hospitalName) authUpdatePayload.hospitalName = updatePayload.hospitalName;
+      // Explicitly exclude type and other hospital-specific fields from auth update
+      // Never add type to authUpdatePayload
 
       await axios.put(
         `${process.env.AUTH_SERVICE_URL}/auth/${hospital[1][0].id}/role/${"hospital"}`,
@@ -605,7 +607,7 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
         error.response?.data || error.message
       );
 
-      throw new Error("Failed to update authentication hospital");
+      throw new Error(error.response?.data?.message || error.message || "Failed to update authentication hospital");
     }
   }
 
@@ -736,7 +738,7 @@ export const hospitalDelete: any = asyncHandler(async (req: Request, res: Respon
       error.response?.data || error.message
     );
 
-    throw new Error("Failed to update authentication hospital");
+    throw new Error(error.response?.data?.message || error.message || "Failed to update authentication hospital");
   }
 
   await publishEvent("hospital_events", "HOSPITAL_BLACKLISTED", {
@@ -1108,7 +1110,7 @@ export const recoverHospital: any = asyncHandler(async (req: Request, res: Respo
       error.response?.data || error.message
     );
 
-    throw new Error("Failed to update authentication hospital");
+    throw new Error(error.response?.data?.message || error.message || "Failed to update authentication hospital");
   }
 
   await publishEvent("hospital_events", "HOSPITAL_RECOVERED", {
