@@ -93,6 +93,9 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
     fcmToken,
   } = req.body;
 
+  // Ensure type is always a string (not an ID)
+  const hospitalType = (type && typeof type !== 'string') ? String(type) : type;
+
   const exist = await Hospital.findOne({ where: { phone } });
   if (exist) {
     res.status(404).json({
@@ -110,7 +113,7 @@ export const Registeration: any = asyncHandler(async (req: Request, res: Respons
     email,
     password,
     roleId,
-    type,
+    type: hospitalType,
     emergencyContact,
     latitude,
     longitude,

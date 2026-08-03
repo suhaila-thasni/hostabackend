@@ -623,12 +623,19 @@ export const updateData: any = asyncHandler(
 
     if (updatePayload.email || updatePayload.phone || updatePayload.password || updatePayload.roleId || updatePayload.displayName) {
 
+      // Only send fields that exist in auth model
+      const authUpdatePayload: any = {};
+      if (updatePayload.email) authUpdatePayload.email = updatePayload.email;
+      if (updatePayload.phone) authUpdatePayload.phone = updatePayload.phone;
+      if (updatePayload.password) authUpdatePayload.password = updatePayload.password;
+      if (updatePayload.roleId) authUpdatePayload.roleId = updatePayload.roleId;
+      if (updatePayload.displayName) authUpdatePayload.displayName = updatePayload.displayName;
 
       try {
         await axios.put(
           `${process.env.AUTH_SERVICE_URL}/auth/${doctor[1][0].id}/role/${"doctor"}`,
           {
-            updatePayload
+            updatePayload: authUpdatePayload,
           },
           {
             headers: {

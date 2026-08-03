@@ -2724,7 +2724,13 @@ export const update = asyncHandler(async (req: Request, res: Response): Promise<
       return;
   }
 
-  const auth: any = await Auth.findOne({ where });
+  // Add role filter to avoid matching wrong records (e.g. doctor/staff with same hospitalId)
+  where.role = roles;
+
+  // Use withPassword scope when password is being updated so beforeUpdate hook works correctly
+  const auth: any = updatePayload?.password
+    ? await Auth.scope("withPassword").findOne({ where })
+    : await Auth.findOne({ where });
 
   if (!auth) {
     res.status(404).json({
@@ -2739,7 +2745,12 @@ export const update = asyncHandler(async (req: Request, res: Response): Promise<
     delete updatePayload.displayName;
   }
 
-  await auth.update(updatePayload);
+  try {
+    await auth.update(updatePayload);
+  } catch (err: any) {
+    console.error("Sequelize Validation Error Details:", err.errors || err.message);
+    throw err;
+  }
 
   console.log("roles:", roles);
   console.log("id:", id);
@@ -2831,6 +2842,9 @@ export const deleteAuth = asyncHandler(async (req: Request, res: Response): Prom
       });
       return;
   }
+
+  // Add role filter to avoid matching wrong records
+  where.role = roles;
 
   const auth: any = await Auth.findOne({ where });
 
