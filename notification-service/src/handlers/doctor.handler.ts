@@ -10,12 +10,12 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
 
     if (content.hospitalId) {
       const msg = `New Doctor registered:  ${content.doctorName || "Doctor"}`;
-      socketEmitter.to(`user_${content.hospitalId}`).emit("hospital_event", {
+      socketEmitter.to(`hospital_${content.hospitalId}`).emit("hospital_event", {
         event: routingKey,
         message: msg,
         data: content,
       });
-      socketEmitter.to(`user_${content.hospitalId}`).emit("emergency_alert", {
+      socketEmitter.to(`hospital_${content.hospitalId}`).emit("emergency_alert", {
         event: routingKey,
         message: msg,
         data: content,
@@ -40,7 +40,7 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
 
     // 1. Notify the specific Hospital (Multiple channels for visibility)
     if (content.hospitalId) {
-      const targetRoom = `user_${content.hospitalId}`;
+      const targetRoom = `hospital_${content.hospitalId}`;
       socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: msgText, data: content });
       socketEmitter.to(targetRoom).emit("emergency_alert", { event: routingKey, message: msgText, data: content });
     }
@@ -60,7 +60,7 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
 
     // Notify the specific doctor via socket
     if (content.doctorId) {
-      const doctorRoom = `user_${content.doctorId}`;
+      const doctorRoom = `doctor_${content.doctorId}`;
       socketEmitter.to(doctorRoom).emit("doctor_event", { event: routingKey, message: doctorMsg, data: content });
       socketEmitter.to(doctorRoom).emit("emergency_alert", { event: routingKey, message: doctorMsg, data: content });
     }
@@ -72,17 +72,11 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
   //     socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: hospitalMsg, data: content });
   //   }
   // }
-  // Also notify hospital for confirmation
+// Also notify hospital for confirmation
 if (content.hospitalId) {
-  const hospitalMsg = `Password for doctor ${
-    content.doctorName || "Doctor"
-  } has been changed successfully.${
-    content.newPassword
-      ? ` New password: ${content.newPassword}`
-      : ""
-  }`;
+  const hospitalMsg = `Password for doctor ${content.doctorName || "Doctor"} has been changed successfully.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
 
-  const targetRoom = `user_${content.hospitalId}`;
+  const targetRoom = `hospital_${content.hospitalId}`;
 
   socketEmitter.to(targetRoom).emit("hospital_event", {
     event: routingKey,
@@ -108,7 +102,7 @@ if (content.hospitalId) {
     }).catch((err) => console.error(`Failed to save doctor ${routingKey.toLowerCase().replace("_", " ")} notification`, err));
 
     if (content.hospitalId) {
-      const targetRoom = `user_${content.hospitalId}`;
+      const targetRoom = `hospital_${content.hospitalId}`;
       socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: msgText, data: content });
     }
     

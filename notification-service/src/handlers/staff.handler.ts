@@ -9,13 +9,13 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
     }).catch((err) => console.error("Failed to save consolidated staff notification", err));
 
     if (content.hospitalId) {
-      const msg = `New Staff registered: ${content.staffName || "Staff"}`;
-      socketEmitter.to(`user_${content.hospitalId}`).emit("hospital_event", {
+      const msg = `New Staff registered:  ${content.staffName || "Staff"}`;
+      socketEmitter.to(`hospital_${content.hospitalId}`).emit("hospital_event", {
         event: routingKey,
         message: msg,
         data: content,
       });
-      socketEmitter.to(`user_${content.hospitalId}`).emit("emergency_alert", {
+      socketEmitter.to(`hospital_${content.hospitalId}`).emit("emergency_alert", {
         event: routingKey,
         message: msg,
         data: content,
@@ -26,9 +26,9 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
   if (routingKey === "STAFF_PASSWORD_RESET" || routingKey === "STAFF_PASSWORD_CHANGED") {
     let msgText = "";
     if (routingKey === "STAFF_PASSWORD_RESET") {
-      msgText = `Security Alert: Staff member ${content.staffName || "Staff"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+      msgText = `Security Alert:  ${content.staffName || "Staff"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
     } else {
-      msgText = `Security Update: Staff member ${content.staffName || "Staff"} has changed their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+      msgText = `Security Update:  ${content.staffName || "Staff"} has changed their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
     }
 
     await Notification.create({
@@ -36,9 +36,8 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
       message: msgText,
     }).catch((err) => console.error(`Failed to save staff ${routingKey.toLowerCase().replace("_", " ")} notification`, err));
 
-    // 1. Notify the specific Hospital (Multiple channels for visibility)
     if (content.hospitalId) {
-      const targetRoom = `user_${content.hospitalId}`;
+      const targetRoom = `hospital_${content.hospitalId}`;
       socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: msgText, data: content });
       socketEmitter.to(targetRoom).emit("emergency_alert", { event: routingKey, message: msgText, data: content });
     }
@@ -53,32 +52,22 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
 
     await Notification.create({
       staffIds: content.staffId ? [content.staffId] : [],
-      // hospitalIds: content.hospitalId ? [content.hospitalId] : [],
       message: staffMsg,
     }).catch((err) => console.error("Failed to save STAFF_PASSWORD_CHANGED_BY_ADMIN notification", err));
 
-    // Notify the specific staff member via socket
+    // Notify the specific staff via socket
     if (content.staffId) {
-      const staffRoom = `user_${content.staffId}`;
+      const staffRoom = `staff_${content.staffId}`;
       socketEmitter.to(staffRoom).emit("staff_event", { event: routingKey, message: staffMsg, data: content });
       socketEmitter.to(staffRoom).emit("emergency_alert", { event: routingKey, message: staffMsg, data: content });
     }
 
+    // Also notify hospital for confirmation
     if (content.hospitalId) {
-      const hospitalMsg = `Password for staff member ${
-        content.staffName || "Staff"
-      } has been changed successfully.${content.newPassword
-          ? ` New password: ${content.newPassword}`
-          : ""
-        }`;
-
-      const targetRoom = `user_${content.hospitalId}`;
-
-      socketEmitter.to(targetRoom).emit("hospital_event", {
-        event: routingKey,
-        message: hospitalMsg,
-        data: content,
-      });
+      const hospitalMsg = `Password for staff ${content.staffName || "Staff"} has been changed successfully.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+      
+      const targetRoom = `hospital_${content.hospitalId}`;
+      socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: hospitalMsg, data: content });
     }
   }
 
@@ -96,7 +85,7 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
     }).catch((err) => console.error(`Failed to save staff ${routingKey.toLowerCase().replace("_", " ")} notification`, err));
 
     if (content.hospitalId) {
-      const targetRoom = `user_${content.hospitalId}`;
+      const targetRoom = `hospital_${content.hospitalId}`;
       socketEmitter.to(targetRoom).emit("hospital_event", { event: routingKey, message: msgText, data: content });
     }
     
