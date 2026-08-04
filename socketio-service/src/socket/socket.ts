@@ -1,101 +1,98 @@
 import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { Redis } from "ioredis";
+import type { Server as HttpServer } from "http";
 import { env } from "../config/env.js";
 
 export let io: Server;
 
-export const initSocket = async (server: any) => {
+const createRedisClient = () => {
+  const client = new Redis({
+    host: env.REDIS_HOST,
+    port: env.REDIS_PORT,
+    password: env.REDIS_PASSWORD || undefined,
+    username: env.REDIS_USERNAME || undefined,
+    lazyConnect: true,
+    maxRetriesPerRequest: 3,
+    enableOfflineQueue: false,
+    retryStrategy: (times: number) => Math.min(times * 50, 2000),
+    connectTimeout: 5000,
+  });
+
+  client.on("error", (err: Error) => {
+    console.error("Redis Pub/Sub error:", err.message);
+  });
+
+  return client;
+};
+
+export const initSocket = async (server: HttpServer) => {
   io = new Server(server, {
     cors: {
       origin: env.CLIENT_URL || "*",
       methods: ["GET", "POST"],
-      credentials: true
+      credentials: true,
     },
     pingTimeout: 60000,
-    pingInterval: 25000
+    pingInterval: 25000,
+    transports: ["websocket", "polling"],
   });
 
-  // Redis Adapter Setup
-  const pubClient = new Redis({
-    host: env.REDIS_HOST,
-    port: env.REDIS_PORT,
-    password: env.REDIS_PASSWORD,
-    username: env.REDIS_USERNAME,
-    lazyConnect: true,
-    retryStrategy: (times) => {
-      const delay = Math.min(times * 50, 2000);
-      return delay;
-    }
-  });
-
+  const pubClient = createRedisClient();
   const subClient = pubClient.duplicate();
 
-  pubClient.on("error", (err: Error) => {
-    console.error("❌ Redis PubClient Error", err);
-  });
-  
-  subClient.on("error", (err: Error) => {
-    console.error("❌ Redis SubClient Error", err);
-  });
-
-  pubClient.on("connect", () => {
-    console.log("✅ Redis PubClient connected");
-  });
-  
-  subClient.on("connect", () => {
-    console.log("✅ Redis SubClient connected");
-  });
-
-  // Explicitly connect
   try {
     await pubClient.connect();
     await subClient.connect();
     io.adapter(createAdapter(pubClient, subClient));
-    console.log("✅ Redis adapter initialized");
+    console.log("Redis adapter initialized");
   } catch (error) {
-    console.error("❌ Failed to connect to Redis:", error);
-    // Continue without Redis if needed
+    console.warn("Redis adapter unavailable, continuing without it:", error);
   }
 
-  // Connection handler with better logging
   io.on("connection", (socket) => {
-    console.log("✅ User connected:", socket.id);
+    console.log("User connected:", socket.id);
 
-    // Join room with better logging
     socket.on("join-room", (roomId) => {
-      if (!roomId) {
-        console.log("⚠️ No roomId provided");
+      if (roomId === undefined || roomId === null || roomId === "") {
+        console.warn("No roomId provided");
         return;
       }
 
-      const roomName = roomId.toString();
-      
-      // Leave all previous rooms (except default)
-      const rooms = Array.from(socket.rooms);
-      rooms.forEach(room => {
+      const roomName = String(roomId);
+
+      if (socket.rooms.has(roomName)) {
+        console.log(`User ${socket.id} already in room: ${roomName}`);
+        return;
+      }
+
+      socket.join(roomName);
+      console.log(`User ${socket.id} joined room: ${roomName}`);
+
+      socket.emit("room-joined", {
+        roomId: roomName,
+        message: "Successfully joined room",
+      });
+    });
+
+    socket.on("leave-room", (roomId) => {
+      if (roomId === undefined || roomId === null || roomId === "") return;
+      const roomName = String(roomId);
+      socket.leave(roomName);
+      console.log(`User ${socket.id} left room: ${roomName}`);
+    });
+
+    socket.on("leave-all-rooms", () => {
+      for (const room of Array.from(socket.rooms)) {
         if (room !== socket.id) {
           socket.leave(room);
         }
-      });
-      
-      // Join new room
-      socket.join(roomName);
-      console.log(`📦 User ${socket.id} joined room: ${roomName}`);
-      
-      // Send confirmation to client
-      socket.emit("room-joined", {
-        roomId: roomName,
-        message: "Successfully joined room"
-      });
-
-      // Log room size
-      const room = io.sockets.adapter.rooms.get(roomName);
-      console.log(`👥 Room ${roomName} has ${room?.size || 0} users`);
+      }
+      console.log(`User ${socket.id} left all rooms`);
     });
 
-    socket.on("disconnect", () => {
-      console.log("❌ User disconnected:", socket.id);
+    socket.on("disconnect", (reason) => {
+      console.log(`User disconnected: ${socket.id} (${reason})`);
     });
 
     socket.on("error", (error) => {
@@ -103,6 +100,6 @@ export const initSocket = async (server: any) => {
     });
   });
 
-  console.log("✅ Socket.io initialized successfully");
+  console.log("Socket.io initialized successfully");
   return io;
 };

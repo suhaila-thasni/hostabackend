@@ -1,5 +1,5 @@
 import Notification from "../models/notification.model";
-import { socketEmitter } from "../utils/socket.emitter";
+import { safeSocketEmit } from "../utils/socket.emitter";
 
 export const handleBloodBankEvent = async (routingKey: string, content: any) => {
   if (routingKey === "STOCK_CREATED" || routingKey === "STOCK_UPDATED" || routingKey === "STOCK_DELETED") {
@@ -17,12 +17,12 @@ export const handleBloodBankEvent = async (routingKey: string, content: any) => 
       message: msg,
     }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 
-    socketEmitter.to("role_1").emit("blood_bank_events", { event: routingKey, message: msg, data: content });
+    safeSocketEmit("role_1", "blood_bank_events", { event: routingKey, message: msg, data: content });
   }
 
   if (routingKey === "STOCK_UPDATED" || routingKey === "STOCK_CREATED" || routingKey === "STOCK_DELETED") {
     if (content.hospitalId) {
-      socketEmitter.to(`user_${content.hospitalId}`).emit("blood_stock_alert", {
+      safeSocketEmit(`user_${content.hospitalId}`, "blood_stock_alert", {
         message: `Blood Stock Alert: ${content.bloodGroup} inventory is now ${content.count} units.`,
         data: content,
       });

@@ -1,5 +1,5 @@
 import Notification from "../models/notification.model";
-import { socketEmitter } from "../utils/socket.emitter";
+import { safeSocketEmit } from "../utils/socket.emitter";
 
 export const handleAmbulanceEvent = async (routingKey: string, content: any) => {
   if (routingKey === "AMBULANCE_REGISTERED" || routingKey === "AMBULANCE_UPDATED" || routingKey === "AMBULANCE_DELETED") {
@@ -17,6 +17,6 @@ export const handleAmbulanceEvent = async (routingKey: string, content: any) => 
       message: msg,
     }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 
-    socketEmitter.to("role_1").emit("ambulance_event", { event: routingKey, message: msg, data: content });
+    safeSocketEmit("role_1", "ambulance_event", { event: routingKey, message: msg, data: content });
   }
 };

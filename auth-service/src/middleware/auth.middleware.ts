@@ -1,117 +1,84 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
   user?: any;
 }
 
+const getJwtSecret = (): string | undefined => {
+  const secret = process.env.JWT_SECRET;
+  return secret && secret.trim() ? secret : undefined;
+};
+
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
     res.status(401).json({ message: 'No token provided, authorization denied' });
     return;
   }
 
   const token = authHeader.split(' ')[1];
+  const jwtSecret = getJwtSecret();
+
+  if (!jwtSecret) {
+    console.error('JWT secret is not configured');
+    res.status(500).json({ message: 'Authentication configuration error' });
+    return;
+  }
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    const decoded = jwt.verify(token, jwtSecret);
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Token is not valid' });
-    return;
+    if (error instanceof TokenExpiredError) {
+      res.status(401).json({ message: 'Token has expired' });
+      return;
+    }
+
+    if (error instanceof JsonWebTokenError) {
+      res.status(401).json({ message: 'Token is not valid' });
+      return;
+    }
+
+    console.error('Unexpected authentication error:', error);
+    res.status(500).json({ message: 'Authentication failed' });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export const verifyInternalRequest = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const secret = req.headers["x-service-secret"];
+  const secret = req.headers['x-service-secret'];
+  const receivedSecret = typeof secret === 'string' ? secret : '';
+  const expectedSecret = process.env.INTERNAL_SERVICE_SECRET;
 
-  console.log("========== AUTH INTERNAL MIDDLEWARE ==========");
-  console.log("Header received:", secret);
-  console.log("Expected secret:", process.env.INTERNAL_SERVICE_SECRET);
-
-  if (secret !== process.env.INTERNAL_SERVICE_SECRET) {
-    return res.status(403).json({
+  if (!expectedSecret) {
+    console.error('Internal service secret is not configured');
+    return res.status(500).json({
       success: false,
-      message: "Forbidden",
-      received: secret,
-      expected: process.env.INTERNAL_SERVICE_SECRET,
+      message: 'Internal service configuration error',
     });
   }
 
+  if (receivedSecret !== expectedSecret) {
+    return res.status(403).json({
+      success: false,
+      message: 'Forbidden',
+    });
+  }
 
   next();
 };
 
-
-
-
-// export const verifyDoctorInternalRequest = (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   const secret = req.headers["x-service-secret"];
-
-//   console.log("========== AUTH INTERNAL MIDDLEWARE ==========");
-//   console.log("Header received:", secret);
-//   console.log("Expected secret:", process.env.INTERNAL_SERVICE_SECRET);
-
-//   if (secret !== process.env.INTERNAL_SERVICE_SECRET) {
-//     return res.status(403).json({
-//       success: false,
-//       message: "Forbidden",
-//       received: secret,
-//       expected: process.env.INTERNAL_SERVICE_SECRET,
-//     });
-//   }
-
-
-//   next();
-// };
-
-
-
-
-
-
-
-
-
-
-
-
-
 export const checkPermission = (resource: string, action: string) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    // Basic stub for permissions. In a real app, this should check the user's role/permissions.
-    // Assuming req.user contains role or permissions.
     if (!req.user) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
-    // Implement permission checking logic here if needed.
-    // For now, allow all since we don't have the full role-service logic.
     next();
   };
 };
