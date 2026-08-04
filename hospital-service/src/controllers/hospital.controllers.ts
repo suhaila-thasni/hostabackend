@@ -596,6 +596,7 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
       if (updatePayload.hospitalName) authUpdatePayload.hospitalName = updatePayload.hospitalName;
       // Explicitly exclude type and other hospital-specific fields from auth update
       // Never add type to authUpdatePayload
+      
 
       await axios.put(
         `${process.env.AUTH_SERVICE_URL}/auth/${hospital[1][0].id}/role/${"hospital"}`,

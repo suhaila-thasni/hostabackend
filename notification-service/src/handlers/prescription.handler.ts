@@ -1,5 +1,5 @@
 import Notification from "../models/notification.model";
-import { socketEmitter } from "../utils/socket.emitter";
+import { safeSocketEmit } from "../utils/socket.emitter";
 
 export const handlePrescriptionEvent = async (routingKey: string, content: any) => {
   if (routingKey === "PRESCRIPTION_CREATED" || routingKey === "PRESCRIPTION_UPDATED" || routingKey === "PRESCRIPTION_DELETED") {
@@ -21,10 +21,10 @@ export const handlePrescriptionEvent = async (routingKey: string, content: any) 
     }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 
     if (content.userId) {
-      socketEmitter.to(`user_${content.userId}`).emit("prescription_event", { event: routingKey, message: msg, data: content });
+      safeSocketEmit(`user_${content.userId}`, "prescription_event", { event: routingKey, message: msg, data: content });
     }
     if (includeHospital && content.hospitalId) {
-      socketEmitter.to(`hospital_${content.hospitalId}`).emit("prescription_event", { event: routingKey, message: msg, data: content });
+      safeSocketEmit(`hospital_${content.hospitalId}`, "prescription_event", { event: routingKey, message: msg, data: content });
     }
   }
 };

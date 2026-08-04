@@ -1,6 +1,6 @@
 
 import Notification from "../models/notification.model";
-import { socketEmitter } from "../utils/socket.emitter";
+import { safeSocketEmit } from "../utils/socket.emitter";
 
 export const handlePatientEvent = async (
   routingKey: string,
@@ -34,7 +34,7 @@ export const handlePatientEvent = async (
 
     // Emit to user room
     if (content.userId) {
-      socketEmitter.to(`user_${content.userId}`).emit("patient_event", {
+      safeSocketEmit(`user_${content.userId}`, "patient_event", {
         event: routingKey,
         message: msg,
         data: content,
@@ -43,7 +43,7 @@ export const handlePatientEvent = async (
 
     // Emit to hospital room
     if (content.hospitalId) {
-      socketEmitter.to(`hospital_${content.hospitalId}`).emit("patient_event", {
+      safeSocketEmit(`hospital_${content.hospitalId}`, "patient_event", {
         event: routingKey,
         message: msg,
         data: content,

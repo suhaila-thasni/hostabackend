@@ -1,5 +1,5 @@
 import Notification from "../models/notification.model";
-import { socketEmitter } from "../utils/socket.emitter";
+import { safeSocketEmit } from "../utils/socket.emitter";
 
 export const handleHospitalEvent = async (routingKey: string, content: any) => {
   if (routingKey === "HOSPITAL_REGISTERED") {
@@ -9,7 +9,7 @@ export const handleHospitalEvent = async (routingKey: string, content: any) => {
       message: msg,
     }).catch((err) => console.error("Failed to save HOSPITAL_REGISTERED notification", err));
 
-    socketEmitter.to("role_1").emit("hospital_event", { event: routingKey, message: msg, data: content });
+    safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: msg, data: content });
   }
 
   if (routingKey === "HOSPITAL_UPDATED") {
@@ -25,19 +25,19 @@ export const handleHospitalEvent = async (routingKey: string, content: any) => {
     }).catch((err) => console.error("Failed to save HOSPITAL_UPDATED notification", err));
 
     // Socket: superadmin
-    socketEmitter.to("role_1").emit("hospital_event", { event: routingKey, message: superMsg, data: content });
+    safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: superMsg, data: content });
 
     // Socket: each staff member
     if (Array.isArray(content.staffIds)) {
       content.staffIds.forEach((sid: number) => {
-        socketEmitter.to(`user_${sid}`).emit("hospital_event", { event: routingKey, message: staffDoctorMsg, data: content });
+        safeSocketEmit(`user_${sid}`, "hospital_event", { event: routingKey, message: staffDoctorMsg, data: content });
       });
     }
 
     // Socket: each doctor
     if (Array.isArray(content.doctorIds)) {
       content.doctorIds.forEach((did: number) => {
-        socketEmitter.to(`user_${did}`).emit("hospital_event", { event: routingKey, message: staffDoctorMsg, data: content });
+        safeSocketEmit(`user_${did}`, "hospital_event", { event: routingKey, message: staffDoctorMsg, data: content });
       });
     }
   }
@@ -57,6 +57,6 @@ export const handleHospitalEvent = async (routingKey: string, content: any) => {
       message: msg,
     }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 
-    socketEmitter.to("role_1").emit("hospital_event", { event: routingKey, message: msg, data: content });
+    safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: msg, data: content });
   }
 };
