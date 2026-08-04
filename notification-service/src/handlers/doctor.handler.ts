@@ -34,30 +34,49 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
     }
   }
 
-  if (routingKey === "DOCTOR_PASSWORD_RESET" || routingKey === "DOCTOR_PASSWORD_CHANGED") {
-    let msgText = "";
-    if (routingKey === "DOCTOR_PASSWORD_RESET") {
-      msgText = `Security Alert: ${content.doctorName || "Doctor"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
-    } else {
-      msgText = `Security Update: ${content.doctorName || "Doctor"} has changed their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
-    }
+  // if (routingKey === "DOCTOR_PASSWORD_RESET" || routingKey === "DOCTOR_PASSWORD_CHANGED") {
+  //   let msgText = "";
+  //   if (routingKey === "DOCTOR_PASSWORD_RESET") {
+  //     msgText = `Security Alert: ${content.doctorName || "Doctor"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+  //   } else {
+  //     msgText = `Security Update: ${content.doctorName || "Doctor"} has changed their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+  //   }
 
-    await persistNotification(
-      {
-        hospitalIds: content.hospitalId ? [content.hospitalId] : [],
-        message: msgText,
-      },
-      `Failed to save doctor ${routingKey.toLowerCase().replace("_", " ")} notification`
-    );
+  //   await persistNotification(
+  //     {
+  //       hospitalIds: content.hospitalId ? [content.hospitalId] : [],
+  //       message: msgText,
+  //     },
+  //     `Failed to save doctor ${routingKey.toLowerCase().replace("_", " ")} notification`
+  //   );
 
-    if (content.hospitalId) {
-      const targetRoom = `hospital_${content.hospitalId}`;
-      safeSocketEmit(targetRoom, "hospital_event", { event: routingKey, message: msgText, data: content });
-      safeSocketEmit(targetRoom, "emergency_alert", { event: routingKey, message: msgText, data: content });
-    }
+  //   if (content.hospitalId) {
+  //     const targetRoom = `hospital_${content.hospitalId}`;
+  //     safeSocketEmit(targetRoom, "hospital_event", { event: routingKey, message: msgText, data: content });
+  //     safeSocketEmit(targetRoom, "emergency_alert", { event: routingKey, message: msgText, data: content });
+  //   }
 
-    safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: msgText, data: content });
+  //   safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: msgText, data: content });
+  // }
+  if (routingKey === "DOCTOR_PASSWORD_RESET") {
+  const msgText = `Security Alert: ${content.doctorName || "Doctor"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+
+  await persistNotification(
+    {
+      hospitalIds: content.hospitalId ? [content.hospitalId] : [],
+      message: msgText,
+    },
+    `Failed to save doctor ${routingKey.toLowerCase().replace("_", " ")} notification`
+  );
+
+  if (content.hospitalId) {
+    const targetRoom = `hospital_${content.hospitalId}`;
+    safeSocketEmit(targetRoom, "hospital_event", { event: routingKey, message: msgText, data: content });
+    safeSocketEmit(targetRoom, "emergency_alert", { event: routingKey, message: msgText, data: content });
   }
+
+  safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: msgText, data: content });
+}
 
   if (routingKey === "DOCTOR_PASSWORD_CHANGED_BY_ADMIN") {
     const doctorMsg = `Your password has been changed by the hospital admin.${content.newPassword ? ` Your new password: ${content.newPassword}` : ""}`;
