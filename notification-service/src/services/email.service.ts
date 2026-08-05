@@ -1,9 +1,10 @@
 import EmailNotification from "../models/email.model";
+import EmailTemplate from "../models/template.model";
 import { publishEvent } from "../events/publisher";
 
 // ── Save as Draft (no sending) ──
 export const saveDraft = async (payload: any) => {
-    const {
+    let {
         hospitalId,
         createdBy,
         doctorIds,
@@ -12,6 +13,14 @@ export const saveDraft = async (payload: any) => {
         message,
         templateId
     } = payload;
+
+    if (templateId && (!subject || !message)) {
+        const template = await EmailTemplate.findOne({ where: { id: templateId, hospitalId } });
+        if (template) {
+            subject = subject || template.get("subject") as string;
+            message = message || template.get("message") as string;
+        }
+    }
 
     const totalRecipients = (doctorIds?.length || 0) + (staffIds?.length || 0);
 
@@ -31,7 +40,7 @@ export const saveDraft = async (payload: any) => {
 
 // ── Send Email (creates record + publishes to RabbitMQ) ──
 export const sendEmailNotification = async (payload: any) => {
-    const {
+    let {
         hospitalId,
         createdBy,
         doctorIds,
@@ -40,6 +49,18 @@ export const sendEmailNotification = async (payload: any) => {
         message,
         templateId
     } = payload;
+
+    if (templateId && (!subject || !message)) {
+        const template = await EmailTemplate.findOne({ where: { id: templateId, hospitalId } });
+        if (template) {
+            subject = subject || template.get("subject") as string;
+            message = message || template.get("message") as string;
+        }
+    }
+
+    if (!subject || !message) {
+        throw new Error("Subject and Message are required");
+    }
 
     const totalRecipients = (doctorIds?.length || 0) + (staffIds?.length || 0);
 

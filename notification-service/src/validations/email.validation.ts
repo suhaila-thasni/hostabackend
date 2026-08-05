@@ -3,14 +3,16 @@ import { z } from "zod";
 export const createEmailNotificationSchema = z.object({
   doctorIds: z.array(z.number()).optional(),
   staffIds: z.array(z.number()).optional(),
-  subject: z.string().min(1, "Subject is required"),
-  message: z.string().min(1, "Message is required"),
+  subject: z.string().optional(),
+  message: z.string().optional(),
   templateId: z.number().optional(),
+}).refine(data => (data.subject && data.message) || data.templateId, {
+  message: "Either (subject and message) or templateId must be provided",
 });
 
 export const updateEmailNotificationSchema = z.object({
-  subject: z.string().min(1, "Subject is required").optional(),
-  message: z.string().min(1, "Message is required").optional(),
+  subject: z.string().optional(),
+  message: z.string().optional(),
   doctorIds: z.array(z.number()).optional(),
   staffIds: z.array(z.number()).optional(),
   templateId: z.number().optional(),

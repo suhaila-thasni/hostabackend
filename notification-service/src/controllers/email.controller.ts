@@ -28,7 +28,8 @@ export const sendEmailNotification = async (
         doctorIds,
         staffIds,
         subject,
-        message
+        message,
+        templateId
     } = req.body;
 
     await EmailService.sendEmailNotification({
@@ -37,7 +38,8 @@ export const sendEmailNotification = async (
         doctorIds,
         staffIds,
         subject,
-        message
+        message,
+        templateId
     });
 
     return res.status(202).json({
