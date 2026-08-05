@@ -26,7 +26,7 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
 
     await persistNotification(
       {
-        userIds: content.userId ? [content.userId] : [],
+        // userIds: content.userId ? [content.userId] : [],
         hospitalIds: content.hospitalId ? [content.hospitalId] : [],
         doctorIds: content.doctorId ? [content.doctorId] : [],
         message: msgText,
