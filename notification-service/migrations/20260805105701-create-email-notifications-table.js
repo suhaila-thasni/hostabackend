@@ -45,6 +45,15 @@ module.exports = {
       },
       status: {
         type: Sequelize.STRING,
+        defaultValue: "DRAFT",
+        allowNull: true,
+      },
+      sentAt: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+      archivedAt: {
+        type: Sequelize.DATE,
         allowNull: true,
       },
       createdAt: {

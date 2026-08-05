@@ -10,6 +10,7 @@ import helmet from "helmet";
 
 import notificationRoutes from "./routes/notification.routes";
 import emailRoutes from "./routes/email.routes";
+import templateRoutes from "./routes/template.routes";
 
 import { requestLogger } from "./middleware/logger.middleware";
 
@@ -76,6 +77,7 @@ app.use(
  * ROUTES
  */
 app.use("/", notificationRoutes);
+app.use("/email/templates", templateRoutes);
 app.use("/email", emailRoutes);
 
 /**

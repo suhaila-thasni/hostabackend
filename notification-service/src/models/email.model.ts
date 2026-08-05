@@ -38,9 +38,25 @@ const EmailNotification = sequelize.define("EmailNotification",{
     },
 
     status:{
-        type:DataTypes.STRING
+        type:DataTypes.STRING,
+        defaultValue:"DRAFT"
+    },
+
+    sentAt:{
+        type:DataTypes.DATE,
+        allowNull:true
+    },
+
+    archivedAt:{
+        type:DataTypes.DATE,
+        allowNull:true
+    },
+
+    templateId:{
+        type:DataTypes.INTEGER,
+        allowNull:true
     }
 
 });
 
-export default EmailNotification;
+export default EmailNotification;

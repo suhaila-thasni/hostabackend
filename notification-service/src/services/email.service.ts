@@ -1,15 +1,44 @@
 import EmailNotification from "../models/email.model";
 import { publishEvent } from "../events/publisher";
 
-export const sendEmailNotification = async (payload:any) => {
-
+// ── Save as Draft (no sending) ──
+export const saveDraft = async (payload: any) => {
     const {
         hospitalId,
         createdBy,
         doctorIds,
         staffIds,
         subject,
-        message
+        message,
+        templateId
+    } = payload;
+
+    const totalRecipients = (doctorIds?.length || 0) + (staffIds?.length || 0);
+
+    const draft = await EmailNotification.create({
+        hospitalId,
+        createdBy,
+        subject,
+        message,
+        roles: { doctorIds, staffIds },
+        totalRecipients,
+        status: "DRAFT",
+        templateId
+    });
+
+    return draft;
+};
+
+// ── Send Email (creates record + publishes to RabbitMQ) ──
+export const sendEmailNotification = async (payload: any) => {
+    const {
+        hospitalId,
+        createdBy,
+        doctorIds,
+        staffIds,
+        subject,
+        message,
+        templateId
     } = payload;
 
     const totalRecipients = (doctorIds?.length || 0) + (staffIds?.length || 0);
@@ -21,7 +50,9 @@ export const sendEmailNotification = async (payload:any) => {
         message,
         roles: { doctorIds, staffIds },
         totalRecipients,
-        status: "QUEUED"
+        status: "QUEUED",
+        sentAt: new Date(),
+        templateId
     });
 
     await publishEvent(
@@ -37,4 +68,170 @@ export const sendEmailNotification = async (payload:any) => {
         }
     );
 
+    return notification;
 };
+
+// ── Send a Draft (changes status from DRAFT → QUEUED and publishes) ──
+export const sendDraft = async (id: number, hospitalId: number) => {
+    const draft = await EmailNotification.findByPk(id);
+    if (!draft) return null;
+
+    const status = draft.get("status") as string;
+    if (status !== "DRAFT") return null;
+
+    const roles = draft.get("roles") as any || {};
+    const doctorIds = roles.doctorIds || [];
+    const staffIds = roles.staffIds || [];
+
+    await EmailNotification.update(
+        { status: "QUEUED", sentAt: new Date() },
+        { where: { id } }
+    );
+
+    await publishEvent(
+        "email_events",
+        "EMAIL_SEND",
+        {
+            notificationId: id,
+            hospitalId,
+            doctorIds,
+            staffIds,
+            subject: draft.get("subject"),
+            message: draft.get("message")
+        }
+    );
+
+    return EmailNotification.findByPk(id);
+};
+
+// ── List ──
+export const getEmailNotifications = async (params: { limit: number; offset: number }) => {
+    return EmailNotification.findAndCountAll({
+        limit: params.limit,
+        offset: params.offset,
+        order: [["createdAt", "DESC"]],
+    });
+};
+
+// ── Get by ID ──
+export const getEmailNotificationById = async (id: number) => {
+    return EmailNotification.findByPk(id);
+};
+
+// ── Update (only DRAFT emails can be edited) ──
+export const updateEmailNotification = async (
+    id: number,
+    updates: any
+) => {
+    const notification = await EmailNotification.findByPk(id);
+    if (!notification) return null;
+
+    const status = notification.get("status") as string;
+    if (status !== "DRAFT") return null;
+
+    const updatePayload: any = {};
+
+    if (updates.subject !== undefined) {
+        updatePayload.subject = updates.subject;
+    }
+
+    if (updates.message !== undefined) {
+        updatePayload.message = updates.message;
+    }
+
+    if (updates.templateId !== undefined) {
+        updatePayload.templateId = updates.templateId;
+    }
+
+    if (updates.doctorIds !== undefined || updates.staffIds !== undefined) {
+        const existingRoles = notification.get("roles") as any || {};
+        const doctorIds = updates.doctorIds ?? existingRoles.doctorIds ?? [];
+        const staffIds = updates.staffIds ?? existingRoles.staffIds ?? [];
+
+        updatePayload.roles = { doctorIds, staffIds };
+        updatePayload.totalRecipients = (doctorIds?.length || 0) + (staffIds?.length || 0);
+    }
+
+    await EmailNotification.update(updatePayload, { where: { id } });
+
+    return EmailNotification.findByPk(id);
+};
+
+// ── Delete (only DRAFT emails can be deleted) ──
+export const deleteEmailNotification = async (id: number) => {
+    const notification = await EmailNotification.findByPk(id);
+    if (!notification) return false;
+
+    const status = notification.get("status") as string;
+    if (status !== "DRAFT") return false;
+
+    const deletedCount = await EmailNotification.destroy({ where: { id } });
+    return deletedCount > 0;
+};
+
+// ── Duplicate (creates a copy as DRAFT) ──
+export const duplicateEmail = async (id: number) => {
+    const original = await EmailNotification.findByPk(id);
+    if (!original) return null;
+
+    const duplicate = await EmailNotification.create({
+        hospitalId: original.get("hospitalId"),
+        createdBy: original.get("createdBy"),
+        subject: original.get("subject"),
+        message: original.get("message"),
+        roles: original.get("roles"),
+        totalRecipients: original.get("totalRecipients"),
+        status: "DRAFT"
+    });
+
+    return duplicate;
+};
+
+// ── Resend (creates a new QUEUED copy from a SENT email and publishes) ──
+export const resendEmail = async (id: number, hospitalId: number) => {
+    const original = await EmailNotification.findByPk(id);
+    if (!original) return null;
+
+    const roles = original.get("roles") as any || {};
+    const doctorIds = roles.doctorIds || [];
+    const staffIds = roles.staffIds || [];
+
+    const resent = await EmailNotification.create({
+        hospitalId: original.get("hospitalId"),
+        createdBy: original.get("createdBy"),
+        subject: original.get("subject"),
+        message: original.get("message"),
+        roles: original.get("roles"),
+        totalRecipients: original.get("totalRecipients"),
+        status: "QUEUED",
+        sentAt: new Date()
+    });
+
+    await publishEvent(
+        "email_events",
+        "EMAIL_SEND",
+        {
+            notificationId: (resent as any).id,
+            hospitalId,
+            doctorIds,
+            staffIds,
+            subject: original.get("subject"),
+            message: original.get("message")
+        }
+    );
+
+    return resent;
+};
+
+// ── Archive ──
+export const archiveEmail = async (id: number) => {
+    const notification = await EmailNotification.findByPk(id);
+    if (!notification) return null;
+
+    await EmailNotification.update(
+        { status: "ARCHIVED", archivedAt: new Date() },
+        { where: { id } }
+    );
+
+    return EmailNotification.findByPk(id);
+};
