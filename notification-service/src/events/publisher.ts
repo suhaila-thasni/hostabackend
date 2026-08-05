@@ -28,6 +28,7 @@ export const publishEvent = async (exchange: string, routingKey: string, data: a
             userId : data.userId || data.hospitalId,
             data
         });
+        
 
     } catch (error) {
         console.error('❌ Event Publish Error:', error);

@@ -18,6 +18,7 @@ import {
   refreshDoctorToken,
   logout,
   updateFcmTokenByEmail,
+  getDoctorEmails
 } from "../controllers/doctor.controllers";
 import { validate } from "../middleware/validate.middleware";
 import { 
@@ -100,6 +101,7 @@ router.put("/doctor/:id", authenticate, checkPermission('doctor','edit'), update
 
 router.delete("/doctor/:id", authenticate, checkPermission('doctor','delete'), doctorDelete);
 
+router.post("/doctor/emails", getDoctorEmails);
 
 export default router;
 

@@ -1433,8 +1433,28 @@ export const saveFcmToken: any = asyncHandler(async (req: Request, res: Response
 });
 
 
+export const getStaffEmails: any = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids)) {
+      res.status(400).json({ success: false, message: "ids array is required" });
+      return;
+    }
+    
+    const staffs = await Staff.findAll({
+      where: { id: ids },
+      attributes: ['id', 'email', 'name']
+    });
 
-// UPDATE FCM TOKEN BY EMAIL - POST /staff/update-fcm-token
+    const results = staffs.map(s => ({
+      id: s.id,
+      email: s.email,
+      name: s.name
+    }));
+
+    res.status(200).json(results);
+  }
+);// UPDATE FCM TOKEN BY EMAIL - POST /staff/update-fcm-token
 export const updateFcmTokenByEmail: any = asyncHandler(async (req: Request, res: Response) => {
   const { email, fcmToken } = req.body;
 

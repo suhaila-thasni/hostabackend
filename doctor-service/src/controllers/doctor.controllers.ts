@@ -1590,3 +1590,26 @@ export const saveFcmToken: any = asyncHandler(async (req: Request, res: Response
   });
 });
 
+
+export const getDoctorEmails: any = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids)) {
+      res.status(400).json({ success: false, message: "ids array is required" });
+      return;
+    }
+    
+    const doctors = await Doctor.findAll({
+      where: { id: ids },
+      attributes: ['id', 'email', 'firstName', 'lastName']
+    });
+
+    const results = doctors.map(d => ({
+      id: d.id,
+      email: d.email,
+      name: d.firstName + " " + d.lastName
+    }));
+
+    res.status(200).json(results);
+  }
+);

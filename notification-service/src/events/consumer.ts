@@ -11,6 +11,7 @@ import { handleAdEvent } from "../handlers/ad.handler";
 import { handleAmbulanceEvent } from "../handlers/ambulance.handler";
 import { handleBloodEvent } from "../handlers/blood.handler";
 import { handleBloodBankEvent } from "../handlers/bloodbankhandler";
+import { handleEmailEvent } from "../handlers/email.handler";
 
 let connection: any;
 let channel: amqp.Channel;
@@ -192,6 +193,10 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_UPDATED");
         await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_DELETED");
 
+        // 15. Email
+        await channel.assertExchange("email_events", "direct", { durable: true });
+        await channel.bindQueue(queue, "email_events", "EMAIL_SEND");
+
         console.log(`📥 Notification Consumer started on queue: ${queue}`);
 
         channel.consume(queue, async (msg) => {
@@ -229,6 +234,8 @@ export const startConsumer = async () => {
                         await handleBloodEvent(routingKey, content);
                     } else if (routingKey.startsWith("STOCK_")) {
                         await handleBloodBankEvent(routingKey, content);
+                    } else if (routingKey === "EMAIL_SEND") {
+                        await handleEmailEvent(routingKey, content);
                     }
 
                     channel.ack(msg);

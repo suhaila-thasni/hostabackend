@@ -18,7 +18,8 @@ import {
   refreshStaffToken,
   logout,
   updateFcmTokenByEmail,
-  updateStaffPassword
+  updateStaffPassword,
+  getStaffEmails
 } from "../controllers/staff.controllers";
 
 import { validate, validateParams } from "../middleware/validate.middleware";
@@ -100,6 +101,8 @@ router.get("/staff/internal/:id",verifyInternalRequest, validateParams(idParamSc
 
 
 router.delete("/staff/:id",authenticate, validateParams(idParamSchema), checkPermission("staff", "delete"), staffDelete);
+
+router.post("/staff/emails", getStaffEmails);
 
 export default router;
 
