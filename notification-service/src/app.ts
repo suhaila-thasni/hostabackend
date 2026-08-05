@@ -9,6 +9,7 @@ import helmet from "helmet";
 // import cookieParser from "cookie-parser";
 
 import notificationRoutes from "./routes/notification.routes";
+import emailRoutes from "./routes/email.routes";
 
 import { requestLogger } from "./middleware/logger.middleware";
 
@@ -75,6 +76,7 @@ app.use(
  * ROUTES
  */
 app.use("/", notificationRoutes);
+app.use("/email", emailRoutes);
 
 /**
  * HEALTH
