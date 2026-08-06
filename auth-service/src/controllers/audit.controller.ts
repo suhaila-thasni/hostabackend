@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import AuditLog from '../models/auditLog.model';
+import { Op } from 'sequelize';
+import { AUDIT_INCLUDED_ROLES } from '../constants/audit.constants';
 
 // @route   GET /auth/audit-logs/:hospitalId
 // @desc    Get audit logs for a hospital
@@ -11,9 +13,18 @@ export const getAuditLogs = asyncHandler(async (req: Request, res: Response): Pr
 
   const whereClause: any = {
     hospitalId: parseInt(hospitalId as string),
+    role: {
+      [Op.in]: AUDIT_INCLUDED_ROLES
+    }
   };
 
-  if (role) whereClause.role = role;
+  if (role) {
+    const normalizedRole = (role as string).toUpperCase();
+    if (AUDIT_INCLUDED_ROLES.includes(normalizedRole)) {
+        whereClause.role = normalizedRole;
+    }
+  }
+  
   if (status) whereClause.status = status;
   if (riskLevel) whereClause.riskLevel = riskLevel;
 

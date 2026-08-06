@@ -1,6 +1,7 @@
 import AuditLog from '../models/auditLog.model';
 import geoip from 'geoip-lite';
 import { Request } from 'express';
+import { AUDIT_EXCLUDED_ROLES } from '../constants/audit.constants';
 
 interface CreateAuditLogParams {
   req: Request;
@@ -15,19 +16,28 @@ interface CreateAuditLogParams {
 }
 
 export const createAuditLog = async (params: CreateAuditLogParams) => {
+  const role = params.role?.toUpperCase();
+
+  if (role && AUDIT_EXCLUDED_ROLES.includes(role)) {
+    return;
+  }
+
   try {
-    const ipAddress = (params.req.headers['x-forwarded-for'] || params.req.ip || '127.0.0.1') as string;
+    const forwarded = params.req.headers['x-forwarded-for'];
+    const ip = Array.isArray(forwarded)
+      ? forwarded[0]
+      : forwarded?.split(',')[0].trim() || params.req.ip || '127.0.0.1';
+    
     const deviceBrowser = params.req.headers['user-agent'] || 'Unknown';
     
     // Parse IP for geo location
-    const ip = ipAddress.split(',')[0].trim();
     const geo = geoip.lookup(ip);
     const location = geo ? `${geo.city}, ${geo.country}` : 'Unknown';
 
     const auditLog = await AuditLog.create({
       authId: params.authId,
       name: params.name,
-      role: params.role,
+      role, // use the normalized role
       department: params.department,
       hospitalId: params.hospitalId,
       deviceBrowser,

@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.routes';
 import { env } from './config/env';
 
 const app = express();
+app.set('trust proxy', true);
 
 app.use(cors({
   origin: true, // Set to your frontend domain in production
