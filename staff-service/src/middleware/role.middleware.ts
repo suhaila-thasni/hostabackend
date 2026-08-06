@@ -9,8 +9,13 @@ export const checkPermission =
     try {
 
       const roleId = req.user.roleId;
-      
-      
+
+      // Allow users to view/edit their own profile
+      if (module === "staff" && (action === "view" || action === "edit") && req.params.id) {
+        if (String(req.params.id) === String(req.user.staffId)) {
+          return next();
+        }
+      }
 
       const response = await axios.post(
          `${process.env.ROLE_SERVICE_URL}/check-permission`,

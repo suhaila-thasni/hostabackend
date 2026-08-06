@@ -2046,7 +2046,11 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // 11. Return response
-  await createAuditLog({ req, authId: user.id, name: userName, role: user.role, hospitalId: user.hospitalId, status: 'Active' });
+  let auditDepartment = undefined;
+  if (user.role?.toLowerCase() === 'doctor') auditDepartment = profileData?.department;
+  else if (user.role?.toLowerCase() === 'staff') auditDepartment = profileData?.designation;
+
+  await createAuditLog({ req, authId: user.id, name: userName, role: user.role, department: auditDepartment, hospitalId: user.hospitalId, status: 'Active' });
   res.status(200).json({
     success: true,
     message: "Logged in successfully",
@@ -2310,7 +2314,11 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
     }
   }
 
-  await createAuditLog({ req, authId: user.id, name: user.doctorName || user.staffName || user.hospitalName || 'Unknown', role: user.role, hospitalId: user.hospitalId, status: 'Active', loginMethod: 'OTP' });
+  let auditDepartment = undefined;
+  if (user.role?.toLowerCase() === 'doctor') auditDepartment = profileData?.department;
+  else if (user.role?.toLowerCase() === 'staff') auditDepartment = profileData?.designation;
+
+  await createAuditLog({ req, authId: user.id, name: user.doctorName || user.staffName || user.hospitalName || 'Unknown', role: user.role, department: auditDepartment, hospitalId: user.hospitalId, status: 'Active', loginMethod: 'OTP' });
 
   res.status(200).json({
     success: true,
