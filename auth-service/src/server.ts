@@ -40,6 +40,7 @@
 
 import app from './app';
 import sequelize from './config/db';
+import './models/auditLog.model';
 import dotenv from 'dotenv';
 import { connectRabbitMQ } from './events/publisher';
 import { connectRabbitMQConsumer } from './events/consumer';

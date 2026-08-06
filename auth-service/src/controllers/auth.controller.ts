@@ -1606,6 +1606,7 @@ import twilio from "twilio";
 import axios from "axios";
 import { sendEmail } from "../services/mail.service";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { createAuditLog, updateAuditLogOnLogout } from "../services/audit.service";
 
 const APPLE_TEST_NUMBER = "9999999999";
 const APPLE_TEST_OTP = "123456";
@@ -1852,6 +1853,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
 
   // 3. No users found
   if (users.length === 0) {
+    await createAuditLog({ req, name: email || phone || 'Unknown', role: 'Unknown', status: 'Failed', riskLevel: 'High' });
     res.status(401).json({
       success: false,
       message: "User not found! Please register",
@@ -1864,6 +1866,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   // 4. Filter out deleted/inactive users
   const activeUsers = users.filter((u) => u.isDelete !== true && u.isActive !== false);
   if (activeUsers.length === 0) {
+    await createAuditLog({ req, authId: users[0].id, name: users[0].doctorName || users[0].staffName || users[0].hospitalName || 'Unknown', role: users[0].role, status: 'Failed', riskLevel: 'High' });
     res.status(401).json({
       success: false,
       message: "User account has been deactivated or deleted.",
@@ -1891,6 +1894,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     }
 
     if (validDoctors.length === 0) {
+      await createAuditLog({ req, authId: activeUsers[0].id, name: activeUsers[0].doctorName || 'Unknown', role: 'doctor', status: 'Failed', riskLevel: 'High' });
       res.status(401).json({
         success: false,
         message: "Wrong password",
@@ -1934,6 +1938,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     const user = activeUsers[0];
     const valid = await bcrypt.compare(password, user.password || "");
     if (!valid) {
+      await createAuditLog({ req, authId: user.id, name: user.doctorName || user.staffName || user.hospitalName || 'Unknown', role: user.role, status: 'Failed', riskLevel: 'High' });
       res.status(401).json({
         success: false,
         message: "Wrong password, Please try again",
@@ -2041,6 +2046,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // 11. Return response
+  await createAuditLog({ req, authId: user.id, name: userName, role: user.role, hospitalId: user.hospitalId, status: 'Active' });
   res.status(200).json({
     success: true,
     message: "Logged in successfully",
@@ -2191,11 +2197,15 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   }
 
   if (!user || user.otp !== otp.toString()) {
+    if (user) {
+      await createAuditLog({ req, authId: user.id, name: user.doctorName || user.staffName || user.hospitalName || 'Unknown', role: user.role, status: 'Failed', riskLevel: 'High', loginMethod: 'OTP' });
+    }
     res.status(400).json({ success: false, message: "Invalid OTP" });
     return;
   }
 
   if (user.otpExpiry && new Date() > user.otpExpiry) {
+    await createAuditLog({ req, authId: user.id, name: user.doctorName || user.staffName || user.hospitalName || 'Unknown', role: user.role, status: 'Failed', riskLevel: 'High', loginMethod: 'OTP' });
     res.status(400).json({ success: false, message: "OTP has expired" });
     return;
   }
@@ -2299,6 +2309,8 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
       console.error("Failed to fetch permissions:", err.message);
     }
   }
+
+  await createAuditLog({ req, authId: user.id, name: user.doctorName || user.staffName || user.hospitalName || 'Unknown', role: user.role, hospitalId: user.hospitalId, status: 'Active', loginMethod: 'OTP' });
 
   res.status(200).json({
     success: true,
@@ -2632,6 +2644,8 @@ export const logout: any = asyncHandler(async (req: Request, res: Response): Pro
   await auth.update({
     [tokenField]: updatedTokens,
   });
+
+  await updateAuditLogOnLogout(auth.id);
 
   res.status(200).json({
     success: true,

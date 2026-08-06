@@ -9,17 +9,6 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 dotenv.config();
 
-// // Helper to set refresh token cookie
-// const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
-//   res.cookie("refreshToken", refreshToken, {
-//     httpOnly: true,
-//     secure: process.env.NODE_ENV === "production",
-//     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-//     maxAge: 14 * 24 * 60 * 60 * 1000, // 2 weeks
-//     path: "/",
-//   });
-// };
-
 const APPLE_TEST_NUMBER = "9999999999";
 const APPLE_TEST_OTP = "123456";
 
