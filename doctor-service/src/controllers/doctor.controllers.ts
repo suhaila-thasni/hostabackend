@@ -1385,8 +1385,8 @@ export const updateDoctorPassword = async (req: Request, res: Response) => {
   }
 
 
-  // Notify doctor that their password was changed by hospital admin
-  await publishEvent("doctor_events", "DOCTOR_PASSWORD_CHANGED_BY_ADMIN", {
+  // Notify hospital that the doctor reset their password
+  await publishEvent("doctor_events", "DOCTOR_PASSWORD_RESET", {
     doctorId: doctor.id,
     doctorName: doctor.displayName,
     hospitalId: doctor.hospitalId,

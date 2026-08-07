@@ -14,7 +14,7 @@ interface CreateAuditLogParams {
   status: string; // 'Active', 'Inactive', 'Failed'
   riskLevel?: string; // 'Low', 'Medium', 'High'
   loginMethod?: string;
-  location?: string;
+  registeredAddress?: string;
 }
 
 export const createAuditLog = async (params: CreateAuditLogParams) => {
@@ -37,7 +37,7 @@ export const createAuditLog = async (params: CreateAuditLogParams) => {
     const os = parser.getOS();
     const device = parser.getDevice();
     
-    let location = params.location;
+    let location = params.registeredAddress;
     
     if (!location) {
       // Parse IP for geo location if no location provided
@@ -58,7 +58,7 @@ export const createAuditLog = async (params: CreateAuditLogParams) => {
       deviceType: device.type || 'Desktop',
       userAgent,
       ipAddress: ip,
-      location,
+      registeredAddress: params.registeredAddress,
       status: params.status,
       riskLevel: params.riskLevel || 'Low',
       loginMethod: params.loginMethod || 'Password',

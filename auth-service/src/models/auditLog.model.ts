@@ -16,7 +16,7 @@ export interface IAuditLog {
   deviceType?: string;
   userAgent?: string;
   ipAddress?: string;
-  location?: string;
+  registeredAddress?: string;
   loginTime: Date;
   lastActivity: Date;
   status: string; // 'Active', 'Inactive', 'Failed'
@@ -28,7 +28,7 @@ export interface IAuditLog {
 }
 
 // Ensure these fields are optional upon creation since they are set by DB or explicitly marked nullable
-type AuditLogCreationAttributes = Optional<IAuditLog, 'id' | 'authId' | 'department' | 'hospitalId' | 'browser' | 'browserVersion' | 'operatingSystem' | 'osVersion' | 'deviceType' | 'userAgent' | 'ipAddress' | 'location' | 'loginTime' | 'lastActivity' | 'sessionDuration' | 'createdAt' | 'updatedAt'>;
+type AuditLogCreationAttributes = Optional<IAuditLog, 'id' | 'authId' | 'department' | 'hospitalId' | 'browser' | 'browserVersion' | 'operatingSystem' | 'osVersion' | 'deviceType' | 'userAgent' | 'ipAddress' | 'registeredAddress' | 'loginTime' | 'lastActivity' | 'sessionDuration' | 'createdAt' | 'updatedAt'>;
 
 class AuditLog extends Model<IAuditLog, AuditLogCreationAttributes> implements IAuditLog {
   public id!: number;
@@ -45,7 +45,7 @@ class AuditLog extends Model<IAuditLog, AuditLogCreationAttributes> implements I
   public deviceType?: string;
   public userAgent?: string;
   public ipAddress?: string;
-  public location?: string;
+  public registeredAddress?: string;
   public loginTime!: Date;
   public lastActivity!: Date;
   public status!: string;
@@ -111,7 +111,7 @@ AuditLog.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    location: {
+    registeredAddress: {
       type: DataTypes.STRING,
       allowNull: true,
     },

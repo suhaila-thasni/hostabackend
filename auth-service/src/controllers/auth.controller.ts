@@ -2071,7 +2071,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     department: auditDepartment, 
     hospitalId: user.hospitalId, 
     status: 'Active',
-    location: auditLocation
+    registeredAddress: auditLocation
   });
   res.status(200).json({
     success: true,
@@ -2362,7 +2362,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
     hospitalId: user.hospitalId, 
     status: 'Active', 
     loginMethod: 'OTP',
-    location: auditLocation
+    registeredAddress: auditLocation
   });
 
   res.status(200).json({
