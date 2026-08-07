@@ -2,6 +2,7 @@ import AuditLog from '../models/auditLog.model';
 import geoip from 'geoip-lite';
 import { Request } from 'express';
 import { AUDIT_EXCLUDED_ROLES } from '../constants/audit.constants';
+import { UAParser } from 'ua-parser-js';
 
 interface CreateAuditLogParams {
   req: Request;
@@ -28,7 +29,12 @@ export const createAuditLog = async (params: CreateAuditLogParams) => {
       ? forwarded[0]
       : forwarded?.split(',')[0].trim() || params.req.ip || '127.0.0.1';
     
-    const deviceBrowser = params.req.headers['user-agent'] || 'Unknown';
+    const userAgent = params.req.headers['user-agent'] || 'Unknown';
+    const parser = new UAParser(userAgent);
+    
+    const browser = parser.getBrowser();
+    const os = parser.getOS();
+    const device = parser.getDevice();
     
     // Parse IP for geo location
     const geo = geoip.lookup(ip);
@@ -40,7 +46,12 @@ export const createAuditLog = async (params: CreateAuditLogParams) => {
       role, // use the normalized role
       department: params.department,
       hospitalId: params.hospitalId,
-      deviceBrowser,
+      browser: browser.name,
+      browserVersion: browser.version,
+      operatingSystem: os.name,
+      osVersion: os.version,
+      deviceType: device.type || 'Desktop',
+      userAgent,
       ipAddress: ip,
       location,
       status: params.status,

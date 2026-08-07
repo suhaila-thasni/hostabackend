@@ -35,7 +35,27 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: true
       },
-      deviceBrowser: {
+      browser: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      browserVersion: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      operatingSystem: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      osVersion: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      deviceType: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      userAgent: {
         type: Sequelize.STRING,
         allowNull: true
       },

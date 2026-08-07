@@ -299,6 +299,10 @@ export const getReadNotifications = asyncHandler(
   async (req: any, res: Response) => {
     const { role, id } = req.params;
 
+//     if (!authorizeSelfAccess(req, role, id, res)) {
+//     return;
+// }
+
     const numericId = Number(id);
 
     const notifications = await Notification.findAll({
@@ -366,6 +370,9 @@ export const getReadNotifications = asyncHandler(
 export const getUnreadNotifications = asyncHandler(
   async (req: any, res: Response) => {
     const { role, id } = req.params;
+//     if (!authorizeSelfAccess(req, role, id, res)) {
+//     return;
+// }
 
     const numericId = Number(id);
 
@@ -447,9 +454,9 @@ export const markAsRead: any = asyncHandler(
       userId,
     } = req.params;
 
-    if (!authorizeSelfAccess(req, role, userId, res)) {
-      return;
-    }
+    // if (!authorizeSelfAccess(req, role, userId, res)) {
+    //   return;
+    // }
 
     const notification =
       await Notification.findByPk(notificationId);

@@ -9,7 +9,12 @@ export interface IAuditLog {
   role: string;
   department?: string;
   hospitalId?: number;
-  deviceBrowser?: string;
+  browser?: string;
+  browserVersion?: string;
+  operatingSystem?: string;
+  osVersion?: string;
+  deviceType?: string;
+  userAgent?: string;
   ipAddress?: string;
   location?: string;
   loginTime: Date;
@@ -22,7 +27,8 @@ export interface IAuditLog {
   updatedAt?: Date;
 }
 
-type AuditLogCreationAttributes = Optional<IAuditLog, 'id' | 'authId' | 'department' | 'hospitalId' | 'deviceBrowser' | 'ipAddress' | 'location' | 'loginTime' | 'lastActivity' | 'sessionDuration' | 'createdAt' | 'updatedAt'>;
+// Ensure these fields are optional upon creation since they are set by DB or explicitly marked nullable
+type AuditLogCreationAttributes = Optional<IAuditLog, 'id' | 'authId' | 'department' | 'hospitalId' | 'browser' | 'browserVersion' | 'operatingSystem' | 'osVersion' | 'deviceType' | 'userAgent' | 'ipAddress' | 'location' | 'loginTime' | 'lastActivity' | 'sessionDuration' | 'createdAt' | 'updatedAt'>;
 
 class AuditLog extends Model<IAuditLog, AuditLogCreationAttributes> implements IAuditLog {
   public id!: number;
@@ -31,7 +37,13 @@ class AuditLog extends Model<IAuditLog, AuditLogCreationAttributes> implements I
   public role!: string;
   public department?: string;
   public hospitalId?: number;
-  public deviceBrowser?: string;
+  
+  public browser?: string;
+  public browserVersion?: string;
+  public operatingSystem?: string;
+  public osVersion?: string;
+  public deviceType?: string;
+  public userAgent?: string;
   public ipAddress?: string;
   public location?: string;
   public loginTime!: Date;
@@ -71,7 +83,27 @@ AuditLog.init(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
-    deviceBrowser: {
+    browser: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    browserVersion: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    operatingSystem: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    osVersion: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    deviceType: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    userAgent: {
       type: DataTypes.STRING,
       allowNull: true,
     },

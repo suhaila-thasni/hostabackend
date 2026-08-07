@@ -115,11 +115,11 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
     const formattedId = formatBookingId(content.bookingId);
     let msg = "";
     if (content.status === "accepted" || content.status === "declined") {
-      msg = `Booking ${formattedId} has been ${content.status} by staff.`;
+      msg = `Booking ${formattedId} has been ${content.status} by hospital`;
     } else if (content.status === "completed") {
-      msg = `Booking ${formattedId} has been marked as completed.`;
+      msg = `Booking ${formattedId} has been marked as completed`;
     } else {
-      msg = `Booking ${formattedId} status has been updated to ${content.status || "updated"}.`;
+      msg = `Booking ${formattedId} status has been updated to ${content.status || "updated"}`;  
     }
 
     await persistNotification(
