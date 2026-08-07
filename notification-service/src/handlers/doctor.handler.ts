@@ -77,7 +77,7 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
   }
 
   if (routingKey === "DOCTOR_PASSWORD_CHANGED") {
-    const msgText = `Security Update: ${content.doctorName || "Doctor"} has changed their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+    const msgText = `Security Update: Your password has been changed by the hospital admin.${content.newPassword ? ` Your new password: ${content.newPassword}` : ""}`;
 
     await persistNotification(
       {

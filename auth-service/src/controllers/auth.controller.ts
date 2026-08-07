@@ -2047,10 +2047,32 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
 
   // 11. Return response
   let auditDepartment = undefined;
-  if (user.role?.toLowerCase() === 'doctor') auditDepartment = profileData?.department;
-  else if (user.role?.toLowerCase() === 'staff') auditDepartment = profileData?.designation;
+  let auditLocation = undefined;
+  
+  if (user.role?.toLowerCase() === 'doctor') {
+    auditDepartment = profileData?.department;
+  } else if (user.role?.toLowerCase() === 'staff') {
+    auditDepartment = profileData?.designation;
+  }
+  
+  if (profileData?.address) {
+    const { district, state, place } = profileData.address;
+    if (district && state) auditLocation = `${district}, ${state}`;
+    else if (place && state) auditLocation = `${place}, ${state}`;
+    else if (district) auditLocation = district;
+    else if (state) auditLocation = state;
+  }
 
-  await createAuditLog({ req, authId: user.id, name: userName, role: user.role, department: auditDepartment, hospitalId: user.hospitalId, status: 'Active' });
+  await createAuditLog({ 
+    req, 
+    authId: user.id, 
+    name: userName, 
+    role: user.role, 
+    department: auditDepartment, 
+    hospitalId: user.hospitalId, 
+    status: 'Active',
+    location: auditLocation
+  });
   res.status(200).json({
     success: true,
     message: "Logged in successfully",
@@ -2315,10 +2337,33 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   }
 
   let auditDepartment = undefined;
-  if (user.role?.toLowerCase() === 'doctor') auditDepartment = profileData?.department;
-  else if (user.role?.toLowerCase() === 'staff') auditDepartment = profileData?.designation;
+  let auditLocation = undefined;
+  
+  if (user.role?.toLowerCase() === 'doctor') {
+    auditDepartment = profileData?.department;
+  } else if (user.role?.toLowerCase() === 'staff') {
+    auditDepartment = profileData?.designation;
+  }
+  
+  if (profileData?.address) {
+    const { district, state, place } = profileData.address;
+    if (district && state) auditLocation = `${district}, ${state}`;
+    else if (place && state) auditLocation = `${place}, ${state}`;
+    else if (district) auditLocation = district;
+    else if (state) auditLocation = state;
+  }
 
-  await createAuditLog({ req, authId: user.id, name: user.doctorName || user.staffName || user.hospitalName || 'Unknown', role: user.role, department: auditDepartment, hospitalId: user.hospitalId, status: 'Active', loginMethod: 'OTP' });
+  await createAuditLog({ 
+    req, 
+    authId: user.id, 
+    name: user.doctorName || user.staffName || user.hospitalName || 'Unknown', 
+    role: user.role, 
+    department: auditDepartment, 
+    hospitalId: user.hospitalId, 
+    status: 'Active', 
+    loginMethod: 'OTP',
+    location: auditLocation
+  });
 
   res.status(200).json({
     success: true,
