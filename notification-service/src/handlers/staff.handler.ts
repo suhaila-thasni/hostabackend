@@ -24,8 +24,14 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
   }
 
   if (routingKey === "STAFF_PASSWORD_RESET") {
-    const msgText = `Security Alert:  ${content.staffName || "Staff"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+    // const msgText = `Security Alert:  ${content.staffName || "Staff"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
 
+
+    const msgText = `Security Alert: ${content.staffName || "Staff"}${
+  content.email ? ` (${content.email})` : ""
+} has successfully reset their password.${
+  content.newPassword ? ` New password: ${content.newPassword}` : ""
+}`;
     await Notification.create({
       hospitalIds: content.hospitalId ? [content.hospitalId] : [],
       message: msgText,
@@ -39,7 +45,14 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
   }
 
   if (routingKey === "STAFF_PASSWORD_CHANGED") {
-    const msgText = `Security Update:  ${content.staffName || "Staff"} has changed their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+    // const msgText = `Security Update:  ${content.staffName || "Staff"} has changed their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+
+
+    const msgText = `Security Update: Your password has been changed by the hospital admin at ${
+      content.hospitalName || "your hospital"
+    }.${
+      content.newPassword ? ` Your new password: ${content.newPassword}` : ""
+    }`; 
 
     await Notification.create({
       staffIds: content.staffId ? [content.staffId] : [],

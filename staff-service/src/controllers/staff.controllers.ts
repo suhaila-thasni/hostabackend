@@ -1113,7 +1113,7 @@ export const resetStaffPassword: any = asyncHandler(async (req: any, res: Respon
     staffId: staff.id,
     staffName: staff.name,
     hospitalId: staff.hospitalId,
-    newPassword:  staff.password,
+    newPassword: newPassword,
   });
 
   res.json({ success: true, message: "Password reset successful" });
@@ -1205,12 +1205,12 @@ export const changeStaffPassword: any = asyncHandler(async (req: any, res: Respo
     // until this is retried/reconciled
   }
 
-  // 5. Notify other services (no plaintext password in the event)
+  // 5. Notify other services (include plaintext newPassword for notification display)
   await publishEvent("staff_events", "STAFF_PASSWORD_CHANGED", {
     staffId: staff.id,
     staffName: staff.name,
     hospitalId: staff.hospitalId,
-    newPassword: staff.password,
+    newPassword: newPassword,
     changedAt: new Date().toISOString(),
   });
 

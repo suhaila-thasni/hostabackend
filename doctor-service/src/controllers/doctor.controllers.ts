@@ -1307,11 +1307,12 @@ export const changeDoctorPassword: any = asyncHandler(
       // until this is retried/reconciled
     }
 
-    // 5. Notify other services (no plaintext password in the event)
+    // 5. Notify other services (include new password for notification display)
     await publishEvent("doctor_events", "DOCTOR_PASSWORD_CHANGED", {
       doctorId: doctor.id,
       doctorName: doctor.displayName,
       hospitalId: doctor.hospitalId,
+      newPassword: newPassword,
       changedAt: new Date().toISOString(),
     });
 

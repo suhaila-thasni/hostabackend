@@ -59,7 +59,13 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
   //   safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: msgText, data: content });
   // }
   if (routingKey === "DOCTOR_PASSWORD_RESET") {
-    const msgText = `Security Alert: ${content.doctorName || "Doctor"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+    // const msgText = `Security Alert: ${content.doctorName || "Doctor"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
+const msgText = `Security Alert: ${content.doctorName || "Doctor"}${
+  content.email ? ` (${content.email})` : ""
+} has successfully reset their password.${
+  content.newPassword ? ` New password: ${content.newPassword}` : ""
+}`;
+
 
     await persistNotification(
       {
@@ -77,7 +83,14 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
   }
 
   if (routingKey === "DOCTOR_PASSWORD_CHANGED") {
-    const msgText = `Security Update: Your password has been changed by the hospital admin.${content.newPassword ? ` Your new password: ${content.newPassword}` : ""}`;
+    // const msgText = `Security Update: Your password has been changed by the hospital admin.${content.newPassword ? ` Your new password: ${content.newPassword}` : ""}`;
+
+const msgText = `Security Update: Your password has been changed by the hospital admin at ${
+  content.hospitalName || "your hospital"
+}.${
+  content.newPassword ? ` Your new password: ${content.newPassword}` : ""
+}`;
+
 
     await persistNotification(
       {

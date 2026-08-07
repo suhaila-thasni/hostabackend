@@ -54,6 +54,10 @@ router.post("/doctor/auth/verify-otp", validate(verifyOtpSchema), verifyDoctorOt
 router.post("/doctor/auth/reset-password", validate(resetPasswordSchema), resetDoctorPassword);
 router.put("/doctor/auth/change-password", authenticate, validate(changePasswordSchema),checkPermission('doctor','edit'), changeDoctorPassword);
 
+
+
+
+
 router.put(
   "/doctor/auth/change-password/:id",
   authenticate,
@@ -62,6 +66,10 @@ router.put(
   checkPermission('doctor', 'edit'),
   changeDoctorPassword
 );
+
+
+
+
 
 
 router.post("/doctor/refresh", refreshDoctorToken);
