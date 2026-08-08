@@ -1,5 +1,6 @@
 import Notification from "../models/notification.model";
 import { safeSocketEmit } from "../utils/socket.emitter";
+import { transporter } from "./email.handler";
 
 export const handleHospitalEvent = async (routingKey: string, content: any) => {
   if (routingKey === "HOSPITAL_REGISTERED") {
@@ -42,21 +43,90 @@ export const handleHospitalEvent = async (routingKey: string, content: any) => {
     }
   }
 
-  if (routingKey === "HOSPITAL_DELETED" || routingKey === "HOSPITAL_BLACKLISTED" || routingKey === "HOSPITAL_RECOVERED") {
+  if (
+    routingKey === "HOSPITAL_DELETED" ||
+    routingKey === "HOSPITAL_BLACKLISTED" ||
+    routingKey === "HOSPITAL_RECOVERED"
+  ) {
+    const hospitalName = content.hospitalName || "Hospital";
+    const hospitalEmail = content.email;
+
     let msg = "";
+    let emailSubject = "";
+    let emailMessage = "";
+
     if (routingKey === "HOSPITAL_BLACKLISTED") {
-      msg = `Hospital moved to blacklist (ID: ${content.hospitalId})`;
+      msg = `Hospital Blacklisted — ${hospitalName} has been moved to the blacklist and is currently restricted from platform access.`;
+
+      emailSubject = "Hospital Account Blacklisted";
+
+      emailMessage = `Dear ${hospitalName} Administration,
+
+Your hospital account has been moved to the blacklist by the platform administrator.
+
+As a result, access to the platform is currently restricted.
+
+If you believe this action was taken in error or require further information, please contact the platform administration.
+
+Regards,
+Platform Administration`;
     } else if (routingKey === "HOSPITAL_RECOVERED") {
-      msg = `Hospital recovered from blacklist (ID: ${content.hospitalId})`;
+      msg = `Hospital Restored — ${hospitalName} has been successfully restored from the blacklist.`;
+
+      emailSubject = "Hospital Account Restored";
+
+      emailMessage = `Dear ${hospitalName} Administration,
+
+Your hospital account has been successfully restored from the blacklist by the platform administrator.
+
+You may now access the platform and continue using the available services.
+
+If you require any further assistance, please contact the platform administration.
+
+Regards,
+Platform Administration`;
     } else {
-      msg = `Hospital permanently deleted (ID: ${content.hospitalId})`;
+      msg = `Hospital Permanently Deleted — ${hospitalName} has been permanently removed from the platform.`;
+
+      emailSubject = "Hospital Account Permanently Deleted";
+
+      emailMessage = `Dear ${hospitalName} Administration,
+
+Your hospital account has been permanently removed from the platform by the platform administrator.
+
+You will no longer be able to access the platform using this hospital account.
+
+If you require further information, please contact the platform administration.
+
+Regards,
+Platform Administration`;
     }
 
+    // Save notification for SuperAdmin
     await Notification.create({
       superAdminIds: [1],
       message: msg,
     }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 
-    safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: msg, data: content });
+    // Real-time notification to SuperAdmin
+    safeSocketEmit("role_1", "hospital_event", {
+      event: routingKey,
+      message: msg,
+      data: content,
+    });
+
+    // Email notification to Hospital
+    if (hospitalEmail) {
+      transporter
+        .sendMail({
+          from: process.env.SMTP_USER,
+          to: hospitalEmail,
+          subject: emailSubject,
+          text: emailMessage,
+        })
+        .catch((err) =>
+          console.error(`Failed to send ${routingKey} hospital email`, err)
+        );
+    }
   }
 };

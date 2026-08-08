@@ -29,21 +29,23 @@ export const startCleanupJob = () => {
             [Op.lte]: oneMonthAgo 
           }
         },
-        attributes: ['id']
+        attributes: ["id", "name", "email"],
       });
 
       if (hospitalsToDelete.length > 0) {
-        const ids = hospitalsToDelete.map(h => h.id);
+        const ids = hospitalsToDelete.map((h) => h.id);
         
         await Hospital.destroy({
           where: { id: ids },
-          force: true // Hard delete from database
+          force: true, // Hard delete from database
         });
 
         // Notify other services about permanent deletion
-        for (const id of ids) {
+        for (const hospital of hospitalsToDelete) {
           await publishEvent("hospital_events", "HOSPITAL_DELETED", {
-            hospitalId: id,
+            hospitalId: hospital.id,
+            hospitalName: hospital.name,
+            email: hospital.email,
           });
         }
 

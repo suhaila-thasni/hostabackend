@@ -248,10 +248,11 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
 
   if (routingKey === "DOCTOR_DELETED") {
     const doctorName = content.doctorName || "Doctor";
+    const hospitalName = content.hospitalName || "the hospital";
 
-    const msgText = `Doctor Profile Removed — Dr. ${doctorName}'s profile has been removed and moved to the blacklist.`;
+    // Hospital notification
+    const msgText = `Doctor Profile Removed — ${doctorName}'s profile has been removed and moved to the blacklist.`;
 
-    // Save notification for the hospital
     await persistNotification(
       {
         hospitalIds: content.hospitalId ? [content.hospitalId] : [],
@@ -260,9 +261,10 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
       "Failed to save DOCTOR_DELETED notification"
     );
 
-    // Send real-time notification to the hospital
+    // Send notification to hospital
     if (content.hospitalId) {
       const hospitalRoom = `hospital_${content.hospitalId}`;
+
       safeSocketEmit(hospitalRoom, "hospital_event", {
         event: routingKey,
         message: msgText,
@@ -272,19 +274,34 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
 
     // Email notification to the deleted doctor
     if (content.email) {
-      const emailMessage = `Your doctor profile has been removed and moved to the blacklist by the hospital administrator at ${content.hospitalName || "the hospital"}.\n\nPlease contact ${content.hospitalName || "the hospital"} administration for further information.`;
-      
-      transporter.sendMail({
-        from: process.env.SMTP_USER,
-        to: content.email,
-        subject: "Doctor Profile Removed",
-        text: emailMessage,
-      }).catch(err => console.error("Failed to send DOCTOR_DELETED email", err));
+      const emailMessage = `Dear ${doctorName},
+
+Your doctor profile has been removed and moved to the blacklist by the hospital administrator at ${hospitalName}.
+
+Please contact ${hospitalName} administration for further information.
+
+Regards,
+${hospitalName} Administration`;
+
+      transporter
+        .sendMail({
+          from: process.env.SMTP_USER,
+          to: content.email,
+          subject: "Doctor Profile Removed",
+          text: emailMessage,
+        })
+        .catch((err) =>
+          console.error("Failed to send DOCTOR_DELETED email", err)
+        );
     }
   }
 
   if (routingKey === "DOCTOR_RECOVERED") {
-    const msgText = `Doctor profile recovered from blacklist (ID: ${content.doctorId})`;
+    const doctorName = content.doctorName || "Doctor";
+    const hospitalName = content.hospitalName || "the hospital";
+
+    // Hospital notification
+    const msgText = `Doctor Profile Restored — ${doctorName}'s profile has been successfully restored from the blacklist.`;
 
     await persistNotification(
       {
@@ -294,11 +311,40 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
       "Failed to save DOCTOR_RECOVERED notification"
     );
 
+    // Send notification to hospital
     if (content.hospitalId) {
-      const targetRoom = `hospital_${content.hospitalId}`;
-      safeSocketEmit(targetRoom, "hospital_event", { event: routingKey, message: msgText, data: content });
+      const hospitalRoom = `hospital_${content.hospitalId}`;
+
+      safeSocketEmit(hospitalRoom, "hospital_event", {
+        event: routingKey,
+        message: msgText,
+        data: content,
+      });
     }
 
-    safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: msgText, data: content });
+    // Email notification to the recovered doctor
+    if (content.email) {
+      const emailMessage = `Dear ${doctorName},
+
+Your doctor profile has been successfully restored from the blacklist by the hospital administrator at ${hospitalName}.
+
+You may now access your profile and continue using the hospital's services as permitted.
+
+If you have any questions, please contact ${hospitalName} administration.
+
+Regards,
+${hospitalName} Administration`;
+
+      transporter
+        .sendMail({
+          from: process.env.SMTP_USER,
+          to: content.email,
+          subject: "Doctor Profile Restored",
+          text: emailMessage,
+        })
+        .catch((err) =>
+          console.error("Failed to send DOCTOR_RECOVERED email", err)
+        );
+    }
   }
 };

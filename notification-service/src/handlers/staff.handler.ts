@@ -167,18 +167,20 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
 
   if (routingKey === "STAFF_DELETED") {
     const staffName = content.staffName || "Staff";
+    const hospitalName = content.hospitalName || "the hospital";
 
+    // Hospital notification
     const msgText = `Staff Profile Removed — ${staffName}'s profile has been removed and moved to the blacklist.`;
 
-    // Save notification for the hospital
     await Notification.create({
       hospitalIds: content.hospitalId ? [content.hospitalId] : [],
       message: msgText,
     }).catch((err) => console.error("Failed to save STAFF_DELETED notification", err));
 
-    // Send real-time notification to the hospital
+    // Send notification to hospital
     if (content.hospitalId) {
       const hospitalRoom = `hospital_${content.hospitalId}`;
+
       safeSocketEmit(hospitalRoom, "hospital_event", {
         event: routingKey,
         message: msgText,
@@ -188,30 +190,74 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
 
     // Email notification to the deleted staff
     if (content.email) {
-      const emailMessage = `Your staff profile has been removed and moved to the blacklist by the hospital administrator at ${content.hospitalName || "the hospital"}.\n\nPlease contact ${content.hospitalName || "the hospital"} administration for further information.`;
-      
-      transporter.sendMail({
-        from: process.env.SMTP_USER,
-        to: content.email,
-        subject: "Staff Profile Removed",
-        text: emailMessage,
-      }).catch(err => console.error("Failed to send STAFF_DELETED email", err));
+      const emailMessage = `Dear ${staffName},
+
+Your staff profile has been removed and moved to the blacklist by the hospital administrator at ${hospitalName}.
+
+Please contact ${hospitalName} administration for further information.
+
+Regards,
+${hospitalName} Administration`;
+
+      transporter
+        .sendMail({
+          from: process.env.SMTP_USER,
+          to: content.email,
+          subject: "Staff Profile Removed",
+          text: emailMessage,
+        })
+        .catch((err) =>
+          console.error("Failed to send STAFF_DELETED email", err)
+        );
     }
   }
 
   if (routingKey === "STAFF_RECOVERED") {
-    const msgText = `Staff profile recovered from blacklist (ID: ${content.staffId})`;
+    const staffName = content.staffName || "Staff";
+    const hospitalName = content.hospitalName || "the hospital";
+
+    // Hospital notification
+    const msgText = `Staff Profile Restored — ${staffName}'s profile has been successfully restored from the blacklist.`;
 
     await Notification.create({
       hospitalIds: content.hospitalId ? [content.hospitalId] : [],
       message: msgText,
     }).catch((err) => console.error("Failed to save STAFF_RECOVERED notification", err));
 
+    // Send notification to hospital
     if (content.hospitalId) {
-      const targetRoom = `hospital_${content.hospitalId}`;
-      safeSocketEmit(targetRoom, "hospital_event", { event: routingKey, message: msgText, data: content });
+      const hospitalRoom = `hospital_${content.hospitalId}`;
+
+      safeSocketEmit(hospitalRoom, "hospital_event", {
+        event: routingKey,
+        message: msgText,
+        data: content,
+      });
     }
-    
-    safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: msgText, data: content });
+
+    // Email notification to the recovered staff
+    if (content.email) {
+      const emailMessage = `Dear ${staffName},
+
+Your staff profile has been successfully restored from the blacklist by the hospital administrator at ${hospitalName}.
+
+You may now access your profile and continue using the hospital's services as permitted.
+
+If you have any questions, please contact ${hospitalName} administration.
+
+Regards,
+${hospitalName} Administration`;
+
+      transporter
+        .sendMail({
+          from: process.env.SMTP_USER,
+          to: content.email,
+          subject: "Staff Profile Restored",
+          text: emailMessage,
+        })
+        .catch((err) =>
+          console.error("Failed to send STAFF_RECOVERED email", err)
+        );
+    }
   }
 };
