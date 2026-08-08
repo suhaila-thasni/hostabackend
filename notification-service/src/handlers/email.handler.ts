@@ -18,54 +18,100 @@ export const handleEmailEvent = async (
     content: any
 ) => {
     try {
-        const { notificationId, doctorIds, staffIds, subject, message } = content;
+        const { notificationId, hospitalId, recipients, subject, message } = content;
 
-        let doctorsEmails: any[] = [];
-        let staffsEmails: any[] = [];
+        let allEmails: any[] = [];
 
-        if (doctorIds && doctorIds.length > 0) {
-            const doctors = await axios.post(
-                `${process.env.DOCTOR_SERVICE_URL || process.env.DOCTOR_SERVICE}/doctor/emails`,
-                { ids: doctorIds }
-            );
-            doctorsEmails = doctors.data;
+        if (recipients && Array.isArray(recipients)) {
+            for (const recipient of recipients) {
+                const { roleId, all, userIds } = recipient;
+
+                if (all) {
+                    // Fetch ALL users for this role
+                    try {
+                        const doctorsRes = await axios.post(
+                            `${process.env.DOCTOR_SERVICE_URL || process.env.DOCTOR_SERVICE}/doctor/emails-by-roles`,
+                            { roleIds: [roleId], hospitalId }
+                        );
+                        if (Array.isArray(doctorsRes.data)) {
+                            allEmails.push(...doctorsRes.data);
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch doctor emails by role:", err);
+                    }
+
+                    try {
+                        const staffRes = await axios.post(
+                            `${process.env.STAFF_SERVICE_URL || process.env.STAFF_SERVICE}/staff/emails-by-roles`,
+                            { roleIds: [roleId], hospitalId }
+                        );
+                        if (Array.isArray(staffRes.data)) {
+                            allEmails.push(...staffRes.data);
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch staff emails by role:", err);
+                    }
+                } else if (userIds && userIds.length > 0) {
+                    // Fetch SPECIFIC users for this role
+                    try {
+                        const doctors = await axios.post(
+                            `${process.env.DOCTOR_SERVICE_URL || process.env.DOCTOR_SERVICE}/doctor/emails`,
+                            { ids: userIds, roleId, hospitalId }
+                        );
+                        if (Array.isArray(doctors.data)) {
+                            allEmails.push(...doctors.data);
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch specific doctor emails:", err);
+                    }
+
+                    try {
+                        const staffs = await axios.post(
+                            `${process.env.STAFF_SERVICE_URL || process.env.STAFF_SERVICE}/staff/emails`,
+                            { ids: userIds, roleId, hospitalId }
+                        );
+                        if (Array.isArray(staffs.data)) {
+                            allEmails.push(...staffs.data);
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch specific staff emails:", err);
+                    }
+                }
+            }
         }
 
-        if (staffIds && staffIds.length > 0) {
-            const staffs = await axios.post(
-                `${process.env.STAFF_SERVICE_URL || process.env.STAFF_SERVICE}/staff/emails`,
-                { ids: staffIds }
-            );
-            staffsEmails = staffs.data;
-        }
+        // Deduplicate by email address
+        const uniqueEmails = Array.from(
+            new Map(allEmails.filter(u => u && u.email).map(u => [u.email, u])).values()
+        );
 
-        const emails = [
-            ...doctorsEmails,
-            ...staffsEmails
-        ];
-
-        if (emails.length === 0) {
+        if (uniqueEmails.length === 0) {
             console.log("No valid emails found to send notification");
             if (notificationId) {
                 await EmailNotification.update(
-                    { status: "FAILED", failedCount: 0 },
+                    { status: "FAILED", failedCount: 0, totalRecipients: 0 },
                     { where: { id: notificationId } }
                 );
             }
             return;
         }
 
+        // Update totalRecipients with actual resolved count
+        if (notificationId) {
+            await EmailNotification.update(
+                { totalRecipients: uniqueEmails.length },
+                { where: { id: notificationId } }
+            );
+        }
+
         const results = await Promise.allSettled(
-            emails.map(user => {
-                if (user && user.email) {
-                    return transporter.sendMail({
-                        from: process.env.SMTP_USER || "noreply@hosta.com",
-                        to: user.email,
-                        subject: subject,
-                        html: message
-                    });
-                }
-                return Promise.reject(new Error("Invalid user email"));
+            uniqueEmails.map(user => {
+                return transporter.sendMail({
+                    from: process.env.SMTP_USER || "noreply@hosta.com",
+                    to: user.email,
+                    subject: subject,
+                    html: message
+                });
             })
         );
 
@@ -91,7 +137,7 @@ export const handleEmailEvent = async (
             );
         }
 
-        console.log(`Successfully processed email notification for ${emails.length} recipients. Success: ${successCount}, Failed: ${failedCount}`);
+        console.log(`Successfully processed email notification for ${uniqueEmails.length} recipients. Success: ${successCount}, Failed: ${failedCount}`);
     } catch (error) {
         console.error("Error in handleEmailEvent:", error);
         if (content.notificationId) {

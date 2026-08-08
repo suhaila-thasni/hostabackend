@@ -1435,26 +1435,67 @@ export const saveFcmToken: any = asyncHandler(async (req: Request, res: Response
 
 export const getStaffEmails: any = asyncHandler(
   async (req: Request, res: Response) => {
-    const { ids } = req.body;
+    const { ids, roleId, hospitalId } = req.body;
     if (!ids || !Array.isArray(ids)) {
       res.status(400).json({ success: false, message: "ids array is required" });
       return;
     }
     
+    const whereClause: any = { id: { [Op.in]: ids } };
+    if (roleId) whereClause.roleId = roleId;
+    if (hospitalId) whereClause.hospitalId = Number(hospitalId);
+
     const staffs = await Staff.findAll({
-      where: { id: ids },
-      attributes: ['id', 'email', 'name']
+      where: whereClause,
+      attributes: ['id', 'email', 'name', 'roleId']
     });
 
-    const results = staffs.map(s => ({
-      id: s.id,
-      email: s.email,
-      name: s.name
-    }));
+    const results = staffs
+      .filter(s => s.email)
+      .map(s => ({
+        id: s.id,
+        email: s.email,
+        name: s.name,
+        roleId: s.roleId
+      }));
 
     res.status(200).json(results);
   }
-);// UPDATE FCM TOKEN BY EMAIL - POST /staff/update-fcm-token
+);
+
+// GET STAFF EMAILS BY ROLE IDS - POST /staff/emails-by-roles
+export const getStaffEmailsByRoles: any = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { roleIds, hospitalId } = req.body;
+    if (!roleIds || !Array.isArray(roleIds) || !hospitalId) {
+      res.status(400).json({ success: false, message: "roleIds array and hospitalId are required" });
+      return;
+    }
+
+    const staffs = await Staff.findAll({
+      where: {
+        roleId: { [Op.in]: roleIds },
+        hospitalId: Number(hospitalId),
+        isActive: true,
+        isDelete: false,
+      },
+      attributes: ['id', 'email', 'name', 'roleId']
+    });
+
+    const results = staffs
+      .filter(s => s.email)
+      .map(s => ({
+        id: s.id,
+        email: s.email,
+        name: s.name,
+        roleId: s.roleId
+      }));
+
+    res.status(200).json(results);
+  }
+);
+
+// UPDATE FCM TOKEN BY EMAIL - POST /staff/update-fcm-token
 export const updateFcmTokenByEmail: any = asyncHandler(async (req: Request, res: Response) => {
   const { email, fcmToken } = req.body;
 

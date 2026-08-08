@@ -1594,22 +1594,61 @@ export const saveFcmToken: any = asyncHandler(async (req: Request, res: Response
 
 export const getDoctorEmails: any = asyncHandler(
   async (req: Request, res: Response) => {
-    const { ids } = req.body;
+    const { ids, roleId, hospitalId } = req.body;
     if (!ids || !Array.isArray(ids)) {
       res.status(400).json({ success: false, message: "ids array is required" });
       return;
     }
     
+    const whereClause: any = { id: { [Op.in]: ids } };
+    if (roleId) whereClause.roleId = roleId;
+    if (hospitalId) whereClause.hospitalId = Number(hospitalId);
+
     const doctors = await Doctor.findAll({
-      where: { id: ids },
-      attributes: ['id', 'email', 'firstName', 'lastName']
+      where: whereClause,
+      attributes: ['id', 'email', 'firstName', 'lastName', 'roleId']
     });
 
-    const results = doctors.map(d => ({
-      id: d.id,
-      email: d.email,
-      name: d.firstName + " " + d.lastName
-    }));
+    const results = doctors
+      .filter(d => d.email)
+      .map(d => ({
+        id: d.id,
+        email: d.email,
+        name: d.firstName + " " + d.lastName,
+        roleId: d.roleId
+      }));
+
+    res.status(200).json(results);
+  }
+);
+
+// GET DOCTOR EMAILS BY ROLE IDS - POST /doctor/emails-by-roles
+export const getDoctorEmailsByRoles: any = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { roleIds, hospitalId } = req.body;
+    if (!roleIds || !Array.isArray(roleIds) || !hospitalId) {
+      res.status(400).json({ success: false, message: "roleIds array and hospitalId are required" });
+      return;
+    }
+
+    const doctors = await Doctor.findAll({
+      where: {
+        roleId: { [Op.in]: roleIds },
+        hospitalId: Number(hospitalId),
+        isActive: true,
+        isDelete: false,
+      },
+      attributes: ['id', 'email', 'firstName', 'lastName', 'roleId']
+    });
+
+    const results = doctors
+      .filter(d => d.email)
+      .map(d => ({
+        id: d.id,
+        email: d.email,
+        name: d.firstName + " " + d.lastName,
+        roleId: d.roleId
+      }));
 
     res.status(200).json(results);
   }

@@ -25,8 +25,7 @@ export const sendEmailNotification = async (
     res: Response
 ) => {
     const {
-        doctorIds,
-        staffIds,
+        recipients,
         subject,
         message,
         templateId
@@ -35,8 +34,7 @@ export const sendEmailNotification = async (
     await EmailService.sendEmailNotification({
         hospitalId: req.user.hospitalId,
         createdBy: req.user.id,
-        doctorIds,
-        staffIds,
+        recipients,
         subject,
         message,
         templateId

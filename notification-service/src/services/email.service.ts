@@ -7,8 +7,7 @@ export const saveDraft = async (payload: any) => {
     let {
         hospitalId,
         createdBy,
-        doctorIds,
-        staffIds,
+        recipients,
         subject,
         message,
         templateId
@@ -22,15 +21,13 @@ export const saveDraft = async (payload: any) => {
         }
     }
 
-    const totalRecipients = (doctorIds?.length || 0) + (staffIds?.length || 0);
-
     const draft = await EmailNotification.create({
         hospitalId,
         createdBy,
         subject,
         message,
-        roles: { doctorIds, staffIds },
-        totalRecipients,
+        roles: { recipients },
+        totalRecipients: recipients?.length || 0,
         status: "DRAFT",
         templateId
     });
@@ -43,8 +40,7 @@ export const sendEmailNotification = async (payload: any) => {
     let {
         hospitalId,
         createdBy,
-        doctorIds,
-        staffIds,
+        recipients,
         subject,
         message,
         templateId
@@ -62,15 +58,13 @@ export const sendEmailNotification = async (payload: any) => {
         throw new Error("Subject and Message are required");
     }
 
-    const totalRecipients = (doctorIds?.length || 0) + (staffIds?.length || 0);
-
     const notification = await EmailNotification.create({
         hospitalId,
         createdBy,
         subject,
         message,
-        roles: { doctorIds, staffIds },
-        totalRecipients,
+        roles: { recipients },
+        totalRecipients: recipients?.length || 0,
         status: "QUEUED",
         sentAt: new Date(),
         templateId
@@ -82,8 +76,7 @@ export const sendEmailNotification = async (payload: any) => {
         {
             notificationId: (notification as any).id,
             hospitalId,
-            doctorIds,
-            staffIds,
+            recipients,
             subject,
             message
         }
@@ -101,8 +94,7 @@ export const sendDraft = async (id: number, hospitalId: number) => {
     if (status !== "DRAFT") return null;
 
     const roles = draft.get("roles") as any || {};
-    const doctorIds = roles.doctorIds || [];
-    const staffIds = roles.staffIds || [];
+    const recipients = roles.recipients || [];
 
     await EmailNotification.update(
         { status: "QUEUED", sentAt: new Date() },
@@ -115,8 +107,7 @@ export const sendDraft = async (id: number, hospitalId: number) => {
         {
             notificationId: id,
             hospitalId,
-            doctorIds,
-            staffIds,
+            recipients,
             subject: draft.get("subject"),
             message: draft.get("message")
         }
@@ -164,13 +155,10 @@ export const updateEmailNotification = async (
         updatePayload.templateId = updates.templateId;
     }
 
-    if (updates.doctorIds !== undefined || updates.staffIds !== undefined) {
-        const existingRoles = notification.get("roles") as any || {};
-        const doctorIds = updates.doctorIds ?? existingRoles.doctorIds ?? [];
-        const staffIds = updates.staffIds ?? existingRoles.staffIds ?? [];
-
-        updatePayload.roles = { doctorIds, staffIds };
-        updatePayload.totalRecipients = (doctorIds?.length || 0) + (staffIds?.length || 0);
+    if (updates.recipients !== undefined) {
+        const recipients = updates.recipients ?? [];
+        updatePayload.roles = { recipients };
+        updatePayload.totalRecipients = recipients.length;
     }
 
     await EmailNotification.update(updatePayload, { where: { id } });
@@ -214,8 +202,7 @@ export const resendEmail = async (id: number, hospitalId: number) => {
     if (!original) return null;
 
     const roles = original.get("roles") as any || {};
-    const doctorIds = roles.doctorIds || [];
-    const staffIds = roles.staffIds || [];
+    const recipients = roles.recipients || [];
 
     const resent = await EmailNotification.create({
         hospitalId: original.get("hospitalId"),
@@ -234,8 +221,7 @@ export const resendEmail = async (id: number, hospitalId: number) => {
         {
             notificationId: (resent as any).id,
             hospitalId,
-            doctorIds,
-            staffIds,
+            recipients,
             subject: original.get("subject"),
             message: original.get("message")
         }
@@ -255,4 +241,4 @@ export const archiveEmail = async (id: number) => {
     );
 
     return EmailNotification.findByPk(id);
-};
+};

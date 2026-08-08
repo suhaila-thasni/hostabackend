@@ -1,5 +1,17 @@
 import Notification from "../models/notification.model";
 import { safeSocketEmit } from "../utils/socket.emitter";
+import axios from "axios";
+
+const fetchAuthByRole = async (role: string, id: number) => {
+  const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://auth-service:3020";
+  try {
+    const resp = await axios.get(`${authServiceUrl}/auth/${id}/role/${role}`);
+    return resp.data?.data || null;
+  } catch (err) {
+    console.error(`Failed to fetch auth for ${role} ${id}:`, err.response?.data || err.message);
+    return null;
+  }
+};
 
 const persistNotification = async (payload: Record<string, any>, errorMessage: string) => {
   try {
@@ -59,12 +71,17 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
   //   safeSocketEmit("role_1", "hospital_event", { event: routingKey, message: msgText, data: content });
   // }
   if (routingKey === "DOCTOR_PASSWORD_RESET") {
-    // const msgText = `Security Alert: ${content.doctorName || "Doctor"} has successfully reset their password.${content.newPassword ? ` New password: ${content.newPassword}` : ""}`;
-const msgText = `Security Alert: ${content.doctorName || "Doctor"}${
-  content.email ? ` (${content.email})` : ""
-} has successfully reset their password.${
-  content.newPassword ? ` New password: ${content.newPassword}` : ""
-}`;
+    // Ensure email is present; fetch from auth-service when missing
+    if (!content.email && content.doctorId) {
+      const auth = await fetchAuthByRole("doctor", content.doctorId);
+      if (auth) content.email = auth.email;
+    }
+
+    const msgText = `Security Alert: ${content.doctorName || "Doctor"}${
+      content.email ? ` (${content.email})` : ""
+    } has successfully reset their password.${
+      content.newPassword ? ` New password: ${content.newPassword}` : ""
+    }`;
 
 
     await persistNotification(
@@ -83,13 +100,17 @@ const msgText = `Security Alert: ${content.doctorName || "Doctor"}${
   }
 
   if (routingKey === "DOCTOR_PASSWORD_CHANGED") {
-    // const msgText = `Security Update: Your password has been changed by the hospital admin.${content.newPassword ? ` Your new password: ${content.newPassword}` : ""}`;
+    // Ensure hospitalName is present; fetch from auth-service when missing
+    if (!content.hospitalName && content.doctorId) {
+      const auth = await fetchAuthByRole("doctor", content.doctorId);
+      if (auth) content.hospitalName = auth.hospitalName;
+    }
 
-const msgText = `Security Update: Your password has been changed by the hospital admin at ${
-  content.hospitalName || "your hospital"
-}.${
-  content.newPassword ? ` Your new password: ${content.newPassword}` : ""
-}`;
+    const msgText = `Security Update: Your password has been changed by the hospital admin at ${
+      content.hospitalName || "the hospital"
+    }.${
+      content.newPassword ? ` Your new password: ${content.newPassword}` : ""
+    }`;
 
 
     await persistNotification(

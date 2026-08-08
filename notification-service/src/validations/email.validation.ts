@@ -1,8 +1,13 @@
 import { z } from "zod";
 
+const recipientSchema = z.object({
+  roleId: z.number(),
+  all: z.boolean(),
+  userIds: z.array(z.number()).optional(),
+});
+
 export const createEmailNotificationSchema = z.object({
-  doctorIds: z.array(z.number()).optional(),
-  staffIds: z.array(z.number()).optional(),
+  recipients: z.array(recipientSchema).optional(),
   subject: z.string().optional(),
   message: z.string().optional(),
   templateId: z.number().optional(),
@@ -13,14 +18,12 @@ export const createEmailNotificationSchema = z.object({
 export const updateEmailNotificationSchema = z.object({
   subject: z.string().optional(),
   message: z.string().optional(),
-  doctorIds: z.array(z.number()).optional(),
-  staffIds: z.array(z.number()).optional(),
+  recipients: z.array(recipientSchema).optional(),
   templateId: z.number().optional(),
 });
 
 export const saveDraftSchema = z.object({
-  doctorIds: z.array(z.number()).optional(),
-  staffIds: z.array(z.number()).optional(),
+  recipients: z.array(recipientSchema).optional(),
   subject: z.string().optional(),
   message: z.string().optional(),
   templateId: z.number().optional(),
