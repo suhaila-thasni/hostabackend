@@ -20,21 +20,21 @@ router.post(
   "/",
   validate(createTemplateSchema),
   authenticate,
-//   checkPermission("template", "create"),
+  checkPermission("Notification Templates", "create"),
   createTemplate
 );
 
 router.get(
   "/",
   authenticate,
-//   checkPermission("template", "view"),
+  checkPermission("Notification Templates", "view"),
   getTemplates
 );
 
 router.get(
   "/:id",
   authenticate,
-//   checkPermission("template", "view"),
+  checkPermission("Notification Templates", "view"),
   getTemplateById
 );
 
@@ -42,14 +42,14 @@ router.put(
   "/:id",
   validate(updateTemplateSchema),
   authenticate,
-//   checkPermission("template", "edit"),
+  checkPermission("Notification Templates", "edit"),
   updateTemplate
 );
 
 router.delete(
   "/:id",
   authenticate,
-//   checkPermission("template", "delete"),
+  checkPermission("Notification Templates", "delete"),
   deleteTemplate
 );
 
