@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as EmailService from "../services/email.service";
+import axios from "axios";
 
 // ── Save Draft ──
 export const saveDraft = async (
@@ -274,4 +275,67 @@ export const archiveEmail = async (
         message: "Email archived successfully",
         data: archived,
     });
+};
+
+// ── Get Recipients by Roles ──
+export const getRecipientsByRoles = async (
+    req: any,
+    res: Response
+) => {
+    try {
+        const { roleIds } = req.body;
+        const hospitalId = req.user.hospitalId;
+
+        if (!roleIds || !Array.isArray(roleIds)) {
+            return res.status(400).json({
+                success: false,
+                message: "roleIds array is required"
+            });
+        }
+
+        let allRecipients: any[] = [];
+
+        // Fetch doctor emails by roles
+        try {
+            const doctorsRes = await axios.post(
+                `${process.env.DOCTOR_SERVICE_URL || process.env.DOCTOR_SERVICE}/doctor/emails-by-roles`,
+                { roleIds, hospitalId }
+            );
+            if (Array.isArray(doctorsRes.data)) {
+                allRecipients.push(...doctorsRes.data.map(d => ({ ...d, type: 'doctor' })));
+            }
+        } catch (err: any) {
+            console.error("Failed to fetch doctor emails by roles:", err.message);
+        }
+
+        // Fetch staff emails by roles
+        try {
+            const staffRes = await axios.post(
+                `${process.env.STAFF_SERVICE_URL || process.env.STAFF_SERVICE}/staff/emails-by-roles`,
+                { roleIds, hospitalId }
+            );
+            if (Array.isArray(staffRes.data)) {
+                allRecipients.push(...staffRes.data.map(s => ({ ...s, type: 'staff' })));
+            }
+        } catch (err: any) {
+            console.error("Failed to fetch staff emails by roles:", err.message);
+        }
+
+        // Deduplicate by email address
+        const uniqueRecipients = Array.from(
+            new Map(allRecipients.filter(u => u && u.email).map(u => [u.email, u])).values()
+        );
+
+        return res.status(200).json({
+            success: true,
+            data: uniqueRecipients
+        });
+    } catch (error: any) {
+        console.error("Error in getRecipientsByRoles:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch recipients by roles",
+            error: error.message
+        });
+    }
 };

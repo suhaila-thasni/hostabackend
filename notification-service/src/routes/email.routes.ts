@@ -10,6 +10,7 @@ import {
   duplicateEmail,
   resendEmail,
   archiveEmail,
+  getRecipientsByRoles,
 } from "../controllers/email.controller";
 import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
@@ -27,7 +28,7 @@ router.post(
   "/draft",
   validate(saveDraftSchema),
   authenticate,
-//   checkPermission("email", "create"),
+  checkPermission("email", "create"),
   saveDraft
 );
 
@@ -36,7 +37,7 @@ router.post(
   "/send-email",
   validate(createEmailNotificationSchema),
   authenticate,
-//   checkPermission("email", "create"),
+  checkPermission("email", "create"),
   sendEmailNotification
 );
 
@@ -44,7 +45,7 @@ router.post(
 router.post(
   "/send-draft/:id",
   authenticate,
-//   checkPermission("email", "create"),
+  checkPermission("email", "create"),
   sendDraft
 );
 
@@ -52,7 +53,7 @@ router.post(
 router.get(
   "/",
   authenticate,
-//   checkPermission("email", "view"),
+  checkPermission("email", "view"),
   getEmailNotifications
 );
 
@@ -60,7 +61,7 @@ router.get(
 router.get(
   "/:id",
   authenticate,
-//   checkPermission("email", "view"),
+  checkPermission("email", "view"),
   getEmailNotificationById
 );
 
@@ -69,7 +70,7 @@ router.put(
   "/:id",
   validate(updateEmailNotificationSchema),
   authenticate,
-//   checkPermission("email", "edit"),
+  checkPermission("email", "edit"),
   updateEmailNotification
 );
 
@@ -77,7 +78,7 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
-//   checkPermission("email", "delete"),
+  checkPermission("email", "delete"),
   deleteEmailNotification
 );
 
@@ -85,7 +86,7 @@ router.delete(
 router.post(
   "/duplicate/:id",
   authenticate,
-//   checkPermission("email", "create"),
+  checkPermission("email", "create"),
   duplicateEmail
 );
 
@@ -93,7 +94,7 @@ router.post(
 router.post(
   "/resend/:id",
   authenticate,
-//   checkPermission("email", "create"),
+  checkPermission("email", "create"),
   resendEmail
 );
 
@@ -101,8 +102,16 @@ router.post(
 router.patch(
   "/archive/:id",
   authenticate,
-//   checkPermission("email", "edit"),
+  checkPermission("email", "edit"),
   archiveEmail
+);
+
+// ── Get Recipients by Roles ──
+router.post(
+  "/recipients-by-roles",
+  authenticate,
+  checkPermission("email", "view"),
+  getRecipientsByRoles
 );
 
 export default router;
