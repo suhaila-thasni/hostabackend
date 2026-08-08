@@ -3,7 +3,7 @@ import axios from "axios";
 import nodemailer from "nodemailer";
 import EmailNotification from "../models/email.model";
 
-const transporter = nodemailer.createTransport({
+export const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: parseInt(process.env.SMTP_PORT || "587"),
     secure: process.env.SMTP_SECURE === "true",
@@ -107,7 +107,7 @@ export const handleEmailEvent = async (
         const results = await Promise.allSettled(
             uniqueEmails.map(user => {
                 return transporter.sendMail({
-                    from: process.env.SMTP_USER || "noreply@hosta.com",
+                    from: process.env.SMTP_USER || "crmprojectmailer123@gmail.com",
                     to: user.email,
                     subject: subject,
                     html: message
@@ -123,6 +123,7 @@ export const handleEmailEvent = async (
                 successCount++;
             } else {
                 failedCount++;
+                console.error(`Email send failed for recipient:`, result.reason);
             }
         });
 

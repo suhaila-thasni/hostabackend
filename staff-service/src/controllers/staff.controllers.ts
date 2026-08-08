@@ -576,6 +576,10 @@ if (updatePayload.hospitalName)
 
     await publishEvent("staff_events", "STAFF_UPDATED", {
       staffId: staff.id,
+      staffName: staff.name,
+      hospitalId: staff.hospitalId,
+      hospitalName: staff.hospitalName,
+      updatedByRole: (req as any).user?.role || "hospital",
     });
 
     res.status(200).json({
@@ -661,6 +665,10 @@ export const staffDelete: any = asyncHandler(async (req: Request, res: Response)
 
     await publishEvent("staff_events", "STAFF_DELETED", {
       staffId: staff.id,
+      hospitalId: staff.hospitalId,
+      hospitalName: staff.hospitalName,
+      staffName: staff.name,
+      email: staff.email,
     });
 
   res.status(200).json({

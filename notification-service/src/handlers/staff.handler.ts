@@ -1,6 +1,7 @@
 import Notification from "../models/notification.model";
 import { safeSocketEmit } from "../utils/socket.emitter";
 import axios from "axios";
+import { transporter } from "./email.handler";
 
 const fetchAuthByRole = async (role: string, id: number) => {
   const authServiceUrl = process.env.AUTH_SERVICE_URL || "http://auth-service:3020";
@@ -15,21 +16,28 @@ const fetchAuthByRole = async (role: string, id: number) => {
 
 export const handleStaffEvent = async (routingKey: string, content: any) => {
   if (routingKey === "STAFF_REGISTERED") {
+    const staffName = content.staffName || "Staff";
+    const msgText = `New Staff Registered: ${staffName} has been successfully registered with your hospital.`;
+
+    // Save notification for the hospital
     await Notification.create({
       hospitalIds: content.hospitalId ? [content.hospitalId] : [],
-      message: `New Staff registered: ${content.staffName || "Staff"}. Welcome to the team!`,
-    }).catch((err) => console.error("Failed to save consolidated staff notification", err));
+      message: msgText,
+    }).catch((err) => console.error("Failed to save STAFF_REGISTERED notification", err));
 
+    // Send real-time notification to the hospital
     if (content.hospitalId) {
-      const msg = `New Staff registered:  ${content.staffName || "Staff"}`;
-      safeSocketEmit(`hospital_${content.hospitalId}`, "hospital_event", {
+      const hospitalRoom = `hospital_${content.hospitalId}`;
+
+      safeSocketEmit(hospitalRoom, "hospital_event", {
         event: routingKey,
-        message: msg,
+        message: msgText,
         data: content,
       });
-      safeSocketEmit(`hospital_${content.hospitalId}`, "emergency_alert", {
+
+      safeSocketEmit(hospitalRoom, "emergency_alert", {
         event: routingKey,
-        message: msg,
+        message: msgText,
         data: content,
       });
     }
@@ -110,38 +118,94 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
   }
 
   if (routingKey === "STAFF_UPDATED") {
-    const msgText = `Staff profile updated: ${content.staffName || "Staff"} (ID: ${content.staffId})`;
+    const staffName = content.staffName || "Staff";
+    const hospitalName = content.hospitalName || "the hospital";
 
-    await Notification.create({
-      hospitalIds: content.hospitalId ? [content.hospitalId] : [],
-      staffIds: content.staffId ? [content.staffId] : [],
-      message: msgText,
-    }).catch((err) => console.error("Failed to save STAFF_UPDATED notification", err));
+    // Staff updated their own profile → Notify Hospital
+    if (content.updatedByRole === "staff") {
+      const msgText = `${staffName} has updated their profile information. Please review the changes if necessary.`;
 
-    if (content.hospitalId) {
-      const targetRoom = `hospital_${content.hospitalId}`;
-      safeSocketEmit(targetRoom, "hospital_event", { event: routingKey, message: msgText, data: content });
-      safeSocketEmit(targetRoom, "emergency_alert", { event: routingKey, message: msgText, data: content });
+      await Notification.create({
+        hospitalIds: content.hospitalId ? [content.hospitalId] : [],
+        message: msgText,
+      }).catch((err) => console.error("Failed to save staff profile update notification for hospital", err));
+
+      if (content.hospitalId) {
+        const hospitalRoom = `hospital_${content.hospitalId}`;
+        safeSocketEmit(hospitalRoom, "hospital_event", {
+          event: routingKey,
+          message: msgText,
+          data: content,
+        });
+        safeSocketEmit(hospitalRoom, "emergency_alert", {
+          event: routingKey,
+          message: msgText,
+          data: content,
+        });
+      }
     }
 
-    if (content.staffId) {
-      const staffRoom = `staff_${content.staffId}`;
-      safeSocketEmit(staffRoom, "staff_event", { event: routingKey, message: msgText, data: content });
+    // Hospital/Admin updated staff's profile → Notify Staff
+    if (content.updatedByRole === "hospital") {
+      const msgText = `Your profile information has been updated by the hospital ${hospitalName} administrator. Please review your profile to ensure the information is accurate.`;
+
+      await Notification.create({
+        staffIds: content.staffId ? [content.staffId] : [],
+        message: msgText,
+      }).catch((err) => console.error("Failed to save staff profile update notification for staff", err));
+
+      if (content.staffId) {
+        const staffRoom = `staff_${content.staffId}`;
+        safeSocketEmit(staffRoom, "staff_event", {
+          event: routingKey,
+          message: msgText,
+          data: content,
+        });
+      }
     }
   }
 
-  if (routingKey === "STAFF_DELETED" || routingKey === "STAFF_RECOVERED") {
-    let msgText = "";
-    if (routingKey === "STAFF_DELETED") {
-      msgText = `Staff profile deleted / moved to blacklist (ID: ${content.staffId})`;
-    } else {
-      msgText = `Staff profile recovered from blacklist (ID: ${content.staffId})`;
+  if (routingKey === "STAFF_DELETED") {
+    const staffName = content.staffName || "Staff";
+
+    const msgText = `Staff Profile Removed — ${staffName}'s profile has been removed and moved to the blacklist.`;
+
+    // Save notification for the hospital
+    await Notification.create({
+      hospitalIds: content.hospitalId ? [content.hospitalId] : [],
+      message: msgText,
+    }).catch((err) => console.error("Failed to save STAFF_DELETED notification", err));
+
+    // Send real-time notification to the hospital
+    if (content.hospitalId) {
+      const hospitalRoom = `hospital_${content.hospitalId}`;
+      safeSocketEmit(hospitalRoom, "hospital_event", {
+        event: routingKey,
+        message: msgText,
+        data: content,
+      });
     }
+
+    // Email notification to the deleted staff
+    if (content.email) {
+      const emailMessage = `Your staff profile has been removed and moved to the blacklist by the hospital administrator at ${content.hospitalName || "the hospital"}.\n\nPlease contact ${content.hospitalName || "the hospital"} administration for further information.`;
+      
+      transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: content.email,
+        subject: "Staff Profile Removed",
+        text: emailMessage,
+      }).catch(err => console.error("Failed to send STAFF_DELETED email", err));
+    }
+  }
+
+  if (routingKey === "STAFF_RECOVERED") {
+    const msgText = `Staff profile recovered from blacklist (ID: ${content.staffId})`;
 
     await Notification.create({
       hospitalIds: content.hospitalId ? [content.hospitalId] : [],
       message: msgText,
-    }).catch((err) => console.error(`Failed to save staff ${routingKey.toLowerCase().replace("_", " ")} notification`, err));
+    }).catch((err) => console.error("Failed to save STAFF_RECOVERED notification", err));
 
     if (content.hospitalId) {
       const targetRoom = `hospital_${content.hospitalId}`;

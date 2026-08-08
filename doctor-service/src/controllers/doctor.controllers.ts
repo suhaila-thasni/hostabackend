@@ -656,6 +656,10 @@ export const updateData: any = asyncHandler(
 
     await publishEvent("doctor_events", "DOCTOR_UPDATED", {
       doctorId: doctor[1][0].id,
+      doctorName: doctor[1][0].displayName || `${doctor[1][0].firstName} ${doctor[1][0].lastName}`,
+      hospitalId: doctor[1][0].hospitalId,
+      hospitalName: doctor[1][0].hospitalName,
+      updatedByRole: (req as any).user?.role || "hospital",
     });
 
     res.status(200).json({
@@ -751,6 +755,10 @@ export const doctorDelete: any = asyncHandler(
 
     await publishEvent("doctor_events", "DOCTOR_DELETED", {
       doctorId: id,
+      hospitalId: doctor.hospitalId,
+      hospitalName: doctor.hospitalName,
+      doctorName: doctor.displayName || `${doctor.firstName} ${doctor.lastName}`,
+      email: doctor.email,
     });
 
     res.status(200).json({
