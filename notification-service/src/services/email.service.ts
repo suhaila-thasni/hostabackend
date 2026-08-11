@@ -1,6 +1,7 @@
 import EmailNotification from "../models/email.model";
 import EmailTemplate from "../models/template.model";
 import { publishEvent } from "../events/publisher";
+import { Op } from "sequelize";
 
 // ── Save as Draft (no sending) ──
 export const saveDraft = async (payload: any) => {
@@ -117,8 +118,41 @@ export const sendDraft = async (id: number, hospitalId: number) => {
 };
 
 // ── List ──
-export const getEmailNotifications = async (params: { limit: number; offset: number }) => {
+export const getEmailNotifications = async (params: {
+    limit: number;
+    offset: number;
+    search?: string;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    hospitalId?: number;
+}) => {
+    const where: any = {};
+
+    if (params.hospitalId) {
+        where.hospitalId = params.hospitalId;
+    }
+
+    if (params.search) {
+        where.subject = { [Op.iLike]: `%${params.search}%` };
+    }
+
+    if (params.status) {
+        where.status = params.status;
+    }
+
+    if (params.startDate || params.endDate) {
+        where.createdAt = {};
+        if (params.startDate) {
+            where.createdAt[Op.gte] = new Date(params.startDate);
+        }
+        if (params.endDate) {
+            where.createdAt[Op.lte] = new Date(params.endDate);
+        }
+    }
+
     return EmailNotification.findAndCountAll({
+        where,
         limit: params.limit,
         offset: params.offset,
         order: [["createdAt", "DESC"]],

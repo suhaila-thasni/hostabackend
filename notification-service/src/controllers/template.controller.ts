@@ -19,18 +19,32 @@ export const createTemplate = async (req: any, res: Response) => {
     }
 };
 
+// ── Helper to ensure single string from query param ──
+const getQueryString = (queryParam: any): string | undefined => {
+    if (Array.isArray(queryParam)) {
+        return queryParam[0] as string;
+    }
+    return queryParam as string | undefined;
+};
+
 export const getTemplates = async (req: any, res: Response) => {
     try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const page = parseInt(getQueryString(req.query.page) || "1", 10);
+        const limit = parseInt(getQueryString(req.query.limit) || "20", 10);
         const offset = (page - 1) * limit;
 
-        const { category, status } = req.query;
+        const category = getQueryString(req.query.category);
+        let status = getQueryString(req.query.status);
+        if (status) {
+            status = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+        }
+        const search = getQueryString(req.query.search);
 
         const { count, rows } = await TemplateService.getTemplates({
             hospitalId: req.user.hospitalId,
-            category: category as string,
-            status: status as string,
+            category,
+            status,
+            search,
             limit,
             offset,
         });

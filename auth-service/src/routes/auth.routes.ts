@@ -15,7 +15,7 @@ import {
   getAuthByid
 } from '../controllers/auth.controller';
 import { getAuditLogs } from '../controllers/audit.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, checkPermission } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate';
 import {
   loginHospitalSchema,
@@ -46,7 +46,10 @@ router.post("/", validate(registerSchema), register);
 router.put("/:id/role/:roles", update);
 router.delete("/:id/role/:roles", deleteAuth);
 router.get("/:id/role/:roles",  getAuthByid);
-router.get("/audit-logs/:hospitalId", getAuditLogs);
+
+router.get("/audit-logs/:hospitalId", authenticate,
+  checkPermission("audit log", "view"),
+   getAuditLogs);
 
 
 

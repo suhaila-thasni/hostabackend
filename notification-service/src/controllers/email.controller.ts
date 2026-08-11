@@ -76,18 +76,40 @@ export const sendDraft = async (
     });
 };
 
+// ── Helper to ensure single string from query param ──
+const getQueryString = (queryParam: any): string | undefined => {
+    if (Array.isArray(queryParam)) {
+        return queryParam[0] as string;
+    }
+    return queryParam as string | undefined;
+};
+
 // ── List ──
 export const getEmailNotifications = async (
-    req: Request,
+    req: any,
     res: Response
 ) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(getQueryString(req.query.page) || "1", 10);
+    const limit = parseInt(getQueryString(req.query.limit) || "20", 10);
     const offset = (page - 1) * limit;
+
+    const search = getQueryString(req.query.search);
+    let status = getQueryString(req.query.status);
+    if (status) {
+        status = status.toUpperCase();
+    }
+    const startDate = getQueryString(req.query.startDate);
+    const endDate = getQueryString(req.query.endDate);
+    const hospitalId = req.user?.hospitalId;
 
     const { count, rows } = await EmailService.getEmailNotifications({
         limit,
         offset,
+        search,
+        status,
+        startDate,
+        endDate,
+        hospitalId,
     });
 
     return res.status(200).json({
