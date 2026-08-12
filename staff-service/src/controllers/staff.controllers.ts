@@ -10,6 +10,7 @@ import Staff from "../models/staff.model";
 import { publishEvent } from "../events/publisher";
 import { sendEmail } from "../services/mail.service";
 import { logger } from "../utils/logger";
+import redisClient from "../config/redis";
 import dotenv from "dotenv";
 dotenv.config();
 import StaffHospital from "../models/staffHospital.model";
@@ -643,6 +644,12 @@ export const staffDelete: any = asyncHandler(async (req: Request, res: Response)
     isDelete: true,
     deleteDate: new Date(),
   });
+
+  try {
+    await redisClient.del(`membership:staff:${id}:${staff.hospitalId}`);
+  } catch (err: any) {
+    console.error("Failed to invalidate membership cache:", err.message);
+  }
 
 
 

@@ -228,6 +228,117 @@ const updateFCMTokenInService = async (
   }
 };
 
+const verifyMembershipStatus = async (
+  role: string,
+  roleId: number | undefined,
+  hospitalId: number | undefined
+): Promise<boolean> => {
+  if (!roleId || !hospitalId) {
+    return false;
+  }
+
+  try {
+    let isActive = false;
+
+    if (role === "doctor") {
+      const resHosp = await axios.get(
+        `${process.env.DOCTOR_SERVICE_URL}/doctor/internal/${roleId}/hospitals`,
+        {
+          headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET },
+          timeout: 3000,
+        }
+      );
+      const memberships = resHosp.data?.data || [];
+      const chosen = memberships.find((m: any) => m.hospitalId === hospitalId);
+      if (chosen && chosen.status === "ACTIVE") isActive = true;
+    } else if (role === "staff") {
+      const resHosp = await axios.get(
+        `${process.env.STAFF_SERVICE_URL}/staff/internal/${roleId}/hospitals`,
+        {
+          headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET },
+          timeout: 3000,
+        }
+      );
+      const memberships = resHosp.data?.data || [];
+      const chosen = memberships.find((m: any) => m.hospitalId === hospitalId);
+      if (chosen && chosen.status === "ACTIVE") isActive = true;
+    } else {
+      isActive = true;
+    }
+
+    return isActive;
+  } catch (err: any) {
+    console.error("Failed to verify membership status:", err.message);
+    return false;
+  }
+};
+
+export const selectHospital: any = asyncHandler(async (req: Request, res: Response) => {
+  const decoded: any = (req as any).user;
+  const { hospitalId } = req.body;
+
+  if (!decoded || !decoded.isSelectionToken) {
+    res.status(401).json({ success: false, message: "Invalid or missing selection token" });
+    return;
+  }
+
+  const selectedHospitalId = Number(hospitalId);
+  if (Number.isNaN(selectedHospitalId)) {
+    res.status(400).json({ success: false, message: "Invalid hospitalId" });
+    return;
+  }
+
+  const availableHospitalIds = Array.isArray(decoded.availableHospitalIds)
+    ? decoded.availableHospitalIds.map((id: any) => Number(id))
+    : [];
+
+  if (!availableHospitalIds.includes(selectedHospitalId)) {
+    res.status(403).json({ success: false, message: "Not authorized for this hospital" });
+    return;
+  }
+
+  const authUser = await Auth.findByPk(decoded.authId);
+  if (!authUser) {
+    res.status(404).json({ success: false, message: "User not found" });
+    return;
+  }
+
+  const isActive = await verifyMembershipStatus(decoded.userType || decoded.role, decoded.userType === 'doctor' ? authUser.doctorId : authUser.staffId, selectedHospitalId);
+  if (!isActive) {
+    res.status(403).json({ success: false, message: "Hospital membership is not active" });
+    return;
+  }
+
+  const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+  const tokenPayload = {
+    id: authUser.id,
+    name: authUser.role === 'doctor' ? authUser.doctorName : authUser.role === 'staff' ? authUser.staffName : authUser.hospitalName || '',
+    role: authUser.role,
+    roleId: authUser.roleId,
+    hospitalId: selectedHospitalId,
+    staffId: authUser.staffId,
+    doctorId: authUser.doctorId,
+    superadminId: authUser.superadminId,
+    userType: authUser.role,
+  };
+
+  const token = jwt.sign({ ...tokenPayload, isRefresh: false }, jwtKey, { expiresIn: '15m' });
+  const refreshToken = jwt.sign({ ...tokenPayload, isRefresh: true }, jwtKey, { expiresIn: '2w' });
+  setRefreshTokenCookie(res, refreshToken);
+
+  const safeUser = authUser.toJSON();
+  delete safeUser.password;
+  delete safeUser.otp;
+  delete safeUser.otpExpiry;
+
+  res.status(200).json({
+    success: true,
+    message: 'Hospital selected successfully',
+    token,
+    data: safeUser,
+  });
+});
+
 export const toggleNotificationStatus: any = asyncHandler(async (req: Request, res: Response) => {
   const decoded: any = (req as any).user;
   
@@ -324,7 +435,18 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
 
       if (memberships.length > 1 && !hospitalId) {
         const hospitals = memberships.map((m: any) => ({ hospitalId: m.hospitalId, status: m.status, joinedAt: m.joinedAt, leftAt: m.leftAt }));
-        res.status(200).json({ success: true, requiresHospitalSelection: true, user: { authId: user.id, role: user.role, name: user.doctorName || user.staffName || user.hospitalName }, hospitals });
+        const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+        const tempToken = jwt.sign(
+          {
+            authId: user.id,
+            userType: user.role,
+            availableHospitalIds: hospitals.map((h: any) => h.hospitalId),
+            isSelectionToken: true,
+          },
+          jwtKey,
+          { expiresIn: "5m" }
+        );
+        res.status(200).json({ success: true, requiresHospitalSelection: true, token: tempToken, user: { authId: user.id, role: user.role, name: user.doctorName || user.staffName || user.hospitalName }, hospitals });
         return;
       }
 
@@ -334,10 +456,14 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
           res.status(403).json({ success: false, message: 'No active membership for selected hospital' });
           return;
         }
-        // attach chosen hospital to user for token/profile fetch
         (selectedUser as any).hospitalId = chosen.hospitalId;
       } else if (memberships.length === 1) {
-        (selectedUser as any).hospitalId = memberships[0].hospitalId;
+        const singleMembership = memberships[0];
+        if (singleMembership.status !== 'ACTIVE') {
+          res.status(403).json({ success: false, message: 'No active membership for the only linked hospital' });
+          return;
+        }
+        (selectedUser as any).hospitalId = singleMembership.hospitalId;
       }
     } catch (err: any) {
       console.error('Failed to fetch doctor memberships:', err.message);
@@ -354,7 +480,18 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
 
       if (memberships.length > 1 && !hospitalId) {
         const hospitals = memberships.map((m: any) => ({ hospitalId: m.hospitalId, status: m.status, joinedAt: m.joinedAt, leftAt: m.leftAt }));
-        res.status(200).json({ success: true, requiresHospitalSelection: true, user: { authId: user.id, role: user.role, name: user.doctorName || user.staffName || user.hospitalName }, hospitals });
+        const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
+        const tempToken = jwt.sign(
+          {
+            authId: user.id,
+            userType: user.role,
+            availableHospitalIds: hospitals.map((h: any) => h.hospitalId),
+            isSelectionToken: true,
+          },
+          jwtKey,
+          { expiresIn: "5m" }
+        );
+        res.status(200).json({ success: true, requiresHospitalSelection: true, token: tempToken, user: { authId: user.id, role: user.role, name: user.doctorName || user.staffName || user.hospitalName }, hospitals });
         return;
       }
 
@@ -366,7 +503,12 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
         }
         (selectedUser as any).hospitalId = chosen.hospitalId;
       } else if (memberships.length === 1) {
-        (selectedUser as any).hospitalId = memberships[0].hospitalId;
+        const singleMembership = memberships[0];
+        if (singleMembership.status !== 'ACTIVE') {
+          res.status(403).json({ success: false, message: 'No active membership for the only linked hospital' });
+          return;
+        }
+        (selectedUser as any).hospitalId = singleMembership.hospitalId;
       }
     } catch (err: any) {
       console.error('Failed to fetch staff memberships:', err.message);

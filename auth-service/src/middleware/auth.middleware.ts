@@ -27,7 +27,15 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   }
 
   try {
-    const decoded = jwt.verify(token, jwtSecret);
+    const decoded: any = jwt.verify(token, jwtSecret);
+    
+    if (decoded.isSelectionToken) {
+      if (!req.path.includes('/select-hospital')) {
+        res.status(403).json({ message: 'This temporary token is only valid for selecting a hospital.' });
+        return;
+      }
+    }
+
     req.user = decoded;
     next();
   } catch (error) {
