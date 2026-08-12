@@ -9,6 +9,7 @@ import twilio from "twilio";
 import axios from "axios";
 import { logger } from "../utils/logger";
 import { sendEmail } from "../services/mail.service";
+import redisClient from "../config/redis";
 import dotenv from "dotenv";
 dotenv.config();
 import DoctorHospital from "../models/doctorHospital.model";
@@ -735,6 +736,13 @@ export const doctorDelete: any = asyncHandler(
       isDelete: true,
       deleteDate: new Date(),
     });
+
+    // Invalidate membership cache
+    try {
+      await redisClient.del(`membership:doctor:${id}:${doctor.hospitalId}`);
+    } catch (err: any) {
+      console.error("Failed to invalidate membership cache:", err.message);
+    }
 
 
     // delete auth doctor

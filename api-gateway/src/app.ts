@@ -9,6 +9,7 @@ import routes from "./routes";
 import { errorHandler } from "./middleware/error.middleware";
 import { env } from "./config/env";
 import { requestLogger } from "./middleware/logger.middleware";
+import { authAndMembershipMiddleware } from "./middleware/auth.middleware";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -94,6 +95,11 @@ app.use("/api/ambulance/login", loginLimiter);
 app.use("/api/doctor/login", loginLimiter);
 app.use("/api/staff/login", loginLimiter);
 app.use("/api/hospital/login", loginLimiter);
+
+/**
+ * GLOBAL AUTH & MEMBERSHIP MIDDLEWARE
+ */
+app.use(authAndMembershipMiddleware);
 
 /**
  * CORS

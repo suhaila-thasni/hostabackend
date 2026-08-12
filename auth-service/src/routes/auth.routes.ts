@@ -12,7 +12,9 @@ import {
   register,
   deleteAuth,
   update,
-  getAuthByid
+  getAuthByid,
+  selectHospital,
+  toggleNotificationStatus
 } from '../controllers/auth.controller';
 import { getAuditLogs } from '../controllers/audit.controller';
 import { authenticate, checkPermission } from '../middleware/auth.middleware';
@@ -42,6 +44,8 @@ router.post("/login", validate(loginHospitalSchema), login);
 router.post("/login/phone", validate(loginWithPhoneSchema), loginWithPhone);
 router.post("/otp", validate(verifyOtpSchema), verifyLoginOtp);
 router.post("/", validate(registerSchema), register);
+router.post("/select-hospital", authenticate, selectHospital);
+router.put("/notification/toggle", authenticate, toggleNotificationStatus);
 
 router.put("/:id/role/:roles", update);
 router.delete("/:id/role/:roles", deleteAuth);

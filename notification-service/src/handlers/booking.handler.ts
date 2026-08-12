@@ -2,6 +2,7 @@ import Notification from "../models/notification.model";
 import { safeSocketEmit } from "../utils/socket.emitter";
 import axios from "axios";
 import { sendPushNotificationMulticast } from "../utils/sendPush";
+import { getTokensIfEnabled } from "../utils/token.util";
 
 const formatBookingId = (id: number | string): string => {
   const num = typeof id === "string" ? parseInt(id, 10) : id;
@@ -79,13 +80,11 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
         pushBody = `${content.patient_name || "Patient"} booked with ${content.doctorName || "Doctor"}`;
 
         if (content.hospitalId) {
-          const authHospitalToken = await axios.get(`${process.env.AUTH_SERVICE_URL}/auth/${content.hospitalId}/role/hospital`);
-          const hTokens = authHospitalToken?.data?.data?.hospital_fcmtoken?.map((d: any) => d.fcmToken) ?? [];
+          const hTokens = await getTokensIfEnabled("hospital", content.hospitalId, "hospital_fcmtoken");
           tokensToNotify.push(...hTokens);
         }
         if (content.doctorId) {
-          const authDoctorToken = await axios.get(`${process.env.AUTH_SERVICE_URL}/auth/${content.doctorId}/role/doctor`);
-          const dTokens = authDoctorToken?.data?.data?.doctor_fcmtoken?.map((d: any) => d.fcmToken) ?? [];
+          const dTokens = await getTokensIfEnabled("doctor", content.doctorId, "doctor_fcmtoken");
           tokensToNotify.push(...dTokens);
         }
       } else if (routingKey === "BOOKING_CANCELLED") {
@@ -93,8 +92,7 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
         pushBody = "Patient cancelled appointment";
 
         if (content.doctorId) {
-          const authDoctorToken = await axios.get(`${process.env.AUTH_SERVICE_URL}/auth/${content.doctorId}/role/doctor`);
-          const dTokens = authDoctorToken?.data?.data?.doctor_fcmtoken?.map((d: any) => d.fcmToken) ?? [];
+          const dTokens = await getTokensIfEnabled("doctor", content.doctorId, "doctor_fcmtoken");
           tokensToNotify.push(...dTokens);
         }
       }
