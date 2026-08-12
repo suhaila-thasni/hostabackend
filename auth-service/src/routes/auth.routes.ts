@@ -80,3 +80,10 @@ router.post("/refresh", refreshHospitalToken);
 router.post("/logout/:id", authenticate, logout);
 
 export default router;
+
+
+
+
+
+
+

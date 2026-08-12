@@ -299,6 +299,35 @@ export const archiveEmail = async (
     });
 };
 
+// ── Unarchive ──
+export const unarchiveEmail = async (
+    req: Request,
+    res: Response
+) => {
+    const notificationId = Number(req.params.id);
+    if (Number.isNaN(notificationId)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid email notification ID",
+        });
+    }
+
+    const unarchived = await EmailService.unarchiveEmail(notificationId);
+
+    if (!unarchived) {
+        return res.status(404).json({
+            success: false,
+            message: "Email notification not found",
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "Email unarchived successfully",
+        data: unarchived,
+    });
+};
+
 // ── Get Recipients by Roles ──
 export const getRecipientsByRoles = async (
     req: any,
@@ -360,4 +389,4 @@ export const getRecipientsByRoles = async (
             error: error.message
         });
     }
-};
+};

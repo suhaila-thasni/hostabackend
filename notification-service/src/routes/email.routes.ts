@@ -10,6 +10,7 @@ import {
   duplicateEmail,
   resendEmail,
   archiveEmail,
+  unarchiveEmail,
   getRecipientsByRoles,
 } from "../controllers/email.controller";
 import { authenticate } from "../middleware/authenticate";
@@ -104,6 +105,14 @@ router.patch(
   authenticate,
   checkPermission("email", "edit"),
   archiveEmail
+);
+
+// ── Unarchive ──
+router.patch(
+  "/unarchive/:id",
+  authenticate,
+  checkPermission("email", "edit"),
+  unarchiveEmail
 );
 
 // ── Get Recipients by Roles ──

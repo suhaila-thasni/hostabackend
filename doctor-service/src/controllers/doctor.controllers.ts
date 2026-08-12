@@ -11,6 +11,7 @@ import { logger } from "../utils/logger";
 import { sendEmail } from "../services/mail.service";
 import dotenv from "dotenv";
 dotenv.config();
+import DoctorHospital from "../models/doctorHospital.model";
 
 
 interface FCMTOKEN {
@@ -572,6 +573,19 @@ export const getanDoctor: any = asyncHandler(
     });
   },
 );
+
+// GET hospitals for a doctor (internal)
+export const getDoctorHospitals: any = asyncHandler(async (req: Request, res: Response) => {
+  const doctorId = parseInt(req.params.id as string);
+  if (isNaN(doctorId)) {
+    res.status(400).json({ success: false, message: 'Invalid doctor id' });
+    return;
+  }
+
+  const records = await DoctorHospital.findAll({ where: { doctorId } });
+
+  res.status(200).json({ success: true, data: records });
+});
 
 // UPDATE - PUT /doctor/:id
 export const updateData: any = asyncHandler(

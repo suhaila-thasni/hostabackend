@@ -12,6 +12,7 @@ import { sendEmail } from "../services/mail.service";
 import { logger } from "../utils/logger";
 import dotenv from "dotenv";
 dotenv.config();
+import StaffHospital from "../models/staffHospital.model";
 
 
 
@@ -344,6 +345,18 @@ if (staff.roleId) {
      authDefaultPermission: 1,
     authPermission
   });
+});
+
+// GET hospitals for a staff (internal)
+export const getStaffHospitals: any = asyncHandler(async (req: Request, res: Response) => {
+  const staffId = parseInt(req.params.id as string);
+  if (isNaN(staffId)) {
+    res.status(400).json({ success: false, message: 'Invalid staff id' });
+    return;
+  }
+
+  const records = await StaffHospital.findAll({ where: { staffId } });
+  res.status(200).json({ success: true, data: records });
 });
 
 // LOGIN WITH PHONE - POST /staff/login/phone

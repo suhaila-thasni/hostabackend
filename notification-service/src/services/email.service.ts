@@ -276,3 +276,16 @@ export const archiveEmail = async (id: number) => {
 
     return EmailNotification.findByPk(id);
 };
+
+// ── Unarchive ──
+export const unarchiveEmail = async (id: number) => {
+    const notification = await EmailNotification.findByPk(id);
+    if (!notification) return null;
+
+    await EmailNotification.update(
+        { status: "DRAFT", archivedAt: null },
+        { where: { id } }
+    );
+
+    return EmailNotification.findByPk(id);
+};

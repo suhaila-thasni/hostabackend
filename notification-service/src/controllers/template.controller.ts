@@ -124,3 +124,6 @@ export const deleteTemplate = async (req: any, res: Response) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
+
+

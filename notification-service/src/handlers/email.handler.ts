@@ -24,57 +24,71 @@ export const handleEmailEvent = async (
 
         if (recipients && Array.isArray(recipients)) {
             for (const recipient of recipients) {
-                const { roleId, all, userIds } = recipient;
+                const { roleId, all, userIds, userId } = recipient;
+                // Accept both userIds (plural) and userId (singular) for backward compatibility
+                const targetUserIds = userIds || userId || [];
 
                 if (all) {
                     // Fetch ALL users for this role
                     try {
                         const doctorsRes = await axios.post(
                             `${process.env.DOCTOR_SERVICE_URL || process.env.DOCTOR_SERVICE}/doctor/emails-by-roles`,
-                            { roleIds: [roleId], hospitalId }
+                            { roleIds: [roleId], hospitalId },
+                            { timeout: 5000 }
                         );
                         if (Array.isArray(doctorsRes.data)) {
                             allEmails.push(...doctorsRes.data);
+                        } else if (doctorsRes.data?.data && Array.isArray(doctorsRes.data.data)) {
+                            allEmails.push(...doctorsRes.data.data);
                         }
-                    } catch (err) {
-                        console.error("Failed to fetch doctor emails by role:", err);
+                    } catch {
+                        // Ignore lookup failures for this recipient.
                     }
 
                     try {
                         const staffRes = await axios.post(
                             `${process.env.STAFF_SERVICE_URL || process.env.STAFF_SERVICE}/staff/emails-by-roles`,
-                            { roleIds: [roleId], hospitalId }
+                            { roleIds: [roleId], hospitalId },
+                            { timeout: 5000 }
                         );
                         if (Array.isArray(staffRes.data)) {
                             allEmails.push(...staffRes.data);
+                        } else if (staffRes.data?.data && Array.isArray(staffRes.data.data)) {
+                            allEmails.push(...staffRes.data.data);
                         }
-                    } catch (err) {
-                        console.error("Failed to fetch staff emails by role:", err);
+                    } catch {
+                        // Ignore lookup failures for this recipient.
                     }
-                } else if (userIds && userIds.length > 0) {
+                } else if (targetUserIds && targetUserIds.length > 0) {
                     // Fetch SPECIFIC users for this role
                     try {
                         const doctors = await axios.post(
                             `${process.env.DOCTOR_SERVICE_URL || process.env.DOCTOR_SERVICE}/doctor/emails`,
-                            { ids: userIds, roleId, hospitalId }
+                            { ids: targetUserIds, roleId, hospitalId },
+                            { timeout: 5000 }
                         );
                         if (Array.isArray(doctors.data)) {
                             allEmails.push(...doctors.data);
+                        } else if (doctors.data?.data && Array.isArray(doctors.data.data)) {
+                            allEmails.push(...doctors.data.data);
                         }
-                    } catch (err) {
-                        console.error("Failed to fetch specific doctor emails:", err);
+                    } catch {
+                        // Ignore lookup failures for this recipient.
                     }
 
                     try {
                         const staffs = await axios.post(
                             `${process.env.STAFF_SERVICE_URL || process.env.STAFF_SERVICE}/staff/emails`,
-                            { ids: userIds, roleId, hospitalId }
+                            { ids: targetUserIds, roleId, hospitalId },
+                            { timeout: 5000 }
                         );
                         if (Array.isArray(staffs.data)) {
                             allEmails.push(...staffs.data);
+                        } else if (staffs.data?.data && Array.isArray(staffs.data.data)) {
+                            allEmails.push(...staffs.data.data);
                         }
-                    } catch (err) {
-                        console.error("Failed to fetch specific staff emails:", err);
+                    } catch {
+                        // Ignore lookup failures for this recipient.
                     }
                 }
             }
@@ -86,7 +100,6 @@ export const handleEmailEvent = async (
         );
 
         if (uniqueEmails.length === 0) {
-            console.log("No valid emails found to send notification");
             if (notificationId) {
                 await EmailNotification.update(
                     { status: "FAILED", failedCount: 0, totalRecipients: 0 },
@@ -118,12 +131,11 @@ export const handleEmailEvent = async (
         let successCount = 0;
         let failedCount = 0;
 
-        results.forEach(result => {
+        results.forEach((result, idx) => {
             if (result.status === "fulfilled") {
                 successCount++;
             } else {
                 failedCount++;
-                console.error(`Email send failed for recipient:`, result.reason);
             }
         });
 
@@ -137,15 +149,12 @@ export const handleEmailEvent = async (
                 { where: { id: notificationId } }
             );
         }
-
-        console.log(`Successfully processed email notification for ${uniqueEmails.length} recipients. Success: ${successCount}, Failed: ${failedCount}`);
-    } catch (error) {
-        console.error("Error in handleEmailEvent:", error);
+    } catch (error: any) {
         if (content.notificationId) {
             await EmailNotification.update(
                 { status: "FAILED" },
                 { where: { id: content.notificationId } }
-            ).catch(e => console.error("Could not update notification status to FAILED", e));
+            ).catch(() => undefined);
         }
         throw error;
     }

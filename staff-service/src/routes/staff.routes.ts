@@ -5,6 +5,7 @@ import {
   loginWithPhone,
   verifyOtp,
   getanStaff,
+  getStaffHospitals,
   updateData,
   staffDelete,
   getStaffs,
@@ -93,6 +94,7 @@ router.put("/staff/:id",authenticate, validateParams(idParamSchema), validate(up
 
 router.put("/staff/internal/:id/password", verifyInternalRequest, updateStaffPassword);
 router.get("/staff/internal/:id",verifyInternalRequest, validateParams(idParamSchema), getanStaff);
+router.get("/staff/internal/:id/hospitals", verifyInternalRequest, validateParams(idParamSchema), getStaffHospitals);
 
 
 
