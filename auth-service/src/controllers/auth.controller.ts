@@ -228,6 +228,33 @@ const updateFCMTokenInService = async (
   }
 };
 
+export const toggleNotificationStatus: any = asyncHandler(async (req: Request, res: Response) => {
+  const decoded: any = (req as any).user;
+  
+  if (!decoded || !decoded.id) {
+    res.status(401).json({ success: false, message: 'Unauthorized' });
+    return;
+  }
+
+  const user = await Auth.findByPk(decoded.id);
+  if (!user) {
+    res.status(404).json({ success: false, message: 'User not found' });
+    return;
+  }
+
+  // Toggle the current status
+  const currentStatus = user.notificationEnabled !== undefined ? user.notificationEnabled : true;
+  user.notificationEnabled = !currentStatus;
+  
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: `Notifications have been ${user.notificationEnabled ? 'enabled' : 'disabled'}.`,
+    notificationEnabled: user.notificationEnabled
+  });
+});
+
 // ===================== LOGIN (Email/Password) =====================
 
 export const login: any = asyncHandler(async (req: Request, res: Response) => {
