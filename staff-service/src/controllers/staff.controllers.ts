@@ -8,6 +8,7 @@ import twilio from "twilio";
 import axios from "axios";
 import Staff from "../models/staff.model";
 import { publishEvent } from "../events/publisher";
+import sequelize from "../config/db";
 import { sendEmail } from "../services/mail.service";
 import { logger } from "../utils/logger";
 import redisClient from "../config/redis";
@@ -125,76 +126,92 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
     return;
   }
 
-  const phoneExists = await Staff.findOne({ where: { phone } });
+  const phoneExists = await Staff.findOne({ where: { phone, hospitalId } });
   if (phoneExists) {
     res.status(400).json({
       success: false,
-      message: "Phone number already registered",
+      message: "Phone number already registered in this hospital",
       error: { code: "PHONE_EXISTS" },
     });
     return;
   }
 
-  const emailExists = await Staff.findOne({ where: { email } });
+  const emailExists = email
+    ? await Staff.findOne({ where: { email, hospitalId } })
+    : null;
   if (emailExists) {
     res.status(400).json({
       success: false,
-      message: "Email already registered",
+      message: "Email already registered in this hospital",
       error: { code: "EMAIL_EXISTS" },
     });
     return;
   }
 
+  const transaction = await sequelize.transaction();
+  let newStaff!: Staff;
+
   try {
-    const newStaff = await Staff.create({
+    newStaff = await Staff.create({
       hospitalId, name, phone, email, password, roleId, dob, gender,
       knowLanguages, qualification, address,
       designation, joiningDate, jobType, staffType, hospitalName,
       status: 'PENDING',
-    });
+    }, { transaction });
 
-    // Publish STAFF_CREATED event to RabbitMQ for Auth Service to consume
-    await publishEvent("auth_events", "STAFF_CREATED", {
+    await StaffHospital.create({
       staffId: newStaff.id,
-      email: newStaff.email,
-      phone: newStaff.phone,
-      password: password, // raw password - Auth Service will hash it via its own beforeCreate hook
-      role: "staff",
-      roleId: newStaff.roleId,
-      staffName: newStaff.name,
       hospitalId: newStaff.hospitalId,
-      hospitalName: newStaff.hospitalName,
-    });
+      status: "ACTIVE",
+      joinedAt: new Date(),
+    }, { transaction });
 
-    await publishEvent("staff_events", "STAFF_REGISTERED", {
-      staffId: newStaff.id,
-      staffName: newStaff.name,
-      phone: newStaff.phone,
-      hospitalId: newStaff.hospitalId,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Registration completed successfully. Account activation in progress.",
-      data: { staffId: newStaff.id, status: newStaff.status },
-      error: null,
-    });
+    await transaction.commit();
   } catch (error: any) {
+    await transaction.rollback();
     if (error.name === "SequelizeUniqueConstraintError") {
       res.status(400).json({
         success: false,
-        message: "Staff with this phone or email already exists",
+        message: "Staff with this phone or email already exists in this hospital",
         error: { code: "BAD_REQUEST", details: error.errors[0].message }
       });
+      return;
     } else {
       throw error; // Let global error handler handle other 500s
     }
   }
+
+  // Publish STAFF_CREATED event to RabbitMQ for Auth Service to consume
+  await publishEvent("auth_events", "STAFF_CREATED", {
+    staffId: newStaff.id,
+    email: newStaff.email,
+    phone: newStaff.phone,
+    password: password, // raw password - Auth Service will hash it via its own beforeCreate hook
+    role: "staff",
+    roleId: newStaff.roleId,
+    staffName: newStaff.name,
+    hospitalId: newStaff.hospitalId,
+    hospitalName: newStaff.hospitalName,
+  });
+
+  await publishEvent("staff_events", "STAFF_REGISTERED", {
+    staffId: newStaff.id,
+    staffName: newStaff.name,
+    phone: newStaff.phone,
+    hospitalId: newStaff.hospitalId,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Registration completed successfully. Account activation in progress.",
+    data: { staffId: newStaff.id, status: newStaff.status },
+    error: null,
+  });
 });
 
 // LOGIN - POST /staff/login
 export const login: any = asyncHandler(async (req: Request, res: Response) => {
-  const { email, phone, password, fcmToken } = req.body;
+  const { email, phone, password, fcmToken, hospitalId } = req.body;
 
   if (!email && !phone) {
     res.status(400).json({
@@ -205,16 +222,22 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  const staff = await Staff.scope("withPassword").findOne({
+  const staffs = await Staff.scope("withPassword").findAll({
     where: {
-      [Op.or]: [{ email: email || null }, { phone: phone || null }],
+      [Op.and]: [
+        {
+          [Op.or]: [
+            email ? { email } : null,
+            phone ? { phone } : null,
+          ].filter(Boolean),
+        },
+        ...(hospitalId ? [{ hospitalId }] : []),
+        { isDelete: false },
+      ],
     },
   });
 
-  
-
-
-  if (!staff) {
+  if (!staffs.length) {
     res.status(404).json({
       success: false,
       message: "Staff not found! Please register",
@@ -224,25 +247,41 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-   if(staff.isDelete === true) {
-       res.status(401).json({
+  const matchedStaff = [];
+
+  for (const staff of staffs) {
+    const valid = await bcrypt.compare(password, staff.password || "");
+    if (valid) {
+      matchedStaff.push(staff);
+    }
+  }
+
+  if (!matchedStaff.length) {
+    res.status(401).json({
       success: false,
-      message: "You'r account has been deactivated.",
+      message: "Wrong password, Please try again",
       data: null,
-      error: { code: "STAFF_BLACKLISTED", details: null },
+      error: { code: "WRONG_PASSWORD", details: null },
     });
     return;
-    }
+  }
 
+  if (matchedStaff.length > 1 && !hospitalId) {
+    res.status(200).json({
+      success: true,
+      requireHospitalSelection: true,
+      hospitals: matchedStaff.map((s) => ({
+        staffId: s.id,
+        hospitalId: s.hospitalId,
+        hospitalName: s.hospitalName,
+      })),
+    });
+    return;
+  }
 
-
+  const staff = matchedStaff[0];
 
 if (fcmToken) {
-  const staff = await Staff.findOne({
-    where: { email },
-  });
-
-  if (staff) {
     const existingTokens: FCMTOKEN[] = Array.isArray(staff.fcmToken)
       ? staff.fcmToken
       : [];
@@ -269,21 +308,8 @@ if (fcmToken) {
     await staff.update({
       fcmToken: updatedTokens,
     });
-
-  }
 }
 
-
-  const checkPassword = await bcrypt.compare(password, staff.password || "");
-  if (!checkPassword) {
-    res.status(401).json({
-      success: false,
-      message: "Wrong password, Please try again",
-      data: null,
-      error: { code: "WRONG_PASSWORD", details: null },
-    });
-    return;
-  }
 
   const jwtKey = process.env.JWT_SECRET;
   if (!jwtKey) {
@@ -297,12 +323,12 @@ if (fcmToken) {
   }
 
   // Generate JWT tokens
-  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, isRefresh: false }, jwtKey, {
+  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: false }, jwtKey, {
     expiresIn: "15m",
   });
 
   const refreshToken = jwt.sign(
-    { id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, isRefresh: true },
+    { id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: true },
     jwtKey,
     { expiresIn: "2w" }
   );
@@ -362,19 +388,40 @@ export const getStaffHospitals: any = asyncHandler(async (req: Request, res: Res
 
 // LOGIN WITH PHONE - POST /staff/login/phone
 export const loginWithPhone: any = asyncHandler(async (req: Request, res: Response) => {
-  const { phone } = req.body;
+  const { phone, hospitalId } = req.body;
   if (!phone) {
     res.status(400).json({ success: false, message: "Phone number is required" });
     return;
   }
 
   let numericPhone = phone.replace(/\D/g, "").slice(-10);
-  const staff = await Staff.findOne({ where: { phone: numericPhone, isDelete: false } });
+  const staffs = await Staff.findAll({
+    where: {
+      phone: numericPhone,
+      isDelete: false,
+      ...(hospitalId ? { hospitalId } : {}),
+    },
+  });
 
-  if (!staff) {
+  if (!staffs.length) {
     res.status(404).json({ success: false, message: "Phone number not registered!" });
     return;
   }
+
+  if (staffs.length > 1 && !hospitalId) {
+    res.status(200).json({
+      success: true,
+      requireHospitalSelection: true,
+      hospitals: staffs.map((s) => ({
+        staffId: s.id,
+        hospitalId: s.hospitalId,
+        hospitalName: s.hospitalName,
+      })),
+    });
+    return;
+  }
+
+  const staff = staffs[0];
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   staff.otp = otp;
@@ -417,7 +464,7 @@ export const loginWithPhone: any = asyncHandler(async (req: Request, res: Respon
 
 // VERIFY OTP - POST /staff/verify-otp
 export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) => {
-  const { phone, otp, fcmToken } = req.body;
+  const { phone, otp, fcmToken, hospitalId } = req.body;
 
   if (!phone || !otp) {
     res.status(400).json({ success: false, message: "Phone and OTP are required" });
@@ -425,7 +472,33 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
   }
 
   let numericPhone = phone.replace(/\D/g, "").slice(-10);
-  const staff = await Staff.findOne({ where: { phone: numericPhone } });
+  const staffs = await Staff.findAll({
+    where: {
+      phone: numericPhone,
+      isDelete: false,
+      ...(hospitalId ? { hospitalId } : {}),
+    },
+  });
+
+  if (!staffs.length) {
+    res.status(400).json({ success: false, message: "Invalid OTP" });
+    return;
+  }
+
+  if (staffs.length > 1 && !hospitalId) {
+    res.status(200).json({
+      success: true,
+      requireHospitalSelection: true,
+      hospitals: staffs.map((s) => ({
+        staffId: s.id,
+        hospitalId: s.hospitalId,
+        hospitalName: s.hospitalName,
+      })),
+    });
+    return;
+  }
+
+  const staff = staffs[0];
 
   if (!staff || staff.otp !== otp.toString()) {
     res.status(400).json({ success: false, message: "Invalid OTP" });
@@ -452,8 +525,8 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
     return;
   }
 
-  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, isRefresh: false }, jwtKey, { expiresIn: "15m" });
-  const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, isRefresh: true }, jwtKey, { expiresIn: "2w" });
+  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: false }, jwtKey, { expiresIn: "15m" });
+  const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: true }, jwtKey, { expiresIn: "2w" });
 
   // Save refresh token to Redis (REMOVED)
 
@@ -1100,10 +1173,10 @@ export const verifyStaffOtp: any = asyncHandler(async (req: Request, res: Respon
 
 
   const jwtKey = process.env.JWT_SECRET;
-  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, isRefresh: false }, jwtKey, {
+  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: false }, jwtKey, {
     expiresIn: "15m",
   });
-  const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, isRefresh: true }, jwtKey, {
+  const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: true }, jwtKey, {
     expiresIn: "2w",
   });
 
@@ -1381,7 +1454,7 @@ export const refreshStaffToken: any = asyncHandler(async (req: Request, res: Res
       return;
     }
 
-    const newToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, isRefresh: false }, jwtKey, {
+    const newToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: false }, jwtKey, {
       expiresIn: "15m",
     });
 

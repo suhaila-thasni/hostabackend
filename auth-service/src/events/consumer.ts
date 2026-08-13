@@ -118,7 +118,7 @@ const startConsumers = async () => {
                 console.log("📨 Auth Service received DOCTOR_CREATED event:", data);
 
                 // 1. Idempotency Check: Did we already create this Auth record?
-                const existingAuth = await Auth.findOne({ where: { email: data.email, role: 'doctor' } });
+                const existingAuth = await Auth.findOne({ where: { doctorId: data.doctorId, role: 'doctor' } });
 
                 if (!existingAuth) {
                     // 2. Create Auth Record
@@ -196,7 +196,7 @@ const startConsumers = async () => {
                 console.log("📨 Auth Service received STAFF_CREATED event:", data);
 
                 // 1. Idempotency Check: Did we already create this Auth record?
-                const existingAuth = await Auth.findOne({ where: { email: data.email, role: 'staff' } });
+                const existingAuth = await Auth.findOne({ where: { staffId: data.staffId, role: 'staff' } });
 
                 if (!existingAuth) {
                     // 2. Create Auth Record

@@ -182,7 +182,6 @@ Staff.init(
     phone: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
       validate: {
         notEmpty: true,
       },
@@ -191,7 +190,6 @@ Staff.init(
     email: {
       type: DataTypes.STRING,
       allowNull: true,
-      unique: true,
       validate: {
         isEmail: true,
       },
@@ -277,11 +275,11 @@ Staff.init(
     indexes: [
       {
         unique: true,
-        fields: ["phone"],
+        fields: ["hospitalId", "phone"],
       },
       {
         unique: true,
-        fields: ["email"],
+        fields: ["hospitalId", "email"],
       },
     ],
   }

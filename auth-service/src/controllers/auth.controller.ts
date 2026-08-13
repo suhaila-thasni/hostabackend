@@ -339,6 +339,8 @@ export const selectHospital: any = asyncHandler(async (req: Request, res: Respon
   });
 });
 
+
+
 export const toggleNotificationStatus: any = asyncHandler(async (req: Request, res: Response) => {
   const decoded: any = (req as any).user;
   
@@ -366,6 +368,9 @@ export const toggleNotificationStatus: any = asyncHandler(async (req: Request, r
   });
 });
 
+
+
+
 // ===================== LOGIN (Email/Password) =====================
 
 export const login: any = asyncHandler(async (req: Request, res: Response) => {
@@ -386,14 +391,14 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  // 2. Find the unique auth record (auth.email must remain unique)
-  const user = await Auth.scope("withPassword").findOne({
+  // 2. Find matching auth records. Staff/doctor email and phone can repeat across hospitals.
+  const users = await Auth.scope("withPassword").findAll({
     where: {
       [Op.or]: [email ? { email } : null, phone ? { phone } : null].filter(Boolean) as any,
     },
   });
 
-  if (!user) {
+  if (!users.length) {
     await createAuditLog({ req, name: email || phone || 'Unknown', role: 'Unknown', status: 'Failed', riskLevel: 'High' });
     res.status(401).json({
       success: false,
@@ -401,6 +406,59 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
       data: null,
       error: { code: "USER_NOT_FOUND", details: null },
     });
+    return;
+  }
+
+  const activeUsers = users.filter((user) => user.isDelete !== true && user.isActive !== false);
+
+  if (!activeUsers.length) {
+    await createAuditLog({ req, name: email || phone || 'Unknown', role: 'Unknown', status: 'Failed', riskLevel: 'High' });
+    res.status(401).json({
+      success: false,
+      message: "User account has been deactivated or deleted.",
+      data: null,
+      error: { code: "USER_BLACKLISTED", details: null },
+    });
+    return;
+  }
+
+  const matchedUsers = [];
+
+  for (const authUser of activeUsers) {
+    const validPassword = await bcrypt.compare(password, authUser.password || "");
+    if (validPassword) {
+      matchedUsers.push(authUser);
+    }
+  }
+
+  if (!matchedUsers.length) {
+    await createAuditLog({ req, name: email || phone || 'Unknown', role: 'Unknown', status: 'Failed', riskLevel: 'High' });
+    res.status(401).json({ success: false, message: "Wrong password", data: null, error: { code: "WRONG_PASSWORD" } });
+    return;
+  }
+
+  if (matchedUsers.length > 1 && !hospitalId) {
+    res.status(200).json({
+      success: true,
+      requireHospitalSelection: true,
+      hospitals: matchedUsers.map((authUser) => ({
+        authId: authUser.id,
+        role: authUser.role,
+        staffId: authUser.staffId,
+        doctorId: authUser.doctorId,
+        hospitalId: authUser.hospitalId,
+        hospitalName: authUser.hospitalName,
+      })),
+    });
+    return;
+  }
+
+  const user = hospitalId
+    ? matchedUsers.find((authUser) => Number(authUser.hospitalId) === Number(hospitalId))
+    : matchedUsers[0];
+
+  if (!user) {
+    res.status(403).json({ success: false, message: 'No active user for selected hospital' });
     return;
   }
 
@@ -412,14 +470,6 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
       data: null,
       error: { code: "USER_BLACKLISTED", details: null },
     });
-    return;
-  }
-
-  // 3. Validate password
-  const validPassword = await bcrypt.compare(password, user.password || "");
-  if (!validPassword) {
-    await createAuditLog({ req, authId: user.id, name: user.doctorName || user.staffName || user.hospitalName || 'Unknown', role: user.role, status: 'Failed', riskLevel: 'High' });
-    res.status(401).json({ success: false, message: "Wrong password", data: null, error: { code: "WRONG_PASSWORD" } });
     return;
   }
 

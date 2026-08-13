@@ -82,6 +82,7 @@ Auth.init(
     },
     phone: {
       type: DataTypes.STRING,
+      
       allowNull: true,
     },
     password: {

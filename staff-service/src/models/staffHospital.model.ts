@@ -58,6 +58,13 @@ StaffHospital.init(
     modelName: 'StaffHospital',
     tableName: 'staff_hospitals',
     timestamps: true,
+     indexes: [
+    {
+      unique: true,
+      fields: ["staffId", "hospitalId"],
+    },
+  ],
+
   }
 );
 

@@ -9,7 +9,7 @@ import bcrypt from "bcryptjs";
 interface IConsultingSession {
   open: string;
   close: string;
-}``
+}
 
 interface IConsultingTwoTime {
   day: string;

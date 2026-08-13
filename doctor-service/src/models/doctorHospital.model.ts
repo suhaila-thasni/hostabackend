@@ -58,6 +58,13 @@ DoctorHospital.init(
     modelName: 'DoctorHospital',
     tableName: 'doctor_hospitals',
     timestamps: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ["doctorId", "hospitalId"],
+      },
+    ],  
+
   }
 );
 

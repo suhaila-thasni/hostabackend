@@ -5,6 +5,7 @@ import asyncHandler from "express-async-handler";
 import Doctor from "../models/doctor.model";
 import { publishEvent } from "../events/publisher";
 import { Op, Sequelize } from "sequelize";
+import sequelize from "../config/db";
 import twilio from "twilio";
 import axios from "axios";
 import { logger } from "../utils/logger";
@@ -162,34 +163,51 @@ export const Registeration: any = asyncHandler(
       return;
     }
 
-    const newDoctor = await Doctor.create({
-      firstName,
-      lastName,
-      phone: numericPhone,
-      email,
-      password,
-      roleId,
-      fees,
-      department,
-      specialist,
-      dob,
-      gender,
-      knowLanguages,
-      consultingTwo,
-      consultingOne,
-      bookingOpen,
-      qualification,
-      address,
-      displayName,
-      joiningDate,
-      outDoorConsulting,
-      hospitalId,
-      experience,
-      appointmentCount,
-      regNo,
-      hospitalName,
-      status: 'PENDING',
-    });
+    const transaction = await sequelize.transaction();
+    let newDoctor!: Doctor;
+
+    try {
+      newDoctor = await Doctor.create({
+        firstName,
+        lastName,
+        phone: numericPhone,
+        email,
+        password,
+        roleId,
+        fees,
+        department,
+        specialist,
+        dob,
+        gender,
+        knowLanguages,
+        consultingTwo,
+        consultingOne,
+        bookingOpen,
+        qualification,
+        address,
+        displayName,
+        joiningDate,
+        outDoorConsulting,
+        hospitalId,
+        experience,
+        appointmentCount,
+        regNo,
+        hospitalName,
+        status: 'PENDING',
+      }, { transaction });
+
+      await DoctorHospital.create({
+        doctorId: newDoctor.id,
+        hospitalId: newDoctor.hospitalId!,
+        status: "ACTIVE",
+        joinedAt: new Date(),
+      }, { transaction });
+
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
 
     // Publish DOCTOR_CREATED event to RabbitMQ for Auth Service to consume
     await publishEvent("auth_events", "DOCTOR_CREATED", {
@@ -203,6 +221,7 @@ export const Registeration: any = asyncHandler(
       hospitalId: newDoctor.hospitalId,
       hospitalName: newDoctor.hospitalName,
     });
+
 
     await publishEvent("doctor_events", "DOCTOR_REGISTERED", {
       doctorId: newDoctor.id,
@@ -307,39 +326,28 @@ export const login: any = asyncHandler(
 
 
     if (fcmToken) {
-      const doctor = await Doctor.findOne({
-        where: { email },
+      const existingTokens: FCMTOKEN[] = Array.isArray(doctor.fcmToken)
+        ? doctor.fcmToken
+        : [];
+
+      const newTokens: FCMTOKEN[] = Array.isArray(fcmToken)
+        ? fcmToken
+        : [fcmToken];
+
+      const updatedTokens = [
+        ...existingTokens.filter(
+          (oldToken) =>
+            !newTokens.some(
+              (newToken) =>
+                newToken.deviceId === oldToken.deviceId
+            )
+        ),
+        ...newTokens,
+      ];
+
+      await doctor.update({
+        fcmToken: updatedTokens,
       });
-
-      if (doctor) {
-        const existingTokens: FCMTOKEN[] = Array.isArray(doctor.fcmToken)
-          ? doctor.fcmToken
-          : [];
-
-        // Convert single object to array
-        const newTokens: FCMTOKEN[] = Array.isArray(fcmToken)
-          ? fcmToken
-          : [fcmToken];
-
-        const updatedTokens = [
-          // Remove old token for same device
-          ...existingTokens.filter(
-            (oldToken) =>
-              !newTokens.some(
-                (newToken) =>
-                  newToken.deviceId === oldToken.deviceId
-              )
-          ),
-
-          // Add new tokens
-          ...newTokens,
-        ];
-
-        await doctor.update({
-          fcmToken: updatedTokens,
-        });
-
-      }
     }
 
 
