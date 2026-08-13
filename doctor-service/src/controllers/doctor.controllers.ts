@@ -591,7 +591,28 @@ export const getDoctorHospitals: any = asyncHandler(async (req: Request, res: Re
     return;
   }
 
-  const records = await DoctorHospital.findAll({ where: { doctorId } });
+  let records = await DoctorHospital.findAll({ where: { doctorId } });
+
+  if (!records.length) {
+    const doctor = await Doctor.findOne({ where: { id: doctorId, isDelete: false } });
+
+    if (doctor?.hospitalId) {
+      const [membership] = await DoctorHospital.findOrCreate({
+        where: {
+          doctorId: doctor.id,
+          hospitalId: doctor.hospitalId,
+        },
+        defaults: {
+          doctorId: doctor.id,
+          hospitalId: doctor.hospitalId,
+          status: "ACTIVE",
+          joinedAt: doctor.joiningDate || new Date(),
+        },
+      });
+
+      records = [membership];
+    }
+  }
 
   res.status(200).json({ success: true, data: records });
 });

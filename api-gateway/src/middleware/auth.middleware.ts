@@ -72,15 +72,71 @@ export const authAndMembershipMiddleware = async (req: Request, res: Response, n
           const memberships = resHosp.data?.data || [];
           const chosen = memberships.find((m: any) => m.hospitalId === hospitalId);
           if (chosen && chosen.status === 'ACTIVE') isActive = true;
+        // } else if (decoded.role === 'staff') {
+        //   const resHosp = await axios.get(`${process.env.STAFF_SERVICE_URL}/staff/internal/${staffId}/hospitals`, {
+        //     headers: { 'x-service-secret': process.env.INTERNAL_SERVICE_SECRET },
+        //     timeout: 3000,
+        //   });
+        //   const memberships = resHosp.data?.data || [];
+        //   const chosen = memberships.find((m: any) => m.hospitalId === hospitalId);
+        //   if (chosen && chosen.status === 'ACTIVE') isActive = true;
+        // }
+
+
+
         } else if (decoded.role === 'staff') {
-          const resHosp = await axios.get(`${process.env.STAFF_SERVICE_URL}/staff/internal/${staffId}/hospitals`, {
-            headers: { 'x-service-secret': process.env.INTERNAL_SERVICE_SECRET },
-            timeout: 3000,
-          });
-          const memberships = resHosp.data?.data || [];
-          const chosen = memberships.find((m: any) => m.hospitalId === hospitalId);
-          if (chosen && chosen.status === 'ACTIVE') isActive = true;
-        }
+
+  console.log("========== STAFF MEMBERSHIP DEBUG ==========");
+  console.log("decoded:", decoded);
+  console.log("staffId:", staffId);
+  console.log("hospitalId:", hospitalId);
+  console.log("STAFF_SERVICE_URL:", process.env.STAFF_SERVICE_URL);
+  console.log(
+    "URL:",
+    `${process.env.STAFF_SERVICE_URL}/staff/internal/${staffId}/hospitals`
+  );
+  console.log("============================================");
+
+  const resHosp = await axios.get(
+    `${process.env.STAFF_SERVICE_URL}/staff/internal/${staffId}/hospitals`,
+    {
+      headers: {
+        'x-service-secret': process.env.INTERNAL_SERVICE_SECRET
+      },
+      timeout: 3000,
+    }
+  );
+
+  console.log("Staff service status:", resHosp.status);
+  console.log("Staff service response:", JSON.stringify(resHosp.data, null, 2));
+
+  const memberships = resHosp.data?.data || [];
+
+  console.log("Memberships:", memberships);
+  console.log("Requested hospitalId:", hospitalId);
+  console.log(
+    "Membership hospitalIds:",
+    memberships.map((m: any) => ({
+      hospitalId: m.hospitalId,
+      type: typeof m.hospitalId,
+      status: m.status
+    }))
+  );
+
+  const chosen = memberships.find(
+    (m: any) =>
+      Number(m.hospitalId) === Number(hospitalId) &&
+      m.status === 'ACTIVE'
+  );
+
+  console.log("Chosen membership:", chosen);
+
+  if (chosen) {
+    isActive = true;
+  }
+
+  console.log("isActive:", isActive);
+}
 
         if (isActive) {
           // Cache for 5 minutes

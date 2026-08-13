@@ -382,7 +382,29 @@ export const getStaffHospitals: any = asyncHandler(async (req: Request, res: Res
     return;
   }
 
-  const records = await StaffHospital.findAll({ where: { staffId } });
+  let records = await StaffHospital.findAll({ where: { staffId } });
+
+  if (!records.length) {
+    const staff = await Staff.findOne({ where: { id: staffId, isDelete: false } });
+
+    if (staff?.hospitalId) {
+      const [membership] = await StaffHospital.findOrCreate({
+        where: {
+          staffId: staff.id,
+          hospitalId: staff.hospitalId,
+        },
+        defaults: {
+          staffId: staff.id,
+          hospitalId: staff.hospitalId,
+          status: "ACTIVE",
+          joinedAt: staff.joiningDate || new Date(),
+        },
+      });
+
+      records = [membership];
+    }
+  }
+
   res.status(200).json({ success: true, data: records });
 });
 

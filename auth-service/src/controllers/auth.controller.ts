@@ -303,7 +303,23 @@ export const selectHospital: any = asyncHandler(async (req: Request, res: Respon
     return;
   }
 
-  const isActive = await verifyMembershipStatus(decoded.userType || decoded.role, decoded.userType === 'doctor' ? authUser.doctorId : authUser.staffId, selectedHospitalId);
+  // const isActive = await verifyMembershipStatus(decoded.userType || decoded.role, decoded.userType === 'doctor' ? authUser.doctorId : authUser.staffId, selectedHospitalId);
+  const effectiveRole = decoded.userType || decoded.role;
+
+const entityId =
+  effectiveRole === "doctor"
+    ? authUser.doctorId
+    : effectiveRole === "staff"
+      ? authUser.staffId
+      : undefined;
+
+const isActive = await verifyMembershipStatus(
+  effectiveRole,
+  entityId,
+  selectedHospitalId
+);
+
+
   if (!isActive) {
     res.status(403).json({ success: false, message: "Hospital membership is not active" });
     return;
@@ -501,7 +517,11 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
       }
 
       if (hospitalId) {
-        const chosen = memberships.find((m: any) => m.hospitalId === parseInt(hospitalId));
+        // const chosen = memberships.find((m: any) => m.hospitalId === parseInt(hospitalId));
+        const chosen = memberships.find(
+  (m: any) => Number(m.hospitalId) === Number(hospitalId)
+);
+
         if (!chosen || chosen.status !== 'ACTIVE') {
           res.status(403).json({ success: false, message: 'No active membership for selected hospital' });
           return;
