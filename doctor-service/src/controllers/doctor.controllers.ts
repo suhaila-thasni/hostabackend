@@ -1060,6 +1060,9 @@ export const recoverDoctor: any = asyncHandler(async (req: Request, res: Respons
   await publishEvent("doctor_events", "DOCTOR_RECOVERED", {
     doctorId: doctor.id,
     doctorName: doctor.displayName,
+    hospitalId: doctor.hospitalId,
+    hospitalName: doctor.hospitalName,
+    email: doctor.email,
   });
 
   res.status(200).json({
