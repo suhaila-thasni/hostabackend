@@ -17,7 +17,7 @@ export const handleBloodEvent = async (routingKey: string, content: any) => {
       message: msg,
     }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 
-    safeSocketEmit("role_1", "blood_donor_event", { event: routingKey, message: msg, data: content });
+    safeSocketEmit("role_1", "blood_events", { event: routingKey, message: msg, data: content });
   }
 
   if (routingKey === "DONOR_UPDATED" || routingKey === "DONOR_CREATED" || routingKey === "DONOR_DELETED") {

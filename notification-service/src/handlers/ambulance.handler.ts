@@ -17,6 +17,6 @@ export const handleAmbulanceEvent = async (routingKey: string, content: any) => 
       message: msg,
     }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 
-    safeSocketEmit("role_1", "ambulance_event", { event: routingKey, message: msg, data: content });
+    safeSocketEmit("role_1", "ambulance_events", { event: routingKey, message: msg, data: content });
   }
 };
