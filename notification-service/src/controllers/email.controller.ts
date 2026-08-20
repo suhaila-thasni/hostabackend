@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
 import * as EmailService from "../services/email.service";
+import asyncHandler from "express-async-handler";
 import axios from "axios";
 
 // ── Save Draft ──
-export const saveDraft = async (
+export const saveDraft: any = asyncHandler(async (
     req: any,
     res: Response
-) => {
+): Promise<any> => {
     const draft = await EmailService.saveDraft({
         hospitalId: req.user.hospitalId,
         createdBy: req.user.id,
@@ -18,13 +19,13 @@ export const saveDraft = async (
         message: "Draft saved successfully.",
         data: draft
     });
-};
+});
 
 // ── Send Email (new) ──
-export const sendEmailNotification = async (
+export const sendEmailNotification: any = asyncHandler(async (
     req: any,
     res: Response
-) => {
+): Promise<any> => {
     const {
         recipients,
         subject,
@@ -45,13 +46,13 @@ export const sendEmailNotification = async (
         success: true,
         message: "Email notification queued successfully."
     });
-};
+});
 
 // ── Send a Draft ──
-export const sendDraft = async (
+export const sendDraft: any = asyncHandler(async (
     req: any,
     res: Response
-) => {
+): Promise<any> => {
     const notificationId = Number(req.params.id);
     if (Number.isNaN(notificationId)) {
         return res.status(400).json({
@@ -74,7 +75,7 @@ export const sendDraft = async (
         message: "Draft email queued for sending.",
         data: result
     });
-};
+});
 
 // ── Helper to ensure single string from query param ──
 const getQueryString = (queryParam: any): string | undefined => {
@@ -85,10 +86,10 @@ const getQueryString = (queryParam: any): string | undefined => {
 };
 
 // ── List ──
-export const getEmailNotifications = async (
+export const getEmailNotifications: any = asyncHandler(async (
     req: any,
     res: Response
-) => {
+): Promise<any> => {
     const page = parseInt(getQueryString(req.query.page) || "1", 10);
     const limit = parseInt(getQueryString(req.query.limit) || "20", 10);
     const offset = (page - 1) * limit;
@@ -122,13 +123,13 @@ export const getEmailNotifications = async (
             limit,
         },
     });
-};
+});
 
 // ── Get by ID ──
-export const getEmailNotificationById = async (
+export const getEmailNotificationById: any = asyncHandler(async (
     req: Request,
     res: Response
-) => {
+): Promise<any> => {
     const notificationId = Number(req.params.id);
     if (Number.isNaN(notificationId)) {
         return res.status(400).json({
@@ -150,13 +151,13 @@ export const getEmailNotificationById = async (
         success: true,
         data: notification,
     });
-};
+});
 
-// ── Update (DRAFT only) ──
-export const updateEmailNotification = async (
+// ── Update ──
+export const updateEmailNotification: any = asyncHandler(async (
     req: Request,
     res: Response
-) => {
+): Promise<any> => {
     const notificationId = Number(req.params.id);
     if (Number.isNaN(notificationId)) {
         return res.status(400).json({
@@ -182,13 +183,13 @@ export const updateEmailNotification = async (
         message: "Email notification updated successfully",
         data: updated,
     });
-};
+});
 
-// ── Delete (DRAFT only) ──
-export const deleteEmailNotification = async (
+// ── Delete ──
+export const deleteEmailNotification: any = asyncHandler(async (
     req: Request,
     res: Response
-) => {
+): Promise<any> => {
     const notificationId = Number(req.params.id);
     if (Number.isNaN(notificationId)) {
         return res.status(400).json({
@@ -210,13 +211,13 @@ export const deleteEmailNotification = async (
         success: true,
         message: "Email notification deleted successfully",
     });
-};
+});
 
-// ── Duplicate ──
-export const duplicateEmail = async (
-    req: Request,
+// ── Duplicate (creates a new DRAFT) ──
+export const duplicateEmail: any = asyncHandler(async (
+    req: any,
     res: Response
-) => {
+): Promise<any> => {
     const notificationId = Number(req.params.id);
     if (Number.isNaN(notificationId)) {
         return res.status(400).json({
@@ -239,13 +240,13 @@ export const duplicateEmail = async (
         message: "Email duplicated as draft successfully",
         data: duplicate,
     });
-};
+});
 
-// ── Resend ──
-export const resendEmail = async (
+// ── Resend (creates a new copy and queues it) ──
+export const resendEmail: any = asyncHandler(async (
     req: any,
     res: Response
-) => {
+): Promise<any> => {
     const notificationId = Number(req.params.id);
     if (Number.isNaN(notificationId)) {
         return res.status(400).json({
@@ -268,13 +269,13 @@ export const resendEmail = async (
         message: "Email resent and queued successfully",
         data: resent,
     });
-};
+});
 
 // ── Archive ──
-export const archiveEmail = async (
+export const archiveEmail: any = asyncHandler(async (
     req: Request,
     res: Response
-) => {
+): Promise<any> => {
     const notificationId = Number(req.params.id);
     if (Number.isNaN(notificationId)) {
         return res.status(400).json({
@@ -297,13 +298,13 @@ export const archiveEmail = async (
         message: "Email archived successfully",
         data: archived,
     });
-};
+});
 
 // ── Unarchive ──
-export const unarchiveEmail = async (
+export const unarchiveEmail: any = asyncHandler(async (
     req: Request,
     res: Response
-) => {
+): Promise<any> => {
     const notificationId = Number(req.params.id);
     if (Number.isNaN(notificationId)) {
         return res.status(400).json({
@@ -326,13 +327,13 @@ export const unarchiveEmail = async (
         message: "Email unarchived successfully",
         data: unarchived,
     });
-};
+});
 
 // ── Get Recipients by Roles ──
-export const getRecipientsByRoles = async (
+export const getRecipientsByRoles: any = asyncHandler(async (
     req: any,
     res: Response
-) => {
+): Promise<any> => {
     try {
         const { roleIds } = req.body;
         const hospitalId = req.user.hospitalId;
@@ -389,4 +390,4 @@ export const getRecipientsByRoles = async (
             error: error.message
         });
     }
-};
+});

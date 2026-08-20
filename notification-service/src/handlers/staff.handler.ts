@@ -172,6 +172,16 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
           data: content,
         });
       }
+
+      // Also notify the hospital so their own UI updates in real-time
+      if (content.hospitalId) {
+        const hospitalRoom = `hospital_${content.hospitalId}`;
+        safeSocketEmit(hospitalRoom, "hospital_event", {
+          event: routingKey,
+          message: `Staff ${content.staffName || "profile"} updated successfully.`,
+          data: content,
+        });
+      }
     }
   }
 
