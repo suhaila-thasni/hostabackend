@@ -21,16 +21,23 @@ interface FCMTOKEN {
   platform: "android" | "ios" | "web";
 }
 
+
+
+
 // Helper to set refresh token cookie
 const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "none",
     maxAge: 14 * 24 * 60 * 60 * 1000, // 2 weeks
     path: "/",
   });
 };
+
+
+
+
 
 const getTwilioClient = () => {
   const sid = process.env.TWILIO_ACCOUNT_SID;

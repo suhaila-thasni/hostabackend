@@ -49,10 +49,11 @@ export const sendEmailNotification = async (payload: any) => {
 
     if (templateId && (!subject || !message)) {
         const template = await EmailTemplate.findOne({ where: { id: templateId, hospitalId } });
-        if (template) {
-            subject = subject || template.get("subject") as string;
-            message = message || template.get("message") as string;
+        if (!template) {
+            throw new Error(`Email template with ID ${templateId} not found for hospital ${hospitalId}`);
         }
+        subject = subject || template.get("subject") as string;
+        message = message || template.get("message") as string;
     }
 
     if (!subject || !message) {
