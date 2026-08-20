@@ -14,9 +14,14 @@ export const handleAmbulanceEvent = async (routingKey: string, content: any) => 
 
     await Notification.create({
       superAdminIds: [1],
+      hospitalIds: content.hospitalId ? [content.hospitalId] : [],
       message: msg,
     }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 
     safeSocketEmit("role_1", "ambulance_events", { event: routingKey, message: msg, data: content });
+    
+    if (content.hospitalId) {
+      safeSocketEmit(`hospital_${content.hospitalId}`, "ambulance_events", { event: routingKey, message: msg, data: content });
+    }
   }
 };

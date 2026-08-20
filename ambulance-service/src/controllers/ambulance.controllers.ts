@@ -95,9 +95,11 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response): 
   await publishEvent("ambulance_events", "AMBULANCE_REGISTERED", {
     ambulanceId: newAmbulance?.id,
     phone: newAmbulance?.phone,
+    hospitalId: newAmbulance?.hospitalId,
   });
 
-  
+
+
    res.status(201).json({
     success: true,
     message: "Registration completed successfully",
@@ -248,6 +250,7 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 
   await publishEvent("ambulance_events", "AMBULANCE_UPDATED", {
     ambulanceId: updatedAmbulance.id,
+    hospitalId: updatedAmbulance.hospitalId,
   });
 
   res.status(200).json({
@@ -279,6 +282,7 @@ export const ambulanceDelete: any = asyncHandler(async (req: Request, res: Respo
 
   await publishEvent("ambulance_events", "AMBULANCE_DELETED", {
     ambulanceId: id,
+    hospitalId: ambulance.hospitalId,
   });
 
   res.status(200).json({
