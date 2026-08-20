@@ -143,10 +143,20 @@ export const handleStaffEvent = async (routingKey: string, content: any) => {
           data: content,
         });
       }
+
+      // Also notify the staff so their own UI updates in real-time
+      if (content.staffId) {
+        const staffRoom = `staff_${content.staffId}`;
+        safeSocketEmit(staffRoom, "staff_event", {
+          event: routingKey,
+          message: "Profile updated successfully.",
+          data: content,
+        });
+      }
     }
 
     // Hospital/Admin updated staff's profile → Notify Staff
-    if (content.updatedByRole === "hospital") {
+    if (content.updatedByRole !== "staff") {
       const msgText = `Your profile information has been updated by the hospital ${hospitalName} administrator. Please review your profile to ensure the information is accurate.`;
 
       await Notification.create({

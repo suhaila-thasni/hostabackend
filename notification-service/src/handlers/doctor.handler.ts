@@ -194,10 +194,20 @@ export const handleDoctorEvent = async (routingKey: string, content: any) => {
           data: content,
         });
       }
+
+      // Also notify the doctor so their own UI updates in real-time
+      if (content.doctorId) {
+        const doctorRoom = `doctor_${content.doctorId}`;
+        safeSocketEmit(doctorRoom, "doctor_event", {
+          event: routingKey,
+          message: "Profile updated successfully.",
+          data: content,
+        });
+      }
     }
 
     // Hospital/Admin updated doctor's profile → Notify Doctor
-    if (content.updatedByRole === "hospital") {
+    if (content.updatedByRole !== "doctor") {
       const msgText = `Your profile information has been updated by the hospital ${hospitalName} administrator. Please review your profile to ensure the information is accurate.`;
 
       await persistNotification(
