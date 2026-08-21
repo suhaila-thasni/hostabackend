@@ -6,7 +6,16 @@ import { Op, literal } from "sequelize";
 import { publishEvent } from "../events/publisher";
 dotenv.config();
 
-// ✅ Create ads
+/**
+ * Creates a new advertisement in the system.
+ * 
+ * Fetches the hospital details via an internal HTTP request to the hospital-service to get its latitude and longitude.
+ * Saves the ad to the database and publishes an 'AD_CREATED' event to RabbitMQ so other services are notified.
+ * 
+ * @param req - Express Request object containing imageUrl, startDate, endDate, kilometer, and hospitalId in the body
+ * @param res - Express Response object
+ * @returns JSON response with the created ad data or an error message
+ */
 export const createAd = async (req: Request, res: Response): Promise<any> => {
   try {
     const { imageUrl, startDate, endDate, kilometer, hospitalId } = req.body;
@@ -40,8 +49,18 @@ export const createAd = async (req: Request, res: Response): Promise<any> => {
   }
 };
 
-// 🔍 Get All ad (with filters)
-
+/**
+ * Retrieves all advertisements, optionally filtering them by proximity to the user.
+ * 
+ * If latitude (lat) and longitude (lng) are provided in the query params, it uses the Haversine formula
+ * to calculate the distance between the user and the hospital running the ad. It only returns active ads
+ * that fall within the ad's specified 'kilometer' radius and are currently running (between startDate and endDate).
+ * If no ads are found nearby, or if no coordinates are provided, it falls back to returning all active ads.
+ * 
+ * @param req - Express Request object containing optional 'lat' and 'lng' query parameters
+ * @param res - Express Response object
+ * @returns JSON response with an array of ads
+ */
 export const getAds = async (
   req: Request,
   res: Response
@@ -131,7 +150,13 @@ export const getAds = async (
   }
 };
 
-// 📄 Get Single ad
+/**
+ * Fetches a single advertisement by its primary key (ID).
+ * 
+ * @param req - Express Request object containing the ad 'id' in params
+ * @param res - Express Response object
+ * @returns JSON response with the ad details or a 404 Not Found error
+ */
 export const getSingleAd = async (req: Request, res: Response): Promise<any> => {
   try {
     const ad = await Ad.findByPk(req.params.id);
@@ -146,7 +171,16 @@ export const getSingleAd = async (req: Request, res: Response): Promise<any> => 
   }
 };
 
-// ✏️ Update
+/**
+ * Updates an existing advertisement.
+ * 
+ * Finds the ad by ID, updates its fields based on the request body, and publishes 
+ * an 'AD_UPDATED' event to RabbitMQ to keep other microservices in sync.
+ * 
+ * @param req - Express Request object containing the ad 'id' in params and update data in the body
+ * @param res - Express Response object
+ * @returns JSON response with the updated ad data
+ */
 export const updateAd = async (req: Request, res: Response): Promise<any> => {
   try {
     const ad = await Ad.findByPk(req.params.id);
@@ -168,7 +202,16 @@ export const updateAd = async (req: Request, res: Response): Promise<any> => {
   }
 };
 
-// ❌ Delete
+/**
+ * Deletes an advertisement from the database.
+ * 
+ * Finds the ad by ID, destroys the record, and publishes an 'AD_DELETED' event
+ * to RabbitMQ so that dependencies (like notifications or caching) can be cleared.
+ * 
+ * @param req - Express Request object containing the ad 'id' in params
+ * @param res - Express Response object
+ * @returns JSON response confirming deletion
+ */
 export const deleteAd = async (req: Request, res: Response): Promise<any> => {
   try {
     const ad = await Ad.findByPk(req.params.id);
