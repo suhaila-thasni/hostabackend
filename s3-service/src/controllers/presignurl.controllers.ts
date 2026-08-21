@@ -44,7 +44,7 @@ const SERVICE_CONFIG: Record<
   },
   ad: {
     baseUrl: process.env.ADS_SERVICE_URL,
-    endpoint: "ad",
+    endpoint: "ads",
   },
    speciality: {
     baseUrl: process.env.SPECIALITY_SERVICE_URL,
