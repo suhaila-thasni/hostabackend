@@ -107,7 +107,7 @@ app.use(authAndMembershipMiddleware);
 app.use(
     cors({
         origin: [
-            "http://localhost:5173",
+            "http://localhost:5173/api",
             "https://hostahospital.com",
             "https://www.hostahospital.com",
         ],
