@@ -43,11 +43,16 @@ const fetchAssignedRoles = async (hospitalId: number | string): Promise<string[]
 // @access  Private
 export const getAuditLogs = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     // ── Resolve caller from gateway header ──
-    const userData = req.headers['x-user-data']
-        ? JSON.parse(req.headers['x-user-data'] as string)
-        : null;
+    const rawUserData = req.headers['x-user-data'];
+    const userData = rawUserData ? JSON.parse(rawUserData as string) : null;
 
     const callerRole: string = (userData?.role || '').toLowerCase();
+
+    // 🔍 DEBUG — remove after fixing
+    console.log('[AUDIT] x-user-data header:', rawUserData);
+    console.log('[AUDIT] decoded userData:', userData);
+    console.log('[AUDIT] callerRole:', callerRole);
+    console.log('[AUDIT] req.params:', req.params);
 
     // ── Shared query params ──
     const pageStr    = getQueryString(req.query.page)    || '1';
@@ -65,7 +70,7 @@ export const getAuditLogs = asyncHandler(async (req: Request, res: Response): Pr
     // ════════════════════════════════════════════════════
     //  SUPERADMIN — all hospitals, roles assigned per hospital
     // ════════════════════════════════════════════════════
-    if (callerRole === 'superadmin') {
+    if (callerRole === 'superadmin' || callerRole === 'super_admin') {
         // Superadmin sees logs from EVERY hospital.
         // We do NOT filter by hospitalId — all records are returned.
         // Role filter: only auditable roles (no SUPERADMIN / HOSPITAL logs).
@@ -83,23 +88,32 @@ export const getAuditLogs = asyncHandler(async (req: Request, res: Response): Pr
         }
 
     // ════════════════════════════════════════════════════
-    //  HOSPITAL — own hospital, only their assigned roles
+    //  HOSPITAL (role stored as 'hospital' or 'admin') — own hospital, only their assigned roles
     // ════════════════════════════════════════════════════
-    } else if (callerRole === 'hospital') {
-        const { hospitalId } = req.params;
-        if (!hospitalId) {
-            res.status(400).json({ success: false, message: 'hospitalId param is required.' });
+    } else if (callerRole === 'hospital' || callerRole === 'admin') {
+        const paramHospitalId = req.params.hospitalId;
+        const effectiveHospitalId = (paramHospitalId && paramHospitalId !== '0')
+            ? paramHospitalId
+            : userData?.hospitalId;
+
+        if (!effectiveHospitalId) {
+            res.status(400).json({ success: false, message: 'hospitalId parameter or token hospitalId is required.' });
             return;
         }
 
         // Fetch roles this hospital created from role-service
-        const hid = String(hospitalId);
+        const hid = String(effectiveHospitalId);
         const assignedRoles = await fetchAssignedRoles(hid);
+
+        console.log('[AUDIT] hospital hid:', hid);
+        console.log('[AUDIT] assignedRoles from role-service:', assignedRoles);
 
         whereClause.hospitalId = parseInt(hid);
         whereClause.role = assignedRoles.length
             ? { [Op.in]: assignedRoles }
             : { [Op.in]: AUDIT_INCLUDED_ROLES }; // fallback
+
+        console.log('[AUDIT] final whereClause:', JSON.stringify(whereClause));
 
     } else {
         res.status(403).json({ success: false, message: 'Access denied.' });
