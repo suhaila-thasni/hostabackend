@@ -95,8 +95,10 @@ const fetchRelatedProfile = async (user: any): Promise<any> => {
 
     switch (role) {
       case "hospital":
+      case "admin":
+      case "hospital_admin":
         serviceUrl = process.env.HOSPITAL_SERVICE_URL || "";
-        entityId = user.hospitalId;
+        entityId = user.hospitalId || user.id;
         if (serviceUrl && entityId) {
           const res = await axios.get(`${serviceUrl}/hospital/${entityId}`, {
             timeout: 3000, // 3 seconds timeout
@@ -696,6 +698,8 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     auditDepartment = profileData?.department;
   } else if (user.role?.toLowerCase() === 'staff') {
     auditDepartment = profileData?.designation;
+  } else if (['hospital', 'admin', 'hospital_admin'].includes(user.role?.toLowerCase())) {
+    auditDepartment = profileData?.type || profileData?.hospitalType;
   }
   
   if (profileData?.address) {
@@ -712,7 +716,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     name: userName, 
     role: user.role, 
     department: auditDepartment, 
-    hospitalId: user.hospitalId, 
+    hospitalId: user.hospitalId || (['hospital', 'admin', 'hospital_admin'].includes(user.role?.toLowerCase()) ? user.id : undefined), 
     status: 'Active',
     registeredAddress: auditLocation
   });
@@ -986,6 +990,8 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
     auditDepartment = profileData?.department;
   } else if (user.role?.toLowerCase() === 'staff') {
     auditDepartment = profileData?.designation;
+  } else if (['hospital', 'admin', 'hospital_admin'].includes(user.role?.toLowerCase())) {
+    auditDepartment = profileData?.type || profileData?.hospitalType;
   }
   
   if (profileData?.address) {
@@ -1002,7 +1008,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
     name: user.doctorName || user.staffName || user.hospitalName || 'Unknown', 
     role: user.role, 
     department: auditDepartment, 
-    hospitalId: user.hospitalId, 
+    hospitalId: user.hospitalId || (['hospital', 'admin', 'hospital_admin'].includes(user.role?.toLowerCase()) ? user.id : undefined), 
     status: 'Active', 
     loginMethod: 'OTP',
     registeredAddress: auditLocation

@@ -12,7 +12,6 @@ const getQueryString = (queryParam: any): string | undefined => {
 };
 
 // ── Helper: fetch role names assigned to a hospital from the role-service ──
-// Returns only names that exist in AUDIT_INCLUDED_ROLES (e.g. DOCTOR, STAFF, USER)
 const fetchAssignedRoles = async (hospitalId: number | string): Promise<string[]> => {
     try {
         const response = await axios.get(
@@ -24,34 +23,38 @@ const fetchAssignedRoles = async (hospitalId: number | string): Promise<string[]
             }
         );
         const roles: any[] = response.data?.data || [];
-        // Map role names to uppercase and keep only auditable, non-excluded roles
-        return roles
+        const customRoles = roles
             .map((r: any) => (r.name || '').toUpperCase())
-            .filter((name: string) =>
-                AUDIT_INCLUDED_ROLES.includes(name) && !AUDIT_EXCLUDED_ROLES.includes(name)
-            );
-    } catch {
-        // If role-service is unreachable, fall back to all auditable roles
+            .filter((name: string) => name && !AUDIT_EXCLUDED_ROLES.includes(name));
+
+        // Combine custom roles created by hospital with default auditable roles
+        return Array.from(new Set([...customRoles, ...AUDIT_INCLUDED_ROLES]));
+    } catch (err: any) {
+        console.error('[AUDIT] Failed to fetch hospital roles from role-service:', err.message);
         return [...AUDIT_INCLUDED_ROLES];
     }
 };
 
 // @route   GET /auth/audit-logs/:hospitalId   (hospitalId ignored for superadmin)
 // @desc    Get audit logs
-//          • superadmin → all hospitals, only roles assigned per hospital, hospitalId visible in response
+//          • superadmin → all hospitals, all logs
 //          • hospital   → own hospital only, only roles assigned by that hospital
 // @access  Private
 export const getAuditLogs = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    // ── Resolve caller from gateway header ──
+    // ── Resolve caller from gateway header or req.user (fallback) ──
     const rawUserData = req.headers['x-user-data'];
-    const userData = rawUserData ? JSON.parse(rawUserData as string) : null;
+    const userData = rawUserData
+        ? JSON.parse(rawUserData as string)
+        : (req as any).user || null;
 
-    const callerRole: string = (userData?.role || '').toLowerCase();
+    const rawRole = (userData?.role || userData?.userType || '').toLowerCase();
 
-    // 🔍 DEBUG — remove after fixing
-    console.log('[AUDIT] x-user-data header:', rawUserData);
+    const isSuperAdmin = ['superadmin', 'super_admin'].includes(rawRole);
+    const isHospitalAdmin = ['hospital', 'admin', 'hospital_admin', 'hospitaladmin'].includes(rawRole);
+
+    console.log('[AUDIT] rawUserData:', rawUserData);
     console.log('[AUDIT] decoded userData:', userData);
-    console.log('[AUDIT] callerRole:', callerRole);
+    console.log('[AUDIT] rawRole:', rawRole, '| isSuperAdmin:', isSuperAdmin, '| isHospitalAdmin:', isHospitalAdmin);
     console.log('[AUDIT] req.params:', req.params);
 
     // ── Shared query params ──
@@ -68,55 +71,48 @@ export const getAuditLogs = asyncHandler(async (req: Request, res: Response): Pr
     const whereClause: any = {};
 
     // ════════════════════════════════════════════════════
-    //  SUPERADMIN — all hospitals, roles assigned per hospital
+    //  SUPERADMIN — all hospitals, all logs
     // ════════════════════════════════════════════════════
-    if (callerRole === 'superadmin' || callerRole === 'super_admin') {
-        // Superadmin sees logs from EVERY hospital.
-        // We do NOT filter by hospitalId — all records are returned.
-        // Role filter: only auditable roles (no SUPERADMIN / HOSPITAL logs).
-        whereClause.role = { [Op.in]: AUDIT_INCLUDED_ROLES };
+    if (isSuperAdmin) {
+        // Superadmin sees logs from EVERY hospital across all roles
+        whereClause.role = { [Op.notIn]: AUDIT_EXCLUDED_ROLES };
 
         // Optional: superadmin can also pass ?hospitalId=X to drill into one hospital
         const filterHospitalId = getQueryString(req.query.hospitalId);
         if (filterHospitalId) {
-            // Fetch that hospital's assigned roles and intersect with auditable roles
             const assignedRoles = await fetchAssignedRoles(filterHospitalId);
             whereClause.hospitalId = parseInt(filterHospitalId);
-            whereClause.role = assignedRoles.length
-                ? { [Op.in]: assignedRoles }
-                : { [Op.in]: AUDIT_INCLUDED_ROLES };
+            whereClause.role = { [Op.in]: assignedRoles };
         }
 
     // ════════════════════════════════════════════════════
-    //  HOSPITAL (role stored as 'hospital' or 'admin') — own hospital, only their assigned roles
+    //  HOSPITAL ADMIN — own hospital only, roles assigned to/by hospital
     // ════════════════════════════════════════════════════
-    } else if (callerRole === 'hospital' || callerRole === 'admin') {
+    } else if (isHospitalAdmin) {
         const paramHospitalId = req.params.hospitalId;
         const effectiveHospitalId = (paramHospitalId && paramHospitalId !== '0')
             ? paramHospitalId
-            : userData?.hospitalId;
+            : (userData?.hospitalId || userData?.id);
 
         if (!effectiveHospitalId) {
             res.status(400).json({ success: false, message: 'hospitalId parameter or token hospitalId is required.' });
             return;
         }
 
-        // Fetch roles this hospital created from role-service
+        // Fetch roles assigned by this hospital from role-service + standard hospital roles
         const hid = String(effectiveHospitalId);
         const assignedRoles = await fetchAssignedRoles(hid);
 
-        console.log('[AUDIT] hospital hid:', hid);
-        console.log('[AUDIT] assignedRoles from role-service:', assignedRoles);
+        console.log('[AUDIT] hospital hid:', hid, '| assignedRoles:', assignedRoles);
 
         whereClause.hospitalId = parseInt(hid);
-        whereClause.role = assignedRoles.length
-            ? { [Op.in]: assignedRoles }
-            : { [Op.in]: AUDIT_INCLUDED_ROLES }; // fallback
+        whereClause.role = { [Op.in]: assignedRoles };
 
         console.log('[AUDIT] final whereClause:', JSON.stringify(whereClause));
 
     } else {
-        res.status(403).json({ success: false, message: 'Access denied.' });
+        console.log('[AUDIT] Access denied for rawRole:', rawRole);
+        res.status(403).json({ success: false, message: `Access denied for role: ${userData?.role || 'unknown'}` });
         return;
     }
 
