@@ -97,17 +97,13 @@ app.use("/api/staff/login", loginLimiter);
 app.use("/api/hospital/login", loginLimiter);
 
 /**
- * GLOBAL AUTH & MEMBERSHIP MIDDLEWARE
- */
-app.use(authAndMembershipMiddleware);
-
-/**
- * CORS
+ * CORS — must be registered before auth middleware so preflight OPTIONS
+ * requests are handled before any authentication check runs.
  */
 app.use(
     cors({
         origin: [
-            "http://localhost:5173/api",
+            "http://localhost:5173",
             "https://hostahospital.com",
             "https://www.hostahospital.com",
         ],
@@ -126,6 +122,11 @@ app.use(
         ],
     })
 );
+
+/**
+ * GLOBAL AUTH & MEMBERSHIP MIDDLEWARE
+ */
+app.use(authAndMembershipMiddleware);
 
 // ==============================================
 // WEBSOCKET PROXY - FIXED TYPESCRIPT VERSION
@@ -180,6 +181,10 @@ app.post("/api/emit-event", async (req: Request, res: Response) => {
         });
     }
 });
+
+
+
+
 
 /**
  * Debug endpoint for socket rooms
