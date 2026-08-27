@@ -71,18 +71,16 @@ export const getAuditLogs = asyncHandler(async (req: Request, res: Response): Pr
     const whereClause: any = {};
 
     // ════════════════════════════════════════════════════
-    //  SUPERADMIN — all hospitals, all logs
+    //  SUPERADMIN — only hospital logs, not assigned role logs
     // ════════════════════════════════════════════════════
     if (isSuperAdmin) {
-        // Superadmin sees logs from EVERY hospital across all roles
-        whereClause.role = { [Op.notIn]: AUDIT_EXCLUDED_ROLES };
+        // Superadmin ONLY sees logs for hospital admin accounts
+        whereClause.role = { [Op.in]: ['HOSPITAL', 'HOSPITAL_ADMIN', 'ADMIN'] };
 
         // Optional: superadmin can also pass ?hospitalId=X to drill into one hospital
         const filterHospitalId = getQueryString(req.query.hospitalId);
         if (filterHospitalId) {
-            const assignedRoles = await fetchAssignedRoles(filterHospitalId);
             whereClause.hospitalId = parseInt(filterHospitalId);
-            whereClause.role = { [Op.in]: assignedRoles };
         }
 
     // ════════════════════════════════════════════════════
@@ -101,9 +99,12 @@ export const getAuditLogs = asyncHandler(async (req: Request, res: Response): Pr
 
         // Fetch roles assigned by this hospital from role-service + standard hospital roles
         const hid = String(effectiveHospitalId);
-        const assignedRoles = await fetchAssignedRoles(hid);
+        let assignedRoles = await fetchAssignedRoles(hid);
 
-        console.log('[AUDIT] hospital hid:', hid, '| assignedRoles:', assignedRoles);
+        // Exclude hospital admin roles from the hospital's view
+        assignedRoles = assignedRoles.filter(role => !['HOSPITAL', 'HOSPITAL_ADMIN', 'ADMIN'].includes(role));
+
+        console.log('[AUDIT] hospital hid:', hid, '| assignedRoles (filtered):', assignedRoles);
 
         whereClause.hospitalId = parseInt(hid);
         whereClause.role = { [Op.in]: assignedRoles };
