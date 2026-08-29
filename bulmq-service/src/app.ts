@@ -9,6 +9,7 @@ import helmet from "helmet";
 
 import bookinguserRoutes from "./routes/booking-remainder-user.routes";
 import bookingHospitalRoutes from "./routes/booking-remainder-hospital.routes";
+import bookingAutoDeclineRoutes from "./routes/booking-auto-decline.routes";
 import medcinRemainerRoutes from "./routes/medicin-remainder.routes";
 
 import blacklistReminderHospitalRoutes from "./routes/blacklist-reminder-hospital.routes";
@@ -77,6 +78,8 @@ app.use("/", medcinRemainerRoutes);
 app.use("/", bookinguserRoutes);
 
 app.use("/", bookingHospitalRoutes);
+
+app.use("/", bookingAutoDeclineRoutes);
 
 app.use("/", blacklistReminderHospitalRoutes);
 

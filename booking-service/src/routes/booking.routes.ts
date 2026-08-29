@@ -5,7 +5,7 @@ import {
   updateData,
   bookingDelete,
   getBookings,
- 
+  autoDeclineBooking
 } from "../controllers/booking.controllers";
 import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
@@ -18,6 +18,9 @@ router.get("/booking", authenticate, checkPermission("booking", "view" ), getBoo
 router.get("/booking/:id", authenticate, checkPermission("booking", "view" ),  getanBooking);
 router.put("/booking/:id", authenticate, checkPermission("booking", "edit" ), updateData);
 router.delete("/booking/:id", authenticate, checkPermission("booking", "delete" ), bookingDelete);
+
+// INTERNAL API (called by bulmq worker)
+router.put("/booking/internal/:id/auto-decline", autoDeclineBooking);
 
 export default router;
 

@@ -168,7 +168,25 @@ export const Registeration: any = asyncHandler(
       booking_date,
     });
 
-    
+    // ==============================
+    // 8.5 AUTO-DECLINE SCHEDULING
+    // ==============================
+    const autoDeclineMinutes = doctor?.data?.autoDecline;
+    if (autoDeclineMinutes && autoDeclineMinutes > 0 && newbooking.status === 'pending') {
+      try {
+        await axios.post(
+          `${process.env.BULMQ_SERVICE_URL}/booking-task/auto-decline`,
+          {
+            bookingId: newbooking.id,
+            delayMinutes: autoDeclineMinutes
+          },
+          { headers: { Authorization: req.headers.authorization } }
+        );
+        console.log(`Scheduled auto-decline for booking ${newbooking.id} in ${autoDeclineMinutes}m`);
+      } catch (err: any) {
+        console.error("Failed to schedule auto decline:", err.message);
+      }
+    }
 
 
     // Push notifications are now completely handled asynchronously via the BOOKING_REGISTERED event in notification-service
@@ -559,3 +577,41 @@ export const getBookings = asyncHandler(async (req: Request, res: Response) : Pr
   });
   return ;
 });
+
+// INTERNAL API - PUT /booking/internal/:id/auto-decline
+export const autoDeclineBooking: any = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  // We are called via internal API, so we can assume authentication if headers have service-secret, 
+  // but to be safe we'll just check if booking is still pending.
+  const booking = await Booking.findByPk(id);
+
+  if (!booking) {
+    res.status(404).json({ success: false, message: "Booking not found" });
+    return;
+  }
+
+  // If already accepted/cancelled/completed, we don't decline
+  if (booking.status !== 'pending') {
+    res.status(400).json({ success: false, message: `Booking is already ${booking.status}` });
+    return;
+  }
+
+  booking.status = 'declined';
+  await booking.save();
+
+  // Publish event so notification-service can alert the user
+  const eventPayload = {
+    bookingId: booking.id,
+    userId: booking.userId,
+    hospitalId: booking.hospitalId,
+    doctorId: booking.doctorId,
+    patient_name: booking.patient_name,
+    status: booking.status
+  };
+
+  await publishEvent("booking_events", "BOOKING_UPDATED", eventPayload);
+
+  res.status(200).json({ success: true, message: "Booking auto-declined", data: booking });
+});
+
