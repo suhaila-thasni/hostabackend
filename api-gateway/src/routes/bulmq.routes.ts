@@ -21,6 +21,7 @@ const router = express.Router();
 // Proxy all requests starting with /users, /patients, or /vitals to the user-service
 router.use("/booking-task/hospital", proxyRequest);
 router.use("/booking-task/users", proxyRequest);
+router.use("/booking-task/auto-decline", proxyRequest);
 router.use("/medicin-task", proxyRequest);
 
 

@@ -22,7 +22,7 @@ breaker.fallback(() => {
 export const proxyRequest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Only strip the global /api prefix. The microservice still needs /review or /rating to route internally.
-    const cleanedPath = req.originalUrl.replace("/api/booking-task/hospital", "/booking-task/hospital").replace("/api/booking-task/users", "/booking-task/users").replace("/api/medicin-task", "/medicin-task");
+    const cleanedPath = req.originalUrl.replace("/api/booking-task/hospital", "/booking-task/hospital").replace("/api/booking-task/users", "/booking-task/users").replace("/api/booking-task/auto-decline", "/booking-task/auto-decline").replace("/api/medicin-task", "/medicin-task");
     const url = `${SERVICES.BULMQ_SERVICE}${cleanedPath}`;
 
     logger.info("Forwarding bulmq request", { 
