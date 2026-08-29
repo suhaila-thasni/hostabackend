@@ -23,9 +23,10 @@ export const handleBloodBankEvent = async (
     msg = `Blood stock deleted: (Hospital ID: ${content.hospitalId})`;
   }
 
-  // Save notification for Super Admin
+  // Save notification
   await Notification.create({
     superAdminIds: [1],
+    hospitalIds: content.hospitalId ? [content.hospitalId] : [],
     message: msg,
   }).catch((err) =>
     console.error(`Failed to save ${routingKey} notification`, err)
@@ -41,7 +42,7 @@ export const handleBloodBankEvent = async (
   // Hospital notification
   if (content.hospitalId) {
     safeSocketEmit(
-      `user_${content.hospitalId}`,
+      `hospital_${content.hospitalId}`,
       "blood_bank_events",
       {
         event: routingKey,
