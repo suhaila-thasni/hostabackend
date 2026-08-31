@@ -310,79 +310,80 @@ export const updateData: any = asyncHandler(
           newToken: updatedBooking.token,
         });
       }
+      const statusChanged = oldBooking.status !== updatedBooking.status;
+
+      if (statusChanged) {
+        let eventName: "BOOKING_UPDATED" | "BOOKING_CANCELLED" | "BOOKING_ACCEPTED" | "BOOKING_COMPLETED" = "BOOKING_UPDATED";
 
 
-      let eventName: "BOOKING_UPDATED" | "BOOKING_CANCELLED" | "BOOKING_ACCEPTED" | "BOOKING_COMPLETED" = "BOOKING_UPDATED";
-
-
-      if (updatedBooking.status === "cancel") {
-        eventName = "BOOKING_CANCELLED";
-      } else if (updatedBooking.status === "accepted") {
-        eventName = "BOOKING_ACCEPTED";
-      } else if (updatedBooking.status === "completed") {
-        eventName = "BOOKING_COMPLETED";
-      }
-      const eventPayload = {
-        bookingId: updatedBooking.id,
-        userId: updatedBooking.userId,
-        hospitalId: updatedBooking.hospitalId,
-        doctorId: updatedBooking.doctorId,
-        patient_name: updatedBooking.patient_name,
-        status: updatedBooking.status
-      };
-
-      
-      await publishEvent("booking_events", eventName, eventPayload);
-
-      if (updatedBooking.status !== "cancel") {
-        try {
-          // ✅ Use correct values
-          await axios.post(
-            `${process.env.BULMQ_SERVICE_URL}/booking-task/users`,
-            {
-              patient_phone: updatedBooking?.patient_phone,
-              doctorId: updatedBooking?.doctorId,
-              status: updatedBooking?.status,
-              consulting_time: updatedBooking?.consulting_time,
-              message: `Booking ${updatedBooking?.status}`,
-            },
-             {
-              headers: { Authorization: req.headers.authorization },
-            },
-          );
-        } catch (bulmqError: any) {
-          console.error("⚠️ Failed to trigger BullMQ reminder service:", bulmqError.message);
+        if (updatedBooking.status === "cancel") {
+          eventName = "BOOKING_CANCELLED";
+        } else if (updatedBooking.status === "accepted") {
+          eventName = "BOOKING_ACCEPTED";
+        } else if (updatedBooking.status === "completed") {
+          eventName = "BOOKING_COMPLETED";
         }
+        const eventPayload = {
+          bookingId: updatedBooking.id,
+          userId: updatedBooking.userId,
+          hospitalId: updatedBooking.hospitalId,
+          doctorId: updatedBooking.doctorId,
+          patient_name: updatedBooking.patient_name,
+          status: updatedBooking.status
+        };
 
-        let doctor: any;
-        try {
-          const doctorRes = await httpClient.get(
-            `${process.env.DOCTOR_SERVICE_URL}/doctor/${updatedBooking.doctorId}`,
-            {
-              headers: { Authorization: req.headers.authorization },
-            },
-          );
-          doctor = doctorRes.data;
-        } catch (doctorError: any) {
-          console.error("⚠️ Failed to fetch doctor details for notification:", doctorError.message);
-        }
+        
+        await publishEvent("booking_events", eventName, eventPayload);
 
-        if (doctor) {
+        if (updatedBooking.status !== "cancel") {
           try {
-            // send notification userId
-            await axios.post(`${process.env.NOTIFICATION_SERVICE_URL}/notification`, {
-                userIds: updatedBooking.userId ? [Number(updatedBooking.userId)] : [],
-                message: `Your booking with  ${doctor.data.displayName} has been ${updatedBooking.status}.`,
-              },
+            // ✅ Use correct values
+            await axios.post(
+              `${process.env.BULMQ_SERVICE_URL}/booking-task/users`,
               {
-                headers: { Authorization: req.headers.authorization }
-              }
+                patient_phone: updatedBooking?.patient_phone,
+                doctorId: updatedBooking?.doctorId,
+                status: updatedBooking?.status,
+                consulting_time: updatedBooking?.consulting_time,
+                message: `Booking ${updatedBooking?.status}`,
+              },
+               {
+                headers: { Authorization: req.headers.authorization },
+              },
             );
-          } catch (notifError: any) {
-            console.error("⚠️ Failed to send user status update notification:", notifError.message);
+          } catch (bulmqError: any) {
+            console.error("⚠️ Failed to trigger BullMQ reminder service:", bulmqError.message);
+          }
+
+          let doctor: any;
+          try {
+            const doctorRes = await httpClient.get(
+              `${process.env.DOCTOR_SERVICE_URL}/doctor/${updatedBooking.doctorId}`,
+              {
+                headers: { Authorization: req.headers.authorization },
+              },
+            );
+            doctor = doctorRes.data;
+          } catch (doctorError: any) {
+            console.error("⚠️ Failed to fetch doctor details for notification:", doctorError.message);
+          }
+
+          if (doctor) {
+            try {
+              // send notification userId
+              await axios.post(`${process.env.NOTIFICATION_SERVICE_URL}/notification`, {
+                  userIds: updatedBooking.userId ? [Number(updatedBooking.userId)] : [],
+                  message: `Your booking with  ${doctor.data.displayName} has been ${updatedBooking.status}.`,
+                },
+                {
+                  headers: { Authorization: req.headers.authorization }
+                }
+              );
+            } catch (notifError: any) {
+              console.error("⚠️ Failed to send user status update notification:", notifError.message);
+            }
           }
         }
-
       }
 
       
