@@ -300,7 +300,7 @@ export const updateData: any = asyncHandler(
 
       // ✅ Detect changes
       const statusChanged = oldBooking.status !== updatedBooking.status;
-      const tokenChanged = updatePayload.token !== undefined && oldToken !== updatedBooking.token;
+      const tokenChanged = updatePayload.token !== undefined && oldToken != null && oldToken !== updatedBooking.token;
 
       if (statusChanged || tokenChanged) {
         let eventName: "BOOKING_UPDATED" | "BOOKING_CANCELLED" | "BOOKING_ACCEPTED" | "BOOKING_COMPLETED" = "BOOKING_UPDATED";
@@ -315,6 +315,28 @@ export const updateData: any = asyncHandler(
           }
         }
 
+        // ✅ Fetch doctor and hospital names for notification
+        let doctorName = "";
+        let hospitalName = "";
+        try {
+          const doctorRes = await httpClient.get(
+            `${process.env.DOCTOR_SERVICE_URL}/doctor/${updatedBooking.doctorId}`,
+            { headers: { Authorization: req.headers.authorization } },
+          );
+          doctorName = doctorRes.data?.data?.displayName || "";
+        } catch (err: any) {
+          console.error("⚠️ Failed to fetch doctor name for event payload:", err.message);
+        }
+        try {
+          const hospitalRes = await httpClient.get(
+            `${process.env.HOSPITAL_SERVICE_URL}/hospital/${updatedBooking.hospitalId}`,
+            { headers: { Authorization: req.headers.authorization } },
+          );
+          hospitalName = hospitalRes.data?.data?.hospitalName || "";
+        } catch (err: any) {
+          console.error("⚠️ Failed to fetch hospital name for event payload:", err.message);
+        }
+
         const eventPayload = {
           bookingId: updatedBooking.id,
           userId: updatedBooking.userId,
@@ -325,7 +347,9 @@ export const updateData: any = asyncHandler(
           statusChanged: statusChanged,
           tokenChanged: tokenChanged,
           oldToken: oldToken,
-          newToken: updatedBooking.token
+          newToken: updatedBooking.token,
+          doctorName: doctorName,
+          hospitalName: hospitalName,
         };
 
         await publishEvent("booking_events", eventName, eventPayload);

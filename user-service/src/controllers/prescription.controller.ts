@@ -164,6 +164,17 @@ export const createPrescription: any = asyncHandler(async (req: Request, res: Re
     }
 
 
+  let fetchedDoctorName = "";
+  try {
+    const doctorRes = await httpClient.get(
+      `${process.env.DOCTOR_SERVICE_URL}/doctor/${doctorId}`,
+      { headers: { Authorization: req.headers.authorization } },
+    );
+    fetchedDoctorName = doctorRes.data?.data?.displayName || "";
+  } catch (err: any) {
+    console.error("⚠️ Failed to fetch doctor name for prescription event:", err.message);
+  }
+
   await publishEvent(
     "prescription_events",
     "PRESCRIPTION_CREATED",
@@ -174,6 +185,8 @@ export const createPrescription: any = asyncHandler(async (req: Request, res: Re
       patientId: finalPatientId,
       userId: finalUserId,
       hospitalId: prescription.hospitalId,
+      doctorName: fetchedDoctorName,
+      hospitalName: fetchedHospitalName,
     }
   );
 
@@ -410,10 +423,35 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 
 
   const patient = await Patient.findOne({ where: { id: prescription[1][0].patientId, isDelete: false } });
+
+  let doctorName = "";
+  let hospitalName = "";
+  try {
+    const doctorRes = await httpClient.get(
+      `${process.env.DOCTOR_SERVICE_URL}/doctor/${prescription[1][0].doctorId}`,
+      { headers: { Authorization: req.headers.authorization } },
+    );
+    doctorName = doctorRes.data?.data?.displayName || "";
+  } catch (err: any) {
+    console.error("⚠️ Failed to fetch doctor name for prescription event:", err.message);
+  }
+
+  try {
+    const hospitalRes = await httpClient.get(
+      `${process.env.HOSPITAL_SERVICE_URL}/hospital/${prescription[1][0].hospitalId}`,
+      { headers: { Authorization: req.headers.authorization } },
+    );
+    hospitalName = hospitalRes.data?.data?.hospitalName || "";
+  } catch (err: any) {
+    console.error("⚠️ Failed to fetch hospital name for prescription event:", err.message);
+  }
+
   await publishEvent("prescription_events", "PRESCRIPTION_UPDATED", {
     prescriptionId: prescription[1][0].id,
     userId: patient ? patient.userId : null,
     hospitalId: prescription[1][0].hospitalId,
+    doctorName: doctorName,
+    hospitalName: hospitalName,
   });
 
 
@@ -464,6 +502,29 @@ export const deletePrescription: any = asyncHandler(async (req: Request, res: Re
   
 
   const patient = await Patient.findOne({ where: { id: user.patientId, isDelete: false } });
+
+  let doctorName = "";
+  let hospitalName = "";
+  try {
+    const doctorRes = await httpClient.get(
+      `${process.env.DOCTOR_SERVICE_URL}/doctor/${user.doctorId}`,
+      { headers: { Authorization: req.headers.authorization } },
+    );
+    doctorName = doctorRes.data?.data?.displayName || "";
+  } catch (err: any) {
+    console.error("⚠️ Failed to fetch doctor name for prescription event:", err.message);
+  }
+
+  try {
+    const hospitalRes = await httpClient.get(
+      `${process.env.HOSPITAL_SERVICE_URL}/hospital/${user.hospitalId}`,
+      { headers: { Authorization: req.headers.authorization } },
+    );
+    hospitalName = hospitalRes.data?.data?.hospitalName || "";
+  } catch (err: any) {
+    console.error("⚠️ Failed to fetch hospital name for prescription event:", err.message);
+  }
+
   await publishEvent(
     "prescription_events",
     "PRESCRIPTION_DELETED",
@@ -471,6 +532,8 @@ export const deletePrescription: any = asyncHandler(async (req: Request, res: Re
       prescriptionId: Number(req.params.id),
       userId: patient ? patient.userId : null,
       hospitalId: user.hospitalId,
+      doctorName: doctorName,
+      hospitalName: hospitalName,
     }
   );
 
