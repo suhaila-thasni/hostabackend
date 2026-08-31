@@ -97,6 +97,37 @@ export const Registeration: any = asyncHandler(
     }
 
     // ==============================
+    // 5.5. MANUAL COUNT LIMIT CHECK
+    // ==============================
+    const manualCountLimit = doctor?.data?.appointmentCount;
+    if (manualCountLimit && manualCountLimit > 0) {
+      const startOfDay = new Date(booking_date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(booking_date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const currentBookingsCount = await Booking.count({
+        where: {
+          doctorId,
+          booking_date: {
+            [Op.between]: [startOfDay, endOfDay],
+          },
+          status: {
+            [Op.notIn]: ['cancel', 'declined'],
+          },
+        },
+      });
+
+      if (currentBookingsCount >= manualCountLimit) {
+        res.status(400).json({
+          success: false,
+          message: `Booking limit reached. This doctor only accepts ${manualCountLimit} bookings per day.`,
+        });
+        return;
+      }
+    }
+
+    // ==============================
     // 6. CREATE BOOKING
     // ==============================
     const newbooking = await Booking.create({
@@ -234,6 +265,19 @@ export const updateData: any = asyncHandler(
       const { id } = req.params;
       const updatePayload = req.body;
       
+      // Fetch old booking to detect token changes
+      const oldBooking = await Booking.findByPk(id);
+      if (!oldBooking) {
+        res.status(404).json({
+          success: false,
+          message: "booking not found",
+          status: 404,
+          data: null,
+          error: { code: "BOOKING_NOT_FOUND", details: `No booking exists with ID ${id}` },
+        });
+        return;
+      }
+      const oldToken = oldBooking.token;
 
       const booking = await Booking.update(updatePayload, {
         where: { id: id },
@@ -254,7 +298,18 @@ export const updateData: any = asyncHandler(
       // ✅ Get updated booking object
       const updatedBooking = booking[1][0];
 
-
+      // ✅ Detect token change and notify user
+      if (updatePayload.token !== undefined && oldToken !== updatedBooking.token) {
+        await publishEvent("booking_events", "TOKEN_UPDATED", {
+          bookingId: updatedBooking.id,
+          userId: updatedBooking.userId,
+          hospitalId: updatedBooking.hospitalId,
+          doctorId: updatedBooking.doctorId,
+          patient_name: updatedBooking.patient_name,
+          oldToken: oldToken,
+          newToken: updatedBooking.token,
+        });
+      }
 
 
       let eventName: "BOOKING_UPDATED" | "BOOKING_CANCELLED" | "BOOKING_ACCEPTED" | "BOOKING_COMPLETED" = "BOOKING_UPDATED";

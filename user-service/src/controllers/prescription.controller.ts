@@ -206,7 +206,6 @@ export const getPrescription = asyncHandler(
       limit = 10,
     }: any = req.query;
 
-console.log("Prescription search_query:", search_query);
 
 
     
@@ -219,7 +218,6 @@ console.log("Prescription search_query:", search_query);
     prescribedBy = normalizeQuery(prescribedBy);
     search_query = normalizeQuery(search_query);
 
-console.log("Prescription search_query:", search_query);
 
 
     page = normalizeQuery(page);

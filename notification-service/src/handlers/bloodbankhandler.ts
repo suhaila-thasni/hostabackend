@@ -15,12 +15,14 @@ export const handleBloodBankEvent = async (
 
   let msg = "";
 
+  const hospitalText = content.hospitalName ? ` in ${content.hospitalName}` : ` (Hospital ID: ${content.hospitalId})`;
+
   if (routingKey === "STOCK_CREATED") {
-    msg = `New blood stock added: (Hospital ID: ${content.hospitalId}, Blood Group: ${content.bloodGroup})`;
+    msg = `New blood stock added${hospitalText}: Blood Group ${content.bloodGroup}`;
   } else if (routingKey === "STOCK_UPDATED") {
-    msg = `Blood stock updated: (Hospital ID: ${content.hospitalId}, Blood Group: ${content.bloodGroup})`;
+    msg = `Blood stock updated${hospitalText}: Blood Group ${content.bloodGroup}`;
   } else if (routingKey === "STOCK_DELETED") {
-    msg = `Blood stock deleted: (Hospital ID: ${content.hospitalId})`;
+    msg = `Blood stock deleted${hospitalText}: Blood Group ${content.bloodGroup}`;
   }
 
   // Save notification

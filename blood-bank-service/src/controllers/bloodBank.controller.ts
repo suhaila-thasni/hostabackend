@@ -13,11 +13,13 @@ export const createOrUpdateStock = asyncHandler(async (req: any, res: Response) 
   const { hospitalId, bloodGroup, count } = req.body;
 
 
+  let hospitalName = "";
   // 🏥 Validate Hospital (Cross-Service: hospital-service)
   try {
-    await httpClient.get(`${env.HOSPITAL_SERVICE_URL}/hospital/${hospitalId}`, {
+    const hospitalRes = await httpClient.get(`${env.HOSPITAL_SERVICE_URL}/hospital/${hospitalId}`, {
       headers: { Authorization: req.headers.authorization }
     });
+    hospitalName = hospitalRes.data?.data?.name || hospitalRes.data?.name || "";
   } catch (error: any) {
     console.error("Hospital validation failed:", error.message);
     res.status(404).json({
@@ -46,6 +48,7 @@ export const createOrUpdateStock = asyncHandler(async (req: any, res: Response) 
 
     await publishEvent("blood_bank_events", "STOCK_UPDATED", {
       hospitalId,
+      hospitalName,
       bloodGroup,
       count: newCount,
       action: "added"
@@ -62,6 +65,7 @@ export const createOrUpdateStock = asyncHandler(async (req: any, res: Response) 
 
     await publishEvent("blood_bank_events", "STOCK_CREATED", {
       hospitalId,
+      hospitalName,
       bloodGroup,
       count: count || 0
     });
@@ -174,10 +178,21 @@ export const updateStockById = asyncHandler(async (req: Request, res: Response) 
   }
 
 
+  let hospitalName = "";
+  if (stock.hospitalId) {
+    try {
+      const hospitalRes = await httpClient.get(`${env.HOSPITAL_SERVICE_URL}/hospital/${stock.hospitalId}`, {
+        headers: { Authorization: req.headers.authorization }
+      });
+      hospitalName = hospitalRes.data?.data?.name || hospitalRes.data?.name || "";
+    } catch (err) {}
+  }
+
   await stock.update({ count });
 
   await publishEvent("blood_bank_events", "STOCK_UPDATED", {
     hospitalId: stock.hospitalId,
+    hospitalName,
     bloodGroup: stock.bloodGroup,
     count: count,
     action: "manual_update"
@@ -198,12 +213,23 @@ export const deleteStockById = asyncHandler(async (req: Request, res: Response) 
 
   // Soft Delete (paranoid mode)
 
+  let hospitalName = "";
+  if (stock.hospitalId) {
+    try {
+      const hospitalRes = await httpClient.get(`${env.HOSPITAL_SERVICE_URL}/hospital/${stock.hospitalId}`, {
+        headers: { Authorization: req.headers.authorization }
+      });
+      hospitalName = hospitalRes.data?.data?.name || hospitalRes.data?.name || "";
+    } catch (err) {}
+  }
+
     await stock.destroy({ force: true });
 
 
 
   await publishEvent("blood_bank_events", "STOCK_DELETED", {
     hospitalId: stock.hospitalId,
+    hospitalName,
     bloodGroup: stock.bloodGroup,
     count: stock.count || 0
   });

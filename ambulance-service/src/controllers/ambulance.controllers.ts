@@ -48,17 +48,15 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response): 
     }
   }
 
+  let hospitalName = "";
   // Validate hospital only if provided
   if (hospitalId) {
     try {
-  
-      
-   await httpClient.get(
+      const hospitalRes = await httpClient.get(
         `${process.env.HOSPITAL_SERVICE_URL}/hospital/${hospitalId}`,
         { headers: { Authorization: req.headers.authorization } }
       );
-
-  
+      hospitalName = hospitalRes.data?.data?.name || hospitalRes.data?.name || "";
     } catch (err) {
        res.status(404).json({
         success: false,
@@ -94,8 +92,10 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response): 
 
   await publishEvent("ambulance_events", "AMBULANCE_REGISTERED", {
     ambulanceId: newAmbulance?.id,
+    ambulanceName: newAmbulance?.serviceName,
     phone: newAmbulance?.phone,
     hospitalId: newAmbulance?.hospitalId,
+    hospitalName: hospitalName,
   });
 
 
@@ -248,9 +248,22 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 
   const updatedAmbulance = affectedRows[0].toJSON();
 
+  let hospitalName = "";
+  if (updatedAmbulance.hospitalId) {
+    try {
+      const hospitalRes = await httpClient.get(
+        `${process.env.HOSPITAL_SERVICE_URL}/hospital/${updatedAmbulance.hospitalId}`,
+        { headers: { Authorization: req.headers.authorization } }
+      );
+      hospitalName = hospitalRes.data?.data?.name || hospitalRes.data?.name || "";
+    } catch (err) {}
+  }
+
   await publishEvent("ambulance_events", "AMBULANCE_UPDATED", {
     ambulanceId: updatedAmbulance.id,
+    ambulanceName: updatedAmbulance.serviceName,
     hospitalId: updatedAmbulance.hospitalId,
+    hospitalName: hospitalName,
   });
 
   res.status(200).json({
@@ -280,9 +293,22 @@ export const ambulanceDelete: any = asyncHandler(async (req: Request, res: Respo
     where: { id: id }
   });
 
+  let hospitalName = "";
+  if (ambulance.hospitalId) {
+    try {
+      const hospitalRes = await httpClient.get(
+        `${process.env.HOSPITAL_SERVICE_URL}/hospital/${ambulance.hospitalId}`,
+        { headers: { Authorization: req.headers.authorization } }
+      );
+      hospitalName = hospitalRes.data?.data?.name || hospitalRes.data?.name || "";
+    } catch (err) {}
+  }
+
   await publishEvent("ambulance_events", "AMBULANCE_DELETED", {
     ambulanceId: id,
+    ambulanceName: ambulance.serviceName,
     hospitalId: ambulance.hospitalId,
+    hospitalName: hospitalName,
   });
 
   res.status(200).json({

@@ -1076,6 +1076,9 @@ export const recoverStaff: any = asyncHandler(async (req: Request, res: Response
   await publishEvent("staff_events", "STAFF_RECOVERED", {
     staffId: staff.id,
     staffName: staff.name,
+    email: staff.email,
+    hospitalId: staff.hospitalId,
+    hospitalName: staff.hospitalName,
   });
 
   res.status(200).json({
