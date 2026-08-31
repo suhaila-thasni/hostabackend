@@ -112,7 +112,8 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
   if (routingKey === "BOOKING_UPDATED" || routingKey === "BOOKING_ACCEPTED" || routingKey === "BOOKING_COMPLETED") {
     const formattedId = formatBookingId(content.bookingId);
     let msg = "";
-    if (content.status === "accepted" || content.status === "declined") {
+    if (content.statusChanged !== false) {
+      if (content.status === "accepted" || content.status === "declined") {
       msg = `Booking ${formattedId} has been ${content.status} by hospital`;
     } else if (content.status === "completed") {
       msg = `Booking ${formattedId} has been marked as completed`;
@@ -182,46 +183,43 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
     }
   }
 
-  // ✅ Token Change Notification
-  if (routingKey === "TOKEN_UPDATED") {
-    const formattedId = formatBookingId(content.bookingId);
-    const msg = `Appointment Update: Your token number for appointment ${formattedId} has been changed from Token #${content.oldToken ?? "N/A"} to Token #${content.newToken ?? "N/A"}. Please take note of your updated token number.`;
+  if (content.tokenChanged === true) {
+      const tokenMsg = `Appointment Update: Your token number for appointment ${formattedId} has been changed from Token #${content.oldToken ?? "N/A"} to Token #${content.newToken ?? "N/A"}. Please take note of your updated token number.`;
 
-    // Save notification for the user
-    await persistNotification(
-      {
-        userIds: content.userId ? [content.userId] : [],
-        hospitalIds: content.hospitalId ? [content.hospitalId] : [],
-        message: msg,
-      },
-      "Failed to save TOKEN_UPDATED notification"
-    );
+      await persistNotification(
+        {
+          userIds: content.userId ? [content.userId] : [],
+          hospitalIds: content.hospitalId ? [content.hospitalId] : [],
+          message: tokenMsg,
+        },
+        "Failed to save TOKEN_UPDATED notification"
+      );
 
-    // Real-time socket notification to the user
-    if (content.userId) {
-      safeSocketEmit(`user_${content.userId}`, "booking_event", {
-        event: routingKey,
-        message: msg,
-        data: content,
-      });
-    }
-
-    // Push notification to the user
-    try {
       if (content.userId) {
-        const authUserToken = await axios.get(`${process.env.USER_SERVICE_URL}/internal/users/${content.userId}`);
-        const uTokens = authUserToken?.data?.data?.fcmToken?.map((d: any) => d.fcmToken) ?? [];
-
-        if (uTokens.length > 0) {
-          await sendPushNotificationMulticast({
-            tokens: uTokens,
-            title: "Token Number Updated",
-            body: `Your token has been changed from #${content.oldToken ?? "N/A"} to #${content.newToken ?? "N/A"} for appointment ${formattedId}.`,
-          });
-        }
+        safeSocketEmit(`user_${content.userId}`, "booking_event", {
+          event: routingKey,
+          message: tokenMsg,
+          data: content,
+        });
       }
-    } catch (err: any) {
-      console.error("Failed to send TOKEN_UPDATED push notification", err.message);
+
+      try {
+        if (content.userId) {
+          const authUserToken = await axios.get(`${process.env.USER_SERVICE_URL}/internal/users/${content.userId}`);
+          const uTokens = authUserToken?.data?.data?.fcmToken?.map((d: any) => d.fcmToken) ?? [];
+
+          if (uTokens.length > 0) {
+            await sendPushNotificationMulticast({
+              tokens: uTokens,
+              title: "Token Number Updated",
+              body: `Your token has been changed from #${content.oldToken ?? "N/A"} to #${content.newToken ?? "N/A"} for appointment ${formattedId}.`,
+            });
+          }
+        }
+      } catch (err: any) {
+        console.error("Failed to send TOKEN_UPDATED push notification", err.message);
+      }
     }
   }
+
 };

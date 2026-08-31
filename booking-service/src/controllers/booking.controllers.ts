@@ -298,44 +298,40 @@ export const updateData: any = asyncHandler(
       // ✅ Get updated booking object
       const updatedBooking = booking[1][0];
 
-      // ✅ Detect token change and notify user
-      if (updatePayload.token !== undefined && oldToken !== updatedBooking.token) {
-        await publishEvent("booking_events", "TOKEN_UPDATED", {
-          bookingId: updatedBooking.id,
-          userId: updatedBooking.userId,
-          hospitalId: updatedBooking.hospitalId,
-          doctorId: updatedBooking.doctorId,
-          patient_name: updatedBooking.patient_name,
-          oldToken: oldToken,
-          newToken: updatedBooking.token,
-        });
-      }
+      // ✅ Detect changes
       const statusChanged = oldBooking.status !== updatedBooking.status;
+      const tokenChanged = updatePayload.token !== undefined && oldToken !== updatedBooking.token;
 
-      if (statusChanged) {
+      if (statusChanged || tokenChanged) {
         let eventName: "BOOKING_UPDATED" | "BOOKING_CANCELLED" | "BOOKING_ACCEPTED" | "BOOKING_COMPLETED" = "BOOKING_UPDATED";
 
-
-        if (updatedBooking.status === "cancel") {
-          eventName = "BOOKING_CANCELLED";
-        } else if (updatedBooking.status === "accepted") {
-          eventName = "BOOKING_ACCEPTED";
-        } else if (updatedBooking.status === "completed") {
-          eventName = "BOOKING_COMPLETED";
+        if (statusChanged) {
+          if (updatedBooking.status === "cancel") {
+            eventName = "BOOKING_CANCELLED";
+          } else if (updatedBooking.status === "accepted") {
+            eventName = "BOOKING_ACCEPTED";
+          } else if (updatedBooking.status === "completed") {
+            eventName = "BOOKING_COMPLETED";
+          }
         }
+
         const eventPayload = {
           bookingId: updatedBooking.id,
           userId: updatedBooking.userId,
           hospitalId: updatedBooking.hospitalId,
           doctorId: updatedBooking.doctorId,
           patient_name: updatedBooking.patient_name,
-          status: updatedBooking.status
+          status: updatedBooking.status,
+          statusChanged: statusChanged,
+          tokenChanged: tokenChanged,
+          oldToken: oldToken,
+          newToken: updatedBooking.token
         };
 
-        
         await publishEvent("booking_events", eventName, eventPayload);
 
-        if (updatedBooking.status !== "cancel") {
+        // ✅ Only trigger the reminder and generic direct notification if status actually changed
+        if (statusChanged && updatedBooking.status !== "cancel") {
           try {
             // ✅ Use correct values
             await axios.post(
