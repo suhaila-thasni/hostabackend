@@ -103,7 +103,7 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
 
       if (routingKey === "BOOKING_REGISTERED") {
         pushTitle = "New Booking";
-        pushBody = msgText;
+        pushBody = `${content.patient_name || "Patient"} booked with ${doctorName}`;
 
         if (content.hospitalId) {
           const hTokens = await getTokensIfEnabled("hospital", content.hospitalId, "hospital_fcmtoken");
@@ -115,15 +115,11 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
         }
       } else if (routingKey === "BOOKING_CANCELLED") {
         pushTitle = "Appointment Cancelled";
-        pushBody = msgText;
+        pushBody = `Patient cancelled appointment at ${hospitalName}`;
 
         if (content.doctorId) {
           const dTokens = await getTokensIfEnabled("doctor", content.doctorId, "doctor_fcmtoken");
           tokensToNotify.push(...dTokens);
-        }
-        if (content.hospitalId) {
-          const hTokens = await getTokensIfEnabled("hospital", content.hospitalId, "hospital_fcmtoken");
-          tokensToNotify.push(...hTokens);
         }
       }
 
@@ -146,9 +142,10 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
     if (content.statusChanged !== false) {
       let msg = "";
       if (content.status === "accepted") {
-        msg = `Your booking (${formattedId}) with ${doctorName} at ${hospitalName} has been accepted`;
+        const accepter = content.actionBy === "doctor" ? "the doctor" : "the hospital";
+        msg = `Your booking (${formattedId}) with ${doctorName} at ${hospitalName} has been accepted by ${accepter}`;
       } else if (content.status === "declined") {
-        const decliner = content.declinedBy === "doctor" ? "the doctor" : "the hospital";
+        const decliner = content.actionBy === "doctor" ? "the doctor" : "the hospital";
         msg = `Booking (${formattedId}) with ${doctorName} at ${hospitalName} has been declined by ${decliner}`;
         if (content.reason) {
           msg += `. Reason: ${content.reason}`;
@@ -156,7 +153,8 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
       } else if (content.status === "cancel" || content.status === "cancelled") {
         msg = `Booking (${formattedId}) with ${doctorName} at ${hospitalName} has been cancelled`;
       } else if (content.status === "completed") {
-        msg = `Your booking (${formattedId}) with ${doctorName} at ${hospitalName} has been marked as completed`;
+        const completer = content.actionBy === "doctor" ? "the doctor" : "the hospital";
+        msg = `Your booking (${formattedId}) with ${doctorName} at ${hospitalName} has been marked as completed by ${completer}`;
       } else {
         msg = `Your booking (${formattedId}) with ${doctorName} at ${hospitalName} has been updated to ${content.status || "updated"}`;
       }
@@ -209,16 +207,8 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
           pushBody = `Appointment with ${doctorName} at ${hospitalName} confirmed`;
         } else if (routingKey === "BOOKING_UPDATED") {
           if (content.status === "declined") {
-            const declinerTitle = content.declinedBy === "doctor" ? "Doctor" : "Hospital";
-            const decliner = content.declinedBy === "doctor" ? "the doctor" : "the hospital";
-            pushTitle = `Booking Declined by ${declinerTitle}`;
-            pushBody = `Booking (${formattedId}) with ${doctorName} at ${hospitalName} has been declined by ${decliner}`;
-            if (content.reason) {
-              pushBody += `. Reason: ${content.reason}`;
-            }
-          } else if (content.status === "cancel" || content.status === "cancelled") {
-            pushTitle = "Booking Cancelled";
-            pushBody = `Booking with ${doctorName} at ${hospitalName} has been cancelled`;
+            pushTitle = "Booking Rejected";
+            pushBody = `Your booking with ${doctorName} at ${hospitalName} has been rejected`;
           } else {
             pushTitle = "Booking Updated";
             pushBody = msg;

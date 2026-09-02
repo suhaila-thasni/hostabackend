@@ -357,7 +357,7 @@ export const updateData: any = asyncHandler(
           console.error("⚠️ Failed to fetch hospital name for event payload:", err.message);
         }
 
-        const declinedBy = req.body.declinedBy || (req as any).user?.role || (req as any).user?.type || undefined;
+        const actionBy = req.body.actionBy || req.body.declinedBy || (req as any).user?.role || (req as any).user?.type || undefined;
         const reason = req.body.reason || req.body.declineReason || undefined;
 
         const eventPayload = {
@@ -374,7 +374,7 @@ export const updateData: any = asyncHandler(
           doctorName: doctorName,
           hospitalName: hospitalName,
           reason: reason,
-          declinedBy: declinedBy,
+          actionBy: actionBy,
         };
 
         await publishEvent("booking_events", eventName, eventPayload);
@@ -712,7 +712,7 @@ export const autoDeclineBooking: any = asyncHandler(async (req: Request, res: Re
     statusChanged: true,
     doctorName: booking.doctor_name || "",
     hospitalName: booking.hospitalName || "",
-    declinedBy: "doctor",
+    actionBy: "doctor",
     autoDeclined: true,
     reason: "Auto-declined due to no response from the doctor within the time limit",
   };
