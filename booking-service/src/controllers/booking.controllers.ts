@@ -30,9 +30,9 @@ export const Registeration: any = asyncHandler(
       status,
       token,
       hospitalName,
-      
+
     } = req.body;
-    
+
     const errors: string[] = [];
 
     // ==============================
@@ -119,6 +119,26 @@ export const Registeration: any = asyncHandler(
       });
 
       if (currentBookingsCount >= manualCountLimit) {
+        // Notify user about booking limit
+        const doctorName = doctor?.data?.displayName || "the doctor";
+        const hospitalsName = hospitalRes?.data?.data?.name || "the hospital";
+        const limitMsg = `Your booking with ${doctorName} at ${hospitalsName} on ${booking_date} could not be placed. The doctor has reached the maximum limit of ${manualCountLimit} appointments for this day. Please try another date.`;
+
+        try {
+          await publishEvent("booking_events", "BOOKING_LIMIT_REACHED", {
+            userId,
+            hospitalId,
+            doctorId,
+            doctorName,
+            hospitalName: hospitalsName,
+            booking_date,
+            manualCountLimit,
+            message: limitMsg,
+          });
+        } catch (err: any) {
+          console.error("Failed to publish BOOKING_LIMIT_REACHED event:", err.message);
+        }
+
         res.status(400).json({
           success: false,
           message: `Booking limit reached. This doctor only accepts ${manualCountLimit} bookings per day.`,
@@ -157,7 +177,7 @@ export const Registeration: any = asyncHandler(
     // ==============================
 
     const doctorName =
-      doctor?.data?.displayName || "Unknown Doctor"; 
+      doctor?.data?.displayName || "Unknown Doctor";
     const hospitalsName =
       hospitalRes?.data?.data?.name || `Hospital (ID: ${hospitalId})`;
 
@@ -170,7 +190,7 @@ export const Registeration: any = asyncHandler(
           doctorIds: doctorId ? [Number(doctorId)] : [],
           message: `New booking for  ${doctorName} on ${booking_date}`,
         },
-        { headers: { Authorization: req.headers.authorization} }
+        { headers: { Authorization: req.headers.authorization } }
       ),
 
       // BullMQ Service
@@ -181,7 +201,7 @@ export const Registeration: any = asyncHandler(
           hospitalId,
           message: `New booking for  ${doctorName} on ${booking_date}`,
         },
-        { headers: { Authorization: req.headers.authorization }}
+        { headers: { Authorization: req.headers.authorization } }
       ),
     ]);
 
@@ -195,7 +215,7 @@ export const Registeration: any = asyncHandler(
       doctorId,
       patient_name,
       doctorName,
-      hospitalsName,
+      hospitalName: hospitalsName,
       booking_date,
     });
 
@@ -264,7 +284,7 @@ export const updateData: any = asyncHandler(
     try {
       const { id } = req.params;
       const updatePayload = req.body;
-      
+
       // Fetch old booking to detect token changes
       const oldBooking = await Booking.findByPk(id);
       if (!oldBooking) {
@@ -332,10 +352,13 @@ export const updateData: any = asyncHandler(
             `${process.env.HOSPITAL_SERVICE_URL}/hospital/${updatedBooking.hospitalId}`,
             { headers: { Authorization: req.headers.authorization } },
           );
-          hospitalName = hospitalRes.data?.data?.hospitalName || "";
+          hospitalName = hospitalRes.data?.data?.name || "";
         } catch (err: any) {
           console.error("⚠️ Failed to fetch hospital name for event payload:", err.message);
         }
+
+        const declinedBy = req.body.declinedBy || (req as any).user?.role || (req as any).user?.type || undefined;
+        const reason = req.body.reason || req.body.declineReason || undefined;
 
         const eventPayload = {
           bookingId: updatedBooking.id,
@@ -350,6 +373,8 @@ export const updateData: any = asyncHandler(
           newToken: updatedBooking.token,
           doctorName: doctorName,
           hospitalName: hospitalName,
+          reason: reason,
+          declinedBy: declinedBy,
         };
 
         await publishEvent("booking_events", eventName, eventPayload);
@@ -367,7 +392,7 @@ export const updateData: any = asyncHandler(
                 consulting_time: updatedBooking?.consulting_time,
                 message: `Booking ${updatedBooking?.status}`,
               },
-               {
+              {
                 headers: { Authorization: req.headers.authorization },
               },
             );
@@ -392,9 +417,9 @@ export const updateData: any = asyncHandler(
             try {
               // send notification userId
               await axios.post(`${process.env.NOTIFICATION_SERVICE_URL}/notification`, {
-                  userIds: updatedBooking.userId ? [Number(updatedBooking.userId)] : [],
-                  message: `Your booking with  ${doctor.data.displayName} has been ${updatedBooking.status}.`,
-                },
+                userIds: updatedBooking.userId ? [Number(updatedBooking.userId)] : [],
+                message: `Your booking with  ${doctor.data.displayName} has been ${updatedBooking.status}.`,
+              },
                 {
                   headers: { Authorization: req.headers.authorization }
                 }
@@ -406,7 +431,7 @@ export const updateData: any = asyncHandler(
         }
       }
 
-      
+
 
       res.status(200).json({
         success: true,
@@ -464,7 +489,7 @@ export const bookingDelete: any = asyncHandler(
 
 // GET ALL - GET /booking
 
-export const getBookings = asyncHandler(async (req: Request, res: Response) : Promise<void> => {
+export const getBookings = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   let {
     userId,
     hospitalId,
@@ -498,9 +523,9 @@ export const getBookings = asyncHandler(async (req: Request, res: Response) : Pr
   search_query = extract(search_query);
   patient_name = extract(patient_name);
   gender = extract(gender);
-    startDate = extract(startDate);
-      endDate = extract(endDate);
-        date = extract(date);
+  startDate = extract(startDate);
+  endDate = extract(endDate);
+  date = extract(date);
 
   const pageNum = Number(page);
   const limitNum = Number(limit);
@@ -526,7 +551,7 @@ export const getBookings = asyncHandler(async (req: Request, res: Response) : Pr
     };
   }
 
-   if (gender) {
+  if (gender) {
     whereClause.patient_gender = {
       [Op.iLike]: `%${gender}%`,
     };
@@ -549,76 +574,76 @@ export const getBookings = asyncHandler(async (req: Request, res: Response) : Pr
     };
   }
 
-   if (patient_name) {
+  if (patient_name) {
     whereClause.patient_name = {
       [Op.iLike]: `%${patient_name}%`,
     };
   }
 
   if (date) {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
 
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
 
-  whereClause.booking_date = {
-    [Op.between]: [start, end],
-  };
-} else if (startDate && endDate) {
-  const start = new Date(startDate);
-  start.setHours(0, 0, 0, 0);
+    whereClause.booking_date = {
+      [Op.between]: [start, end],
+    };
+  } else if (startDate && endDate) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
 
-  const end = new Date(endDate);
-  end.setHours(23, 59, 59, 999);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
 
-  whereClause.booking_date = {
-    [Op.between]: [start, end],
-  };
-}
+    whereClause.booking_date = {
+      [Op.between]: [start, end],
+    };
+  }
 
 
   // Global search
- if (search_query?.trim()) {
-  const search = search_query.trim();
+  if (search_query?.trim()) {
+    const search = search_query.trim();
 
-  whereClause[Op.or] = [
-    Sequelize.where(
-      Sequelize.fn("COALESCE", Sequelize.col("doctor_name"), ""),
-      {
-        [Op.iLike]: `%${search}%`,
-      }
-    ),
+    whereClause[Op.or] = [
+      Sequelize.where(
+        Sequelize.fn("COALESCE", Sequelize.col("doctor_name"), ""),
+        {
+          [Op.iLike]: `%${search}%`,
+        }
+      ),
 
-    Sequelize.where(
-      Sequelize.fn("COALESCE", Sequelize.col("doctor_department"), ""),
-      {
-        [Op.iLike]: `%${search}%`,
-      }
-    ),
+      Sequelize.where(
+        Sequelize.fn("COALESCE", Sequelize.col("doctor_department"), ""),
+        {
+          [Op.iLike]: `%${search}%`,
+        }
+      ),
 
-    Sequelize.where(
-      Sequelize.fn("COALESCE", Sequelize.col("patient_phone"), ""),
-      {
-        [Op.iLike]: `%${search}%`,
-      }
-    ),
-    
-    Sequelize.where(
-      Sequelize.cast(Sequelize.col("patient_gender"), "TEXT"),
-      {
-        [Op.iLike]: `%${search}%`,
-      }
-    ),
+      Sequelize.where(
+        Sequelize.fn("COALESCE", Sequelize.col("patient_phone"), ""),
+        {
+          [Op.iLike]: `%${search}%`,
+        }
+      ),
 
-    Sequelize.where(
-      Sequelize.fn("COALESCE", Sequelize.col("patient_name"), ""),
-      {
-        [Op.iLike]: `%${search}%`,
-      }
-    ),
-  ];
-}
+      Sequelize.where(
+        Sequelize.cast(Sequelize.col("patient_gender"), "TEXT"),
+        {
+          [Op.iLike]: `%${search}%`,
+        }
+      ),
+
+      Sequelize.where(
+        Sequelize.fn("COALESCE", Sequelize.col("patient_name"), ""),
+        {
+          [Op.iLike]: `%${search}%`,
+        }
+      ),
+    ];
+  }
 
   // IMPORTANT: pagination query
   const { count, rows } = await Booking.findAndCountAll({
@@ -629,12 +654,12 @@ export const getBookings = asyncHandler(async (req: Request, res: Response) : Pr
   });
 
   if (count === 0) {
-   res.status(404).json({
+    res.status(404).json({
       success: false,
       message: "No data found",
       data: [],
     });
-    return ;
+    return;
   }
 
   const totalPages = Math.ceil(count / limitNum);
@@ -651,7 +676,7 @@ export const getBookings = asyncHandler(async (req: Request, res: Response) : Pr
       hasPreviousPage: pageNum > 1,
     },
   });
-  return ;
+  return;
 });
 
 // INTERNAL API - PUT /booking/internal/:id/auto-decline
@@ -683,7 +708,13 @@ export const autoDeclineBooking: any = asyncHandler(async (req: Request, res: Re
     hospitalId: booking.hospitalId,
     doctorId: booking.doctorId,
     patient_name: booking.patient_name,
-    status: booking.status
+    status: booking.status,
+    statusChanged: true,
+    doctorName: booking.doctor_name || "",
+    hospitalName: booking.hospitalName || "",
+    declinedBy: "doctor",
+    autoDeclined: true,
+    reason: "Auto-declined due to no response from the doctor within the time limit",
   };
 
   await publishEvent("booking_events", "BOOKING_UPDATED", eventPayload);

@@ -16,10 +16,18 @@ import {
 
 const router = express.Router();
 
+// router.post(
+//   "/",
+//   validate(createTemplateSchema),
+//   authenticate,
+//   checkPermission("Notification Templates", "create"),
+//   createTemplate
+// );
+
 router.post(
   "/",
-  validate(createTemplateSchema),
   authenticate,
+  validate(createTemplateSchema),
   checkPermission("Notification Templates", "create"),
   createTemplate
 );
@@ -40,8 +48,8 @@ router.get(
 
 router.put(
   "/:id",
-  validate(updateTemplateSchema),
   authenticate,
+  validate(updateTemplateSchema),
   checkPermission("Notification Templates", "edit"),
   updateTemplate
 );

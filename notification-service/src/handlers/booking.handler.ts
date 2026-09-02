@@ -18,22 +18,42 @@ const persistNotification = async (payload: Record<string, any>, errorMessage: s
   }
 };
 
+
+const formatBookingDate = (dateStr?: string): string => {
+  if (!dateStr) return "the requested date";
+  const dateObj = new Date(dateStr);
+  if (isNaN(dateObj.getTime())) return dateStr;
+  return dateObj.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const getFormattedDoctorName = (name?: string): string => {
+  if (!name) return "Doctor";
+  if (name.startsWith("Dr.")) return name;
+  return `Dr. ${name}`;
+};
+
 export const handleBookingEvent = async (routingKey: string, content: any) => {
   const formattedId = formatBookingId(content.bookingId);
-  const doctorName = content.doctorName || "Doctor";
+  const doctorName = getFormattedDoctorName(content.doctorName);
   const hospitalName = content.hospitalName || "the hospital";
+  const patientName = content.patient_name || "Patient";
+  const formattedDate = formatBookingDate(content.booking_date);
 
   // ==============================
   // BOOKING_REGISTERED / BOOKING_CANCELLED
   // ==============================
   if (routingKey === "BOOKING_REGISTERED" || routingKey === "BOOKING_CANCELLED") {
     const msgText = routingKey === "BOOKING_REGISTERED"
-      ? `New booking for ${doctorName} at ${hospitalName} on ${content.booking_date || "the requested date"}`
-      : `Booking cancelled for ${doctorName} at ${hospitalName} on ${content.booking_date || "the requested date"} (ID: ${formattedId})`;
+      ? `${patientName} has booked an appointment ${formattedId} with ${doctorName} at ${hospitalName} for ${formattedDate}`
+      : `${patientName} has cancelled appointment ${formattedId} with ${doctorName} at ${hospitalName} for ${formattedDate}`;
 
     await persistNotification(
       {
-        userIds: content.userId ? [content.userId] : [],
+        // userIds: content.userId ? [content.userId] : [],
         hospitalIds: content.hospitalId ? [content.hospitalId] : [],
         doctorIds: content.doctorId ? [content.doctorId] : [],
         message: msgText,
@@ -51,26 +71,26 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
     if (routingKey === "BOOKING_REGISTERED") {
       if (content.doctorId) {
         safeSocketEmit(`user_${content.doctorId}`, "booking_alert", {
-          message: `New booking registered: ${content.patient_name || "Patient"} (ID: ${formattedId})`,
+          message: msgText,
           data: content,
         });
       }
       if (content.hospitalId) {
         safeSocketEmit(`user_${content.hospitalId}`, "booking_alert", {
-          message: `New booking registered: ${content.patient_name || "Patient"} (ID: ${formattedId})`,
+          message: msgText,
           data: content,
         });
       }
     } else {
       if (content.doctorId) {
         safeSocketEmit(`user_${content.doctorId}`, "booking_alert", {
-          message: `Booking cancelled: ${content.patient_name || "Patient"} (ID: ${formattedId})`,
+          message: msgText,
           data: content,
         });
       }
       if (content.hospitalId) {
         safeSocketEmit(`user_${content.hospitalId}`, "booking_alert", {
-          message: `Booking cancelled: ${content.patient_name || "Patient"} (ID: ${formattedId})`,
+          message: msgText,
           data: content,
         });
       }
@@ -83,7 +103,7 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
 
       if (routingKey === "BOOKING_REGISTERED") {
         pushTitle = "New Booking";
-        pushBody = `${content.patient_name || "Patient"} booked with ${doctorName}`;
+        pushBody = msgText;
 
         if (content.hospitalId) {
           const hTokens = await getTokensIfEnabled("hospital", content.hospitalId, "hospital_fcmtoken");
@@ -95,11 +115,15 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
         }
       } else if (routingKey === "BOOKING_CANCELLED") {
         pushTitle = "Appointment Cancelled";
-        pushBody = `Patient cancelled appointment at ${hospitalName}`;
+        pushBody = msgText;
 
         if (content.doctorId) {
           const dTokens = await getTokensIfEnabled("doctor", content.doctorId, "doctor_fcmtoken");
           tokensToNotify.push(...dTokens);
+        }
+        if (content.hospitalId) {
+          const hTokens = await getTokensIfEnabled("hospital", content.hospitalId, "hospital_fcmtoken");
+          tokensToNotify.push(...hTokens);
         }
       }
 
@@ -121,8 +145,16 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
   if (routingKey === "BOOKING_UPDATED" || routingKey === "BOOKING_ACCEPTED" || routingKey === "BOOKING_COMPLETED") {
     if (content.statusChanged !== false) {
       let msg = "";
-      if (content.status === "accepted" || content.status === "declined") {
-        msg = `Your booking (${formattedId}) with ${doctorName} at ${hospitalName} has been ${content.status}`;
+      if (content.status === "accepted") {
+        msg = `Your booking (${formattedId}) with ${doctorName} at ${hospitalName} has been accepted`;
+      } else if (content.status === "declined") {
+        const decliner = content.declinedBy === "doctor" ? "the doctor" : "the hospital";
+        msg = `Booking (${formattedId}) with ${doctorName} at ${hospitalName} has been declined by ${decliner}`;
+        if (content.reason) {
+          msg += `. Reason: ${content.reason}`;
+        }
+      } else if (content.status === "cancel" || content.status === "cancelled") {
+        msg = `Booking (${formattedId}) with ${doctorName} at ${hospitalName} has been cancelled`;
       } else if (content.status === "completed") {
         msg = `Your booking (${formattedId}) with ${doctorName} at ${hospitalName} has been marked as completed`;
       } else {
@@ -133,7 +165,7 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
       await persistNotification(
         {
           userIds: content.userId ? [content.userId] : [],
-          hospitalIds: content.hospitalId ? [content.hospitalId] : [],
+          // hospitalIds: content.hospitalId ? [content.hospitalId] : [],
           message: msg,
         },
         "Failed to save booking update notification"
@@ -177,8 +209,16 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
           pushBody = `Appointment with ${doctorName} at ${hospitalName} confirmed`;
         } else if (routingKey === "BOOKING_UPDATED") {
           if (content.status === "declined") {
-            pushTitle = "Booking Rejected";
-            pushBody = `Your booking with ${doctorName} at ${hospitalName} has been rejected`;
+            const declinerTitle = content.declinedBy === "doctor" ? "Doctor" : "Hospital";
+            const decliner = content.declinedBy === "doctor" ? "the doctor" : "the hospital";
+            pushTitle = `Booking Declined by ${declinerTitle}`;
+            pushBody = `Booking (${formattedId}) with ${doctorName} at ${hospitalName} has been declined by ${decliner}`;
+            if (content.reason) {
+              pushBody += `. Reason: ${content.reason}`;
+            }
+          } else if (content.status === "cancel" || content.status === "cancelled") {
+            pushTitle = "Booking Cancelled";
+            pushBody = `Booking with ${doctorName} at ${hospitalName} has been cancelled`;
           } else {
             pushTitle = "Booking Updated";
             pushBody = msg;
@@ -210,7 +250,7 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
     await persistNotification(
       {
         userIds: content.userId ? [content.userId] : [],
-        hospitalIds: content.hospitalId ? [content.hospitalId] : [],
+        // hospitalIds: content.hospitalId ? [content.hospitalId] : [],
         message: tokenMsg,
       },
       "Failed to save TOKEN_UPDATED notification"
@@ -239,6 +279,46 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
       }
     } catch (err: any) {
       console.error("Failed to send TOKEN_UPDATED push notification", err.message);
+    }
+  }
+
+  // ==============================
+  // BOOKING_LIMIT_REACHED
+  // ==============================
+  if (routingKey === "BOOKING_LIMIT_REACHED") {
+    const limitMsg = content.message;
+
+    await persistNotification(
+      {
+        userIds: content.userId ? [content.userId] : [],
+        message: limitMsg,
+      },
+      "Failed to save BOOKING_LIMIT_REACHED notification"
+    );
+
+    if (content.userId) {
+      safeSocketEmit(`user_${content.userId}`, "booking_event", {
+        event: routingKey,
+        message: limitMsg,
+        data: content,
+      });
+    }
+
+    try {
+      if (content.userId) {
+        const authUserToken = await axios.get(`${process.env.USER_SERVICE_URL}/internal/users/${content.userId}`);
+        const uTokens = authUserToken?.data?.data?.fcmToken?.map((d: any) => d.fcmToken) ?? [];
+
+        if (uTokens.length > 0) {
+          await sendPushNotificationMulticast({
+            tokens: uTokens,
+            title: "Booking Limit Reached",
+            body: limitMsg,
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error("Failed to send BOOKING_LIMIT_REACHED push notification", err.message);
     }
   }
 };
