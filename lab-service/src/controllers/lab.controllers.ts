@@ -218,7 +218,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
   const jwtKey = process.env.JWT_SECRET;
 
   const token = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId, isRefresh: false }, jwtKey, {
-    expiresIn: "15m"
+    expiresIn: "1d"
   });
   const refreshToken = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId, isRefresh: true }, jwtKey, {
     expiresIn: "2w"
@@ -371,7 +371,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
   const token = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId, isRefresh: false }, jwtKey, {
-    expiresIn: "15m"
+    expiresIn: "1d"
   });
   const refreshToken = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId, isRefresh: true }, jwtKey, {
     expiresIn: "2w"
@@ -601,7 +601,7 @@ export const refreshLabToken: any = asyncHandler(async (req: Request, res: Respo
     }
 
     const newToken = jwt.sign({ id: lab.id, name: lab.name, role: "lab", roleId: lab.roleId, isRefresh: false }, jwtKey, {
-      expiresIn: "15m",
+      expiresIn: "1d",
     });
 
     res.status(200).json({

@@ -5,7 +5,8 @@ import { publishEvent } from "../events/publisher";
 import { httpClient } from "../utils/httpClient";
 import axios from "axios";
 import dotenv from "dotenv";
-import { Op, Sequelize } from "sequelize";
+import { Op, Sequelize, Transaction } from "sequelize";
+import sequelize from "../config/db";
 dotenv.config();
 
 // REGISTER - POST /booking/register
@@ -97,29 +98,66 @@ export const Registeration: any = asyncHandler(
     }
 
     // ==============================
-    // 5.5. MANUAL COUNT LIMIT CHECK
+    // 5.5. MANUAL COUNT LIMIT CHECK & 6. CREATE BOOKING
     // ==============================
     const manualCountLimit = doctor?.data?.appointmentCount;
-    if (manualCountLimit && manualCountLimit > 0) {
-      const startOfDay = new Date(booking_date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(booking_date);
-      endOfDay.setHours(23, 59, 59, 999);
+    let newbooking: any;
 
-      const currentBookingsCount = await Booking.count({
-        where: {
-          doctorId,
-          booking_date: {
-            [Op.between]: [startOfDay, endOfDay],
-          },
-          status: {
-            [Op.notIn]: ['cancel', 'declined'],
-          },
-        },
-      });
+    try {
+      await sequelize.transaction(
+        { isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE },
+        async (t) => {
+          if (manualCountLimit && manualCountLimit > 0) {
+            const startOfDay = new Date(booking_date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(booking_date);
+            endOfDay.setHours(23, 59, 59, 999);
 
-      if (currentBookingsCount >= manualCountLimit) {
-        // Notify user about booking limit
+            const currentBookingsCount = await Booking.count({
+              where: {
+                doctorId,
+                booking_date: {
+                  [Op.between]: [startOfDay, endOfDay],
+                },
+                status: {
+                  [Op.notIn]: ['cancel', 'declined'],
+                },
+              },
+              transaction: t,
+            });
+
+            if (currentBookingsCount >= manualCountLimit) {
+              throw new Error("BOOKING_LIMIT_REACHED");
+            }
+          }
+
+          newbooking = await Booking.create(
+            {
+              patient_dob,
+              patient_age,
+              patient_gender,
+              patient_name,
+              patient_place,
+              patient_phone,
+              userId,
+              patientId,
+              hospitalId,
+              doctorId,
+              booking_date,
+              doctor_name: displayName,
+              doctor_department: department,
+              consulting_time,
+              booking_status: booking_status || "user booking",
+              status,
+              token,
+              hospitalName,
+            },
+            { transaction: t }
+          );
+        }
+      );
+    } catch (error: any) {
+      if (error.message === "BOOKING_LIMIT_REACHED") {
         const doctorName = doctor?.data?.displayName || "the doctor";
         const hospitalsName = hospitalRes?.data?.data?.name || "the hospital";
         const limitMsg = `Your booking with ${doctorName} at ${hospitalsName} on ${booking_date} could not be placed. The doctor has reached the maximum limit of ${manualCountLimit} appointments for this day. Please try another date.`;
@@ -145,32 +183,14 @@ export const Registeration: any = asyncHandler(
         });
         return;
       }
+
+      console.error("Transaction Error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to process booking due to concurrent requests. Please try again.",
+      });
+      return;
     }
-
-    // ==============================
-    // 6. CREATE BOOKING
-    // ==============================
-    const newbooking = await Booking.create({
-      patient_dob,
-      patient_age,
-      patient_gender,
-      patient_name,
-      patient_place,
-      patient_phone,
-      userId,
-      patientId,
-      hospitalId,
-      doctorId,
-      booking_date,
-      doctor_name: displayName,
-      doctor_department: department,
-      consulting_time,
-      booking_status: booking_status || "user booking",
-      status,
-      token,
-      hospitalName,
-
-    });
 
     // ==============================
     // 7. SAFE EXTERNAL CALLS
@@ -400,34 +420,6 @@ export const updateData: any = asyncHandler(
             console.error("⚠️ Failed to trigger BullMQ reminder service:", bulmqError.message);
           }
 
-          let doctor: any;
-          try {
-            const doctorRes = await httpClient.get(
-              `${process.env.DOCTOR_SERVICE_URL}/doctor/${updatedBooking.doctorId}`,
-              {
-                headers: { Authorization: req.headers.authorization },
-              },
-            );
-            doctor = doctorRes.data;
-          } catch (doctorError: any) {
-            console.error("⚠️ Failed to fetch doctor details for notification:", doctorError.message);
-          }
-
-          if (doctor) {
-            try {
-              // send notification userId
-              await axios.post(`${process.env.NOTIFICATION_SERVICE_URL}/notification`, {
-                userIds: updatedBooking.userId ? [Number(updatedBooking.userId)] : [],
-                message: `Your booking with  ${doctor.data.displayName} has been ${updatedBooking.status}.`,
-              },
-                {
-                  headers: { Authorization: req.headers.authorization }
-                }
-              );
-            } catch (notifError: any) {
-              console.error("⚠️ Failed to send user status update notification:", notifError.message);
-            }
-          }
         }
       }
 
@@ -720,5 +712,29 @@ export const autoDeclineBooking: any = asyncHandler(async (req: Request, res: Re
   await publishEvent("booking_events", "BOOKING_UPDATED", eventPayload);
 
   res.status(200).json({ success: true, message: "Booking auto-declined", data: booking });
+});
+
+// GET TODAY BOOKING COUNT FOR A DOCTOR (INTERNAL) - GET /booking/internal/doctor/:doctorId/today-count
+export const getTodayCount = asyncHandler(async (req: Request, res: Response) => {
+  const { doctorId } = req.params;
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const takenSlots = await Booking.count({
+    where: {
+      doctorId: Number(doctorId),
+      booking_date: {
+        [Op.between]: [startOfDay, endOfDay],
+      },
+      status: {
+        [Op.notIn]: ['cancel', 'declined'],
+      },
+    },
+  });
+
+  res.status(200).json({ takenSlots });
 });
 

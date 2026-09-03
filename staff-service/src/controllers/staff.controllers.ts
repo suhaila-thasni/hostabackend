@@ -324,7 +324,7 @@ if (fcmToken) {
 
   // Generate JWT tokens
   const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: false }, jwtKey, {
-    expiresIn: "15m",
+    expiresIn: "1d",
   });
 
   const refreshToken = jwt.sign(
@@ -547,7 +547,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
     return;
   }
 
-  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: false }, jwtKey, { expiresIn: "15m" });
+  const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: false }, jwtKey, { expiresIn: "1d" });
   const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: true }, jwtKey, { expiresIn: "2w" });
 
   // Save refresh token to Redis (REMOVED)
@@ -1199,7 +1199,7 @@ export const verifyStaffOtp: any = asyncHandler(async (req: Request, res: Respon
 
   const jwtKey = process.env.JWT_SECRET;
   const token = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: false }, jwtKey, {
-    expiresIn: "15m",
+    expiresIn: "1d",
   });
   const refreshToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: true }, jwtKey, {
     expiresIn: "2w",
@@ -1480,7 +1480,7 @@ export const refreshStaffToken: any = asyncHandler(async (req: Request, res: Res
     }
 
     const newToken = jwt.sign({ id: staff.id, name: staff.name, role: "staff", roleId: staff.roleId, hospitalId: staff.hospitalId, isRefresh: false }, jwtKey, {
-      expiresIn: "15m",
+      expiresIn: "1d",
     });
 
     res.status(200).json({

@@ -365,7 +365,7 @@ export const login: any = asyncHandler(
       },
       jwtKey,
       {
-        expiresIn: "15m",
+        expiresIn: "1d",
       },
     );
 
@@ -522,7 +522,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
     },
     jwtKey,
     {
-      expiresIn: "15m",
+      expiresIn: "1d",
     },
   );
 
@@ -574,10 +574,28 @@ export const getanDoctor: any = asyncHandler(
       return;
     }
 
+    let takenSlots = 0;
+    try {
+      const response = await axios.get(`${process.env.BOOKING_SERVICE_URL}/booking/internal/doctor/${doctor.id}/today-count`);
+      takenSlots = response.data.takenSlots || 0;
+    } catch (err: any) {
+      console.error("Failed to fetch taken slots from booking service:", err.message);
+    }
+
+    const appointmentCount = doctor.appointmentCount || 0;
+    const leftSlots = Math.max(appointmentCount - takenSlots, 0);
+
+    const doctorData = {
+      ...doctor.toJSON(),
+      appointmentCount,
+      takenSlots,
+      leftSlots,
+    };
+
     res.status(200).json({
       success: true,
       status: "Success",
-      data: doctor,
+      data: doctorData,
       error: null,
     });
   },
@@ -954,11 +972,37 @@ export const getDoctors = asyncHandler(
 
     const totalPages = Math.ceil(doctors.count / limitNum) || 1;
 
+    /* ----------------------------- FETCH SLOTS ----------------------------- */
+    const updatedDoctors = await Promise.all(
+      doctors.rows.map(async (doc) => {
+        let takenSlots = 0;
+        try {
+          // Promise.all runs these concurrently, so it won't block sequentially
+          const response = await axios.get(
+            `${process.env.BOOKING_SERVICE_URL}/booking/internal/doctor/${doc.id}/today-count`
+          );
+          takenSlots = response.data.takenSlots || 0;
+        } catch (err: any) {
+          console.error(`Failed to fetch taken slots for doctor ${doc.id}:`, err.message);
+        }
+
+        const appointmentCount = doc.appointmentCount || 0;
+        const leftSlots = Math.max(appointmentCount - takenSlots, 0);
+
+        return {
+          ...doc.toJSON(),
+          appointmentCount,
+          takenSlots,
+          leftSlots,
+        };
+      })
+    );
+
     /* ----------------------------- RESPONSE ------------------------------- */
 
     res.status(200).json({
       success: true,
-      data: doctors.rows,
+      data: updatedDoctors,
       pagination: {
         totalItems: doctors.count,
         totalPages,
@@ -1202,7 +1246,7 @@ export const verifyDoctorOtp: any = asyncHandler(
       },
       jwtKey,
       {
-        expiresIn: "15m",
+        expiresIn: "1d",
       },
     );
 
@@ -1462,22 +1506,6 @@ export const updateDoctorPassword = async (req: Request, res: Response) => {
   });
 };
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // REFRESH TOKEN - POST /doctor/refresh
 export const refreshDoctorToken: any = asyncHandler(
@@ -1517,7 +1545,7 @@ export const refreshDoctorToken: any = asyncHandler(
         },
         jwtKey,
         {
-          expiresIn: "15m",
+          expiresIn: "1d",
         },
       );
 

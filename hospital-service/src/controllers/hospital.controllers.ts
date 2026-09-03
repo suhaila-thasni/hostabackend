@@ -241,7 +241,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
   const token = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId, isRefresh: false }, jwtKey, {
-    expiresIn: "15m",
+    expiresIn: "1d",
   });
 
   // Remove password and OTP fields from response
@@ -305,7 +305,7 @@ export const loginWithPhone: any = asyncHandler(async (req: Request, res: Respon
 
   // Generate JWT tokens
   const token = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId, isRefresh: false }, process.env.JWT_SECRET || "supersecretjwtkey", {
-    expiresIn: "15m",
+    expiresIn: "1d",
   });
 
   const refreshToken = jwt.sign(
@@ -433,7 +433,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
   const token = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId, isRefresh: false }, jwtKey, {
-    expiresIn: "15m",
+    expiresIn: "1d",
   });
 
   // Remove password and OTP fields from response
@@ -1159,7 +1159,7 @@ export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: 
     }
 
     const newToken = jwt.sign({ id: hospital.id, name: hospital.name, role: "hospital", roleId: hospital.roleId, isRefresh: false }, jwtKey, {
-      expiresIn: "15m",
+      expiresIn: "1d",
     });
 
     res.status(200).json({

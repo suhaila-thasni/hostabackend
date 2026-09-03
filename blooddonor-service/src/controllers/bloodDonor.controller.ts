@@ -224,7 +224,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
   const token = jwt.sign({ id: donor.id, donorId: donor.donorId, userId: donor.userId, role: "bloodDonor" }, jwtKey, {
-    expiresIn: "15m"
+    expiresIn: "1d"
   });
   // const refreshToken = jwt.sign({ id: donor.id, donorId: donor.donorId, userId: donor.userId, role: "bloodDonor", roleId: donor.roleId }, jwtKey, {
   //   expiresIn: "2w"

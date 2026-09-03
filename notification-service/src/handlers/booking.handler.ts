@@ -121,6 +121,10 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
           const dTokens = await getTokensIfEnabled("doctor", content.doctorId, "doctor_fcmtoken");
           tokensToNotify.push(...dTokens);
         }
+        if (content.hospitalId) {
+          const hTokens = await getTokensIfEnabled("hospital", content.hospitalId, "hospital_fcmtoken");
+          tokensToNotify.push(...hTokens);
+        }
       }
 
       if (tokensToNotify.length > 0) {

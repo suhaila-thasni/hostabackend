@@ -348,7 +348,7 @@ const isActive = await verifyMembershipStatus(
     userType: authUser.role,
   };
 
-  const token = jwt.sign({ ...tokenPayload, isRefresh: false }, jwtKey, { expiresIn: '15m' });
+  const token = jwt.sign({ ...tokenPayload, isRefresh: false }, jwtKey, { expiresIn: "1d" });
   const refreshToken = jwt.sign({ ...tokenPayload, isRefresh: true }, jwtKey, { expiresIn: '2w' });
   setRefreshTokenCookie(res, refreshToken);
 
@@ -657,7 +657,7 @@ export const login: any = asyncHandler(async (req: Request, res: Response) => {
     superadminId: authUser.superadminId,
   };
 
-  const token = jwt.sign({ ...tokenPayload, isRefresh: false }, jwtKey, { expiresIn: "15m" });
+  const token = jwt.sign({ ...tokenPayload, isRefresh: false }, jwtKey, { expiresIn: "1d" });
 
   const refreshToken = jwt.sign({ ...tokenPayload, isRefresh: true }, jwtKey, { expiresIn: "2w" });
 
@@ -761,7 +761,7 @@ export const loginWithPhone: any = asyncHandler(async (req: Request, res: Respon
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
   const token = jwt.sign({ id: user.id, role: user.role, isRefresh: false }, jwtKey, {
-    expiresIn: "15m",
+    expiresIn: "1d",
   });
 
   const refreshToken = jwt.sign(
@@ -931,7 +931,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
       superadminId: user.superadminId,
     },
     jwtKey,
-    { expiresIn: "15m" }
+    { expiresIn: "1d" }
   );
 
   const safeUser = user.toJSON();
@@ -1290,7 +1290,7 @@ export const refreshHospitalToken: any = asyncHandler(async (req: Request, res: 
             superadminId: user.superadminId,
           },
           process.env.JWT_SECRET || "supersecretjwtkey",
-          { expiresIn: "15m" }
+          { expiresIn: "1d" }
         );
         res.status(200).json({ accessToken });
       }

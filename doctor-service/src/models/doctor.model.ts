@@ -10,7 +10,6 @@ interface IConsultingSession {
   open: string;
   close: string;
 }
-
 interface IConsultingTwoTime {
   day: string;
   morning_session?: IConsultingSession;
@@ -18,15 +17,12 @@ interface IConsultingTwoTime {
   is_holiday?: boolean;
   has_break?: boolean;
 }
-
 interface IConsultingOneTime  {
   day: string;
   start_time?: string;
   end_time?: string;
   is_holiday?: boolean;
 }
-
-
 interface IAddress {
   country?: string;
   state?: string;
@@ -39,14 +35,11 @@ interface IOutDoorConsulting {
   time: IConsultingSession;
   place: string;
 }
-
 interface FCMTOKEN {
   deviceId: string;
   fcmToken: string;
   platform: "android" | "ios" | "web";
 }
-
-
 interface IDoctor {
   id: number;
   firstName: string;
@@ -137,8 +130,6 @@ class Doctor
   public autoDecline?: number;
   public appointmentCount?: number;
   public fcmToken: FCMTOKEN[];
-
-
 }
 
 /* =======================

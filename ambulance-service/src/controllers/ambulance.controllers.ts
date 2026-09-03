@@ -184,7 +184,7 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
 
   const jwtKey = process.env.JWT_SECRET || "supersecretjwtkey";
   const token = jwt.sign({ id: ambulance.id, name: ambulance.serviceName, role: "ambulance" }, jwtKey, {
-    expiresIn: "15m"
+    expiresIn: "1d"
   });
 
   const ambulanceJson = ambulance.toJSON();
