@@ -501,18 +501,27 @@ export const changePassword: any = asyncHandler(async (req: any, res: Response) 
 
 // SEND NOTIFICATION EMAIL - POST /hospital/notify/email
 export const sendCustomEmail: any = asyncHandler(async (req: Request, res: Response) => {
-  const { to, subject, message } = req.body;
+  const { to, email, name, subject, message } = req.body;
+
+  const recipient = to || process.env.EMAIL_USER;
+  
+  const senderInfo = (name || email) ? `
+    <div style="background-color: #f9f9f9; padding: 10px; margin-bottom: 20px; border-left: 4px solid #0052cc;">
+      <strong>From:</strong> ${name || "Unknown"} &lt;${email || "No email provided"}&gt;
+    </div>
+  ` : "";
 
   const html = `
     <div style="font-family: Arial, sans-serif; padding: 20px;">
-      <h2>Hosta Health Notification</h2>
-      <p>${message}</p>
+      <h2>Hosta Health Support </h2>
+      ${senderInfo}
+      <p style="white-space: pre-line;">${message}</p>
       <hr />
       <small>Sent via Hosta Hospital Service</small>
     </div>
   `;
 
-  await sendEmail(to, subject, html);
+  await sendEmail(recipient, subject, html);
   res.json({ success: true, message: "Notification email sent" });
 });
 

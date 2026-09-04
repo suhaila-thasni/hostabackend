@@ -64,7 +64,7 @@ const startServer = async () => {
         // Database is mandatory
         await connectDB();
 
-        const server = app.listen(PORT, () => {
+        const server = app.listen(Number(PORT), '0.0.0.0', () => {
             logger.info(`🚀 Role Service is running on port ${PORT}`);
         });
 

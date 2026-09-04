@@ -7,7 +7,7 @@ import User from "../models/user.model";
 import jwt from "jsonwebtoken";
 import { generateToken, generateRefreshToken } from "../services/jwt.service";
 import { publishEvent } from "../events/publisher";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 dotenv.config();
@@ -263,11 +263,23 @@ export const createPatient: any = asyncHandler(async (req: Request, res: Respons
       }
     }
 
-    // 4. Create Patient
+    // 4. Generate hospital-scoped patientNumber
+    const [lastResult]: any = await Patient.sequelize!.query(
+      `SELECT COALESCE(MAX("patientNumber"), 0) AS "maxNum" FROM "patients" WHERE "hospitalId" = :hospitalId FOR UPDATE`,
+      {
+        replacements: { hospitalId },
+        type: QueryTypes.SELECT,
+        transaction: t,
+      }
+    );
+    const patientNumber = (lastResult?.maxNum || 0) + 1;
+
+    // 5. Create Patient
     const patient = await Patient.create({
       name, bloodGroup, gender, maritalStatus,
       patientType, age, dob, mobileNumber, emergencyNumber,
-      guardianName, addressLine, location, email, password, userId: finalUserId, hospitalId,hospitalName
+      guardianName, addressLine, location, email, password, userId: finalUserId, hospitalId, hospitalName,
+      patientNumber,
     }, { transaction: t });
 
 

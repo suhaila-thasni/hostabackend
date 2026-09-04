@@ -7,7 +7,7 @@ import { publishEvent } from "../events/publisher";
 import { httpClient } from "../utils/httpClient";
 import dotenv from "dotenv";
 import PatientVitals from "../models/patientVitals.model";
-import { Op, Sequelize } from "sequelize";
+import { Op, Sequelize, QueryTypes } from "sequelize";
 import { fn, col, where } from "sequelize";
 dotenv.config();
 
@@ -85,6 +85,16 @@ export const createPrescription: any = asyncHandler(async (req: Request, res: Re
     }
 
     if (user) {
+      // Generate hospital-scoped patientNumber
+      const [lastResult]: any = await Patient.sequelize!.query(
+        `SELECT COALESCE(MAX("patientNumber"), 0) AS "maxNum" FROM "patients" WHERE "hospitalId" = :hospitalId`,
+        {
+          replacements: { hospitalId },
+          type: QueryTypes.SELECT,
+        }
+      );
+      const patientNumber = (lastResult?.maxNum || 0) + 1;
+
       patientExists = await Patient.create({
         userId: user.id,
         hospitalId: hospitalId,
@@ -96,6 +106,7 @@ export const createPrescription: any = asyncHandler(async (req: Request, res: Re
         mobileNumber:  booking?.data?.data?.patient_phone,
         addressLine: booking?.data?.data?.patient_place,
         location: { place: booking?.data?.data?.patient_place, pincode: 0 },
+        patientNumber,
       });
       
       finalPatientId = patientExists.id;

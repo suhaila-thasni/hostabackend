@@ -304,6 +304,9 @@ export const updateData: any = asyncHandler(
     try {
       const { id } = req.params;
       const updatePayload = req.body;
+      if (req.body.declineReason && !req.body.reason) {
+        updatePayload.reason = req.body.declineReason;
+      }
 
       // Fetch old booking to detect token changes
       const oldBooking = await Booking.findByPk(id);
@@ -386,6 +389,7 @@ export const updateData: any = asyncHandler(
           hospitalId: updatedBooking.hospitalId,
           doctorId: updatedBooking.doctorId,
           patient_name: updatedBooking.patient_name,
+          booking_date: updatedBooking.booking_date,
           status: updatedBooking.status,
           statusChanged: statusChanged,
           tokenChanged: tokenChanged,
@@ -700,6 +704,7 @@ export const autoDeclineBooking: any = asyncHandler(async (req: Request, res: Re
     hospitalId: booking.hospitalId,
     doctorId: booking.doctorId,
     patient_name: booking.patient_name,
+    booking_date: booking.booking_date,
     status: booking.status,
     statusChanged: true,
     doctorName: booking.doctor_name || "",

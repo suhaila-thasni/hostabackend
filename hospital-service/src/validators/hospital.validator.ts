@@ -124,7 +124,9 @@ export const resetPasswordSchema = z.object({
 });
 
 export const sendCustomEmailSchema = z.object({
-  to: z.string().email("Invalid recipient email"),
+  to: z.string().email("Invalid recipient email").optional(),
+  email: z.string().email("Invalid sender email").optional(),
+  name: z.string().optional(),
   subject: z.string().min(1, "Subject is required"),
   message: z.string().min(1, "Message is required"),
 });

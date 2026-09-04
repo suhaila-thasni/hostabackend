@@ -13,6 +13,7 @@ interface ILocation {
 interface IPatient {
   id: number;
   patientId?: string;
+  patientNumber?: number;
 
   userId?: number;
   hospitalId: number;
@@ -49,6 +50,7 @@ interface IPatient {
 class Patient extends Model<IPatient> implements IPatient {
   public id!: number;
   public readonly patientId!: string;
+  public patientNumber!: number;
 
   public userId!: number;
   public hospitalId!: number;
@@ -89,11 +91,16 @@ Patient.init(
       primaryKey: true,
     },
 
+    patientNumber: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+
     patientId: {
       type: DataTypes.VIRTUAL,
       get() {
-        const id = this.getDataValue("id");
-        return `#PAT${String(id).padStart(5, "0")}`;
+        const num = this.getDataValue("patientNumber");
+        return num ? `#PT${String(num).padStart(4, "0")}` : "#PT0000";
       },
     },
 

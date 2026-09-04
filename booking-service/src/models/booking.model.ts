@@ -41,6 +41,8 @@ interface IBooking {
 
   booking_status: "user booking" | "hospital booking";
 
+  reason?: string;
+
   isActive?: boolean;
 }
 
@@ -59,6 +61,7 @@ type BookingCreationAttributes = Optional<
   | "consulting_time"
   | "token"
   | "status"
+  | "reason"
   | "isActive"
 >;
 
@@ -103,6 +106,8 @@ class Booking
     | "cancel";
 
   public booking_status!: "user booking" | "hospital booking";
+
+  public reason?: string;
 
   public isActive?: boolean;
 
@@ -231,6 +236,11 @@ Booking.init(
       type: DataTypes.ENUM("user booking", "hospital booking"),
       allowNull: false,
       defaultValue: "user booking",
+    },
+
+    reason: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
 
     isActive: {
