@@ -66,9 +66,12 @@ export const publishEvent = async (exchange: string, routingKey: string, data: a
         if (uniqueIds.length > 0) {
             const promises = uniqueIds.map(id => 
                 axios.post(`${process.env.SOCKETIO_SERVICE_URL}/emit-event`, {
-                    event: routingKey,
+                    event: "booking_event",
                     userId: id,
-                    data
+                    data: {
+                        event: routingKey,
+                        data: data
+                    }
                 }).catch(err => console.error(`Failed to emit to user ${id}:`, err.message))
             );
             await Promise.allSettled(promises);
@@ -76,8 +79,11 @@ export const publishEvent = async (exchange: string, routingKey: string, data: a
             // Fallback if no specific IDs are found (broadcast or skip depending on previous logic, 
             // but previous logic sent undefined userId which broadcasted to all)
             await axios.post(`${process.env.SOCKETIO_SERVICE_URL}/emit-event`, {
-                event: routingKey,
-                data
+                event: "booking_event",
+                data: {
+                    event: routingKey,
+                    data: data
+                }
             }).catch(err => console.error(`Failed to broadcast event:`, err.message));
         }
     } catch (error) {
