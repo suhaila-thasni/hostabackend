@@ -56,13 +56,18 @@ app.post("/emit-event", async (req, res) => {
             });
         }
 
-
         // Check if the adapter is working
         const rooms = io.sockets.adapter.rooms;
 
         // Emit to specific user room if userId provided
         if (userId) {
-            const roomName = `user_${userId}`;
+            const roomName = String(userId);
+
+            console.log("📡 SOCKET EMIT:", {
+                event,
+                room: roomName,
+                availableRooms: Array.from(rooms.keys()).filter(r => !r.startsWith('/')),
+            });
             
             // Check if room exists
             const room = rooms.get(roomName);
@@ -70,16 +75,16 @@ app.post("/emit-event", async (req, res) => {
                 return res.status(200).json({
                     success: true,
                     message: `No users connected in room ${roomName}; event skipped`,
-                    availableRooms: Array.from(rooms.keys()),
+                    availableRooms: Array.from(rooms.keys()).filter(r => !r.startsWith('/')),
                     roomEmpty: true
                 });
             }
 
-     
-            
             // Emit the event
             io.to(roomName).emit(event, data);
             
+            console.log(`✅ Event '${event}' emitted to room ${roomName} (${room.size} clients)`);
+
             return res.status(200).json({
                 success: true,
                 message: `Event '${event}' emitted successfully to room ${roomName}`,
@@ -91,7 +96,6 @@ app.post("/emit-event", async (req, res) => {
             const clientCount = io.sockets.sockets.size;
             io.emit(event, data);
           
-            
             return res.status(200).json({
                 success: true,
                 message: `Event '${event}' emitted to all clients`,

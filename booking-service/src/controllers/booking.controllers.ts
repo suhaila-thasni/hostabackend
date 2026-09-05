@@ -561,6 +561,15 @@ export const updateData: any = asyncHandler(
           actionBy: actionBy,
         };
 
+        console.log("🔥 SENDING BOOKING SOCKET EVENT:", {
+          eventName,
+          bookingId: eventPayload.bookingId,
+          hospitalId: eventPayload.hospitalId,
+          doctorId: eventPayload.doctorId,
+          userId: eventPayload.userId,
+          status: eventPayload.status,
+        });
+
         await publishEvent("booking_events", eventName, eventPayload);
 
         // ✅ Only trigger the reminder and generic direct notification if status actually changed
@@ -631,6 +640,13 @@ export const bookingDelete: any = asyncHandler(
 
     await Booking.destroy({
       where: { id: id },
+    });
+
+    await publishEvent("booking_events", "BOOKING_DELETED", {
+      bookingId: staff.id,
+      userId: staff.userId,
+      hospitalId: staff.hospitalId,
+      doctorId: staff.doctorId,
     });
 
     res.status(200).json({

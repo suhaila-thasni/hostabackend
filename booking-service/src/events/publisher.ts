@@ -46,47 +46,79 @@ export const connectRabbitMQ = async (retries = 3) => {
     isConnecting = false;
 };
 
-export const publishEvent = async (exchange: string, routingKey: string, data: any) => {
-    try {
-        if (!channel) {
-            await connectRabbitMQ();
-        }
-
-        if (!channel) {
-            console.warn(`⚠️ Cannot publish event '${routingKey}'. RabbitMQ channel not available.`);
-            return;
-        }
-
-        await channel.assertExchange(exchange, 'direct', { durable: true });
-        channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(data)), { persistent: true });
-        const targetIds = [data?.userId, data?.hospitalId, data?.doctorId, data?.staffId].filter(Boolean);
-        // Remove duplicates
-        const uniqueIds = Array.from(new Set(targetIds));
-
-        if (uniqueIds.length > 0) {
-            const promises = uniqueIds.map(id => 
-                axios.post(`${process.env.SOCKETIO_SERVICE_URL}/emit-event`, {
-                    event: "booking_event",
-                    userId: id,
-                    data: {
-                        event: routingKey,
-                        data: data
-                    }
-                }).catch(err => console.error(`Failed to emit to user ${id}:`, err.message))
-            );
-            await Promise.allSettled(promises);
-        } else {
-            // Fallback if no specific IDs are found (broadcast or skip depending on previous logic, 
-            // but previous logic sent undefined userId which broadcasted to all)
-            await axios.post(`${process.env.SOCKETIO_SERVICE_URL}/emit-event`, {
-                event: "booking_event",
-                data: {
-                    event: routingKey,
-                    data: data
-                }
-            }).catch(err => console.error(`Failed to broadcast event:`, err.message));
-        }
-    } catch (error) {
-        console.error('❌ Event Publish Error:', error);
+export const publishEvent = async (
+  exchange: string,
+  routingKey: string,
+  data: any
+) => {
+  try {
+    if (!channel) {
+      await connectRabbitMQ();
     }
+
+    if (!channel) {
+      console.warn(
+        `⚠️ Cannot publish event '${routingKey}'. RabbitMQ channel not available.`
+      );
+      return;
+    }
+
+    await channel.assertExchange(exchange, "direct", { durable: true });
+    channel.publish(
+      exchange,
+      routingKey,
+      Buffer.from(JSON.stringify(data)),
+      { persistent: true }
+    );
+
+    console.log("📤 BOOKING EVENT PUBLISHED:", {
+      event: routingKey,
+      bookingId: data?.bookingId,
+      hospitalId: data?.hospitalId,
+      doctorId: data?.doctorId,
+      userId: data?.userId,
+    });
+
+    // IDs that should receive the event
+    const targetIds = [
+      data?.userId,
+      data?.hospitalId,
+      data?.doctorId,
+      data?.staffId,
+    ]
+      .filter((id) => id !== undefined && id !== null)
+      .map((id) => String(id));
+
+    const uniqueIds = Array.from(new Set(targetIds));
+
+    if (uniqueIds.length > 0) {
+      await Promise.allSettled(
+        uniqueIds.map(async (id) => {
+          try {
+            await axios.post(
+              `${process.env.SOCKETIO_SERVICE_URL}/emit-event`,
+              {
+                event: "booking_event",
+                userId: id,
+                data: {
+                  event: routingKey,
+                  data,
+                },
+              }
+            );
+            console.log(`📡 Socket event sent to ID: ${id}`);
+          } catch (err: any) {
+            console.error(
+              `❌ Failed to emit event to ${id}:`,
+              err.message
+            );
+          }
+        })
+      );
+    } else {
+      console.warn(`⚠️ No target IDs found for event ${routingKey}`);
+    }
+  } catch (error) {
+    console.error("❌ Event Publish Error:", error);
+  }
 };
