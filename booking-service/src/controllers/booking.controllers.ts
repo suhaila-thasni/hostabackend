@@ -4,11 +4,27 @@ import Booking from "../models/booking.model";
 import { publishEvent } from "../events/publisher";
 import { httpClient } from "../utils/httpClient";
 import axios from "axios";
-import dotenv from "dotenv";
-import { Op, Sequelize, Transaction } from "sequelize";
+import dotenv from "dotenv"
+import { Op, QueryTypes, Sequelize, Transaction } from "sequelize";
 import sequelize from "../config/db";
 dotenv.config();
 
+
+// const [lastBooking]: any =
+//   await Booking.sequelize!.query(
+//     `
+//     SELECT COALESCE(MAX("bookingNumber"), 0) AS "maxNum"
+//     FROM "bookings"
+//     WHERE "hospitalId" = :hospitalId
+//     `,
+//     {
+//       replacements: { hospitalId },
+//       type: QueryTypes.SELECT,
+//     }
+//   );
+
+// const bookingNumber =
+//   Number(lastBooking?.maxNum || 0) + 1;
 // REGISTER - POST /booking/register
 export const Registeration: any = asyncHandler(
   async (req: any, res: Response): Promise<void> => {
@@ -31,6 +47,7 @@ export const Registeration: any = asyncHandler(
       status,
       token,
       hospitalName,
+
 
     } = req.body;
 
@@ -104,58 +121,151 @@ export const Registeration: any = asyncHandler(
     let newbooking: any;
 
     try {
+      // await sequelize.transaction(
+      //   { isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE },
+      //   async (t) => {
+      //     if (manualCountLimit && manualCountLimit > 0) {
+      //       const startOfDay = new Date(booking_date);
+      //       startOfDay.setHours(0, 0, 0, 0);
+      //       const endOfDay = new Date(booking_date);
+      //       endOfDay.setHours(23, 59, 59, 999);
+
+      //       const currentBookingsCount = await Booking.count({
+      //         where: {
+      //           doctorId,
+      //           booking_date: {
+      //             [Op.between]: [startOfDay, endOfDay],
+      //           },
+      //           status: {
+      //             [Op.notIn]: ['cancel', 'declined'],
+      //           },
+      //         },
+      //         transaction: t,
+      //       });
+
+      //       if (currentBookingsCount >= manualCountLimit) {
+      //         throw new Error("BOOKING_LIMIT_REACHED");
+      //       }
+      //     }
+
+      //     newbooking = await Booking.create(
+      //       {
+      //         patient_dob,
+      //         patient_age,
+      //         patient_gender,
+      //         patient_name,
+      //         patient_place,
+      //         patient_phone,
+      //         userId,
+      //         patientId,
+      //         hospitalId,
+      //         doctorId,
+      //         booking_date,
+      //         doctor_name: displayName,
+      //         doctor_department: department,
+      //         consulting_time,
+      //         booking_status: booking_status || "user booking",
+      //         status,
+      //         token,
+      //         hospitalName,
+      //       },
+      //       { transaction: t }
+      //     );
+      //   }
+      // );
       await sequelize.transaction(
-        { isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE },
-        async (t) => {
-          if (manualCountLimit && manualCountLimit > 0) {
-            const startOfDay = new Date(booking_date);
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date(booking_date);
-            endOfDay.setHours(23, 59, 59, 999);
+  {
+    isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE,
+  },
+  async (t) => {
+    if (manualCountLimit && manualCountLimit > 0) {
+      const startOfDay = new Date(booking_date);
+      startOfDay.setHours(0, 0, 0, 0);
 
-            const currentBookingsCount = await Booking.count({
-              where: {
-                doctorId,
-                booking_date: {
-                  [Op.between]: [startOfDay, endOfDay],
-                },
-                status: {
-                  [Op.notIn]: ['cancel', 'declined'],
-                },
-              },
-              transaction: t,
-            });
+      const endOfDay = new Date(booking_date);
+      endOfDay.setHours(23, 59, 59, 999);
 
-            if (currentBookingsCount >= manualCountLimit) {
-              throw new Error("BOOKING_LIMIT_REACHED");
-            }
-          }
+      const currentBookingsCount = await Booking.count({
+        where: {
+          doctorId,
+          booking_date: {
+            [Op.between]: [startOfDay, endOfDay],
+          },
+          status: {
+            [Op.notIn]: ["cancel", "declined"],
+          },
+        },
+        transaction: t,
+      });
 
-          newbooking = await Booking.create(
-            {
-              patient_dob,
-              patient_age,
-              patient_gender,
-              patient_name,
-              patient_place,
-              patient_phone,
-              userId,
-              patientId,
-              hospitalId,
-              doctorId,
-              booking_date,
-              doctor_name: displayName,
-              doctor_department: department,
-              consulting_time,
-              booking_status: booking_status || "user booking",
-              status,
-              token,
-              hospitalName,
-            },
-            { transaction: t }
-          );
+      if (currentBookingsCount >= manualCountLimit) {
+        throw new Error("BOOKING_LIMIT_REACHED");
+      }
+    }
+
+    // ==========================================
+    // Generate hospital-wise booking number
+    // ==========================================
+
+    const [lastBooking]: any =
+      await Booking.sequelize!.query(
+        `
+        SELECT COALESCE(MAX("bookingNumber"), 0) AS "maxNum"
+        FROM "bookings"
+        WHERE "hospitalId" = :hospitalId
+        `,
+        {
+          replacements: {
+            hospitalId,
+          },
+          type: QueryTypes.SELECT,
+          transaction: t,
         }
       );
+
+    const bookingNumber =
+      Number(lastBooking?.maxNum || 0) + 1;
+
+    // ==========================================
+    // Create booking
+    // ==========================================
+
+    newbooking = await Booking.create(
+      {
+        patient_dob,
+        patient_age,
+        patient_gender,
+        patient_name,
+        patient_place,
+        patient_phone,
+        userId,
+        patientId,
+
+        hospitalId,
+        doctorId,
+
+        bookingNumber,
+
+        booking_date,
+
+        doctor_name: displayName,
+        doctor_department: department,
+
+        consulting_time,
+
+        booking_status:
+          booking_status || "user booking",
+
+        status,
+        token,
+        hospitalName,
+      },
+      {
+        transaction: t,
+      }
+    );
+  }
+);
     } catch (error: any) {
       if (error.message === "BOOKING_LIMIT_REACHED") {
         const doctorName = doctor?.data?.displayName || "the doctor";
@@ -322,12 +432,65 @@ export const updateData: any = asyncHandler(
       }
       const oldToken = oldBooking.token;
 
-      const booking = await Booking.update(updatePayload, {
-        where: { id: id },
-        returning: true,
-      });
+      let updatedBooking;
 
-      if (!booking[1] || booking[1].length === 0) {
+      // Handle token assignment concurrency-safely if accepting without a token
+      if (updatePayload.status === 'accepted' && !oldToken) {
+        await sequelize.transaction(
+          {
+            isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE,
+          },
+          async (t) => {
+            const startOfDay = new Date(oldBooking.booking_date);
+            startOfDay.setHours(0, 0, 0, 0);
+
+            const endOfDay = new Date(oldBooking.booking_date);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const [lastBooking]: any = await Booking.sequelize!.query(
+              `
+              SELECT COALESCE(MAX("token"), 0) AS "maxToken"
+              FROM "bookings"
+              WHERE "doctorId" = :doctorId 
+                AND "hospitalId" = :hospitalId
+                AND "booking_date" BETWEEN :startOfDay AND :endOfDay
+                AND "status" NOT IN ('cancel', 'declined')
+              `,
+              {
+                replacements: { 
+                  doctorId: oldBooking.doctorId,
+                  hospitalId: oldBooking.hospitalId,
+                  startOfDay,
+                  endOfDay
+                },
+                type: QueryTypes.SELECT,
+                transaction: t,
+              }
+            );
+
+            const newToken = Number(lastBooking?.maxToken || 0) + 1;
+            updatePayload.token = newToken;
+
+            const booking = await Booking.update(updatePayload, {
+              where: { id: id },
+              returning: true,
+              transaction: t,
+            });
+            updatedBooking = booking[1][0];
+          }
+        );
+      } else {
+        const booking = await Booking.update(updatePayload, {
+          where: { id: id },
+          returning: true,
+        });
+        
+        if (booking[1] && booking[1].length > 0) {
+          updatedBooking = booking[1][0];
+        }
+      }
+
+      if (!updatedBooking) {
         res.status(404).json({
           success: false,
           message: "booking not found",
@@ -337,9 +500,6 @@ export const updateData: any = asyncHandler(
         });
         return;
       }
-
-      // ✅ Get updated booking object
-      const updatedBooking = booking[1][0];
 
       // ✅ Detect changes
       const statusChanged = oldBooking.status !== updatedBooking.status;

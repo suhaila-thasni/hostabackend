@@ -186,7 +186,7 @@ export const createPrescription: any = asyncHandler(async (req: Request, res: Re
     console.error("⚠️ Failed to fetch doctor name for prescription event:", err.message);
   }
 
-  await publishEvent(
+  void publishEvent(
     "prescription_events",
     "PRESCRIPTION_CREATED",
     {

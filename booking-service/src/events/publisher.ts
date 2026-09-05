@@ -59,13 +59,27 @@ export const publishEvent = async (exchange: string, routingKey: string, data: a
 
         await channel.assertExchange(exchange, 'direct', { durable: true });
         channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(data)), { persistent: true });
-       
-            await axios.post(`${process.env.SOCKETIO_SERVICE_URL}/emit-event`, {
-            event: routingKey,
-            userId : data?.userId || data?.hospitalId,
-            data
-        });
+        const targetIds = [data?.userId, data?.hospitalId, data?.doctorId, data?.staffId].filter(Boolean);
+        // Remove duplicates
+        const uniqueIds = Array.from(new Set(targetIds));
 
+        if (uniqueIds.length > 0) {
+            const promises = uniqueIds.map(id => 
+                axios.post(`${process.env.SOCKETIO_SERVICE_URL}/emit-event`, {
+                    event: routingKey,
+                    userId: id,
+                    data
+                }).catch(err => console.error(`Failed to emit to user ${id}:`, err.message))
+            );
+            await Promise.allSettled(promises);
+        } else {
+            // Fallback if no specific IDs are found (broadcast or skip depending on previous logic, 
+            // but previous logic sent undefined userId which broadcasted to all)
+            await axios.post(`${process.env.SOCKETIO_SERVICE_URL}/emit-event`, {
+                event: routingKey,
+                data
+            }).catch(err => console.error(`Failed to broadcast event:`, err.message));
+        }
     } catch (error) {
         console.error('❌ Event Publish Error:', error);
     }

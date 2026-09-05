@@ -6,8 +6,7 @@ import twilio from "twilio";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { httpClient } from "../utils/httpClient";
-import { Op, Sequelize } from "sequelize";
-
+import { Op, Sequelize, QueryTypes } from "sequelize";
 dotenv.config();
 
 const APPLE_TEST_NUMBER = "9999999999";
@@ -79,7 +78,23 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response): 
     return;
   }
 
-  
+  let ambulanceNumber = 1;
+
+if (hospitalId) {
+  const [lastResult]: any = await Ambulance.sequelize!.query(
+    `
+    SELECT COALESCE(MAX("ambulanceNumber"), 0) AS "maxNum"
+    FROM "ambulances"
+    WHERE "hospitalId" = :hospitalId
+    `,
+    {
+      replacements: { hospitalId },
+      type: QueryTypes.SELECT,
+    }
+  );
+
+  ambulanceNumber = Number(lastResult?.maxNum || 0) + 1;
+}
   const newAmbulance = await Ambulance.create({
     serviceName,
     address,
@@ -87,6 +102,8 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response): 
     vehicleType,
     userId: userId || null,
     hospitalId: hospitalId || null,
+      ambulanceNumber,
+
   });
   
 

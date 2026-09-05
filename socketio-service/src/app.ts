@@ -62,16 +62,14 @@ app.post("/emit-event", async (req, res) => {
 
         // Emit to specific user room if userId provided
         if (userId) {
-            const roomName = userId.toString();
+            const roomName = `user_${userId}`;
             
             // Check if room exists
             const room = rooms.get(roomName);
             if (!room || room.size === 0) {
-           
-                
-                return res.status(404).json({
-                    success: false,
-                    message: `No users connected in room ${roomName}`,
+                return res.status(200).json({
+                    success: true,
+                    message: `No users connected in room ${roomName}; event skipped`,
                     availableRooms: Array.from(rooms.keys()),
                     roomEmpty: true
                 });

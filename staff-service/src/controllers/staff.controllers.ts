@@ -1,6 +1,6 @@
 
 import { Request, Response } from "express";
-import { Op, Sequelize } from "sequelize";
+import { Op, QueryTypes, Sequelize, Transaction } from "sequelize";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import asyncHandler from "express-async-handler";
@@ -148,14 +148,33 @@ export const Registeration: any = asyncHandler(async (req: any, res: Response) =
     return;
   }
 
-  const transaction = await sequelize.transaction();
+  const transaction = await sequelize.transaction({
+    isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE,
+  });
   let newStaff!: Staff;
 
   try {
+    // Generate hospital-scoped staffNumber
+    const [lastResult]: any = await Staff.sequelize!.query(
+      `
+      SELECT COALESCE(MAX("staffNumber"), 0) AS "maxNum"
+      FROM "staff"
+      WHERE "hospitalId" = :hospitalId
+      `,
+      {
+        replacements: { hospitalId },
+        type: QueryTypes.SELECT,
+        transaction,
+      }
+    );
+
+    const staffNumber = Number(lastResult?.maxNum || 0) + 1;
+
     newStaff = await Staff.create({
       hospitalId, name, phone, email, password, roleId, dob, gender,
       knowLanguages, qualification, address,
       designation, joiningDate, jobType, staffType, hospitalName,
+      staffNumber,
       status: 'PENDING',
     }, { transaction });
 

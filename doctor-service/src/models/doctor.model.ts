@@ -42,6 +42,8 @@ interface FCMTOKEN {
 }
 interface IDoctor {
   id: number;
+  doctorId?: string;
+  doctorNumber?: number;
   firstName: string;
   lastName: string;
   department?: string;
@@ -97,6 +99,8 @@ class Doctor
   implements IDoctor
 {
   public id!: number;
+  public readonly doctorId!: string;
+  public doctorNumber!: number;
   public hospitalName!: string;
   public firstName!: string;
   public lastName!: string;
@@ -143,6 +147,21 @@ Doctor.init(
       autoIncrement: true,
       primaryKey: true,
     },
+    doctorNumber: {
+  type: DataTypes.INTEGER,
+  allowNull: false,
+},
+
+doctorId: {
+  type: DataTypes.VIRTUAL,
+  get() {
+    const num = this.getDataValue("doctorNumber");
+
+    return num
+      ? `#DR${String(num).padStart(4, "0")}`
+      : "#DR0000";
+  },
+},
     hospitalId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -326,7 +345,10 @@ Doctor.init(
 
 
 indexes: [
-
+  {
+    unique: true,
+    fields: ["hospitalId", "doctorNumber"],
+  },
   {
     unique: true,
     fields: ["hospitalId", "phone"],

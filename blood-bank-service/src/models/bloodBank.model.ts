@@ -7,6 +7,7 @@ import sequelize from "../config/db";
 
 interface IBloodBank {
   id: number;
+  stockNumber: number;
   stockId?: string; // Virtual ID
   hospitalId: number;
   bloodGroup: string;
@@ -20,7 +21,7 @@ interface IBloodBank {
 
 type BloodBankCreationAttributes = Optional<
   IBloodBank,
-  "id" | "stockId" | "count" | "isDelete"
+  "id" |"stockNumber"| "stockId" | "count" | "isDelete"
 >;
 
 /* =======================
@@ -32,6 +33,8 @@ class BloodBank
   implements IBloodBank
 {
   public id!: number;
+  public stockNumber!: number;
+
   public readonly stockId!: string;
   public hospitalId!: number;
   public bloodGroup!: string;
@@ -54,13 +57,20 @@ BloodBank.init(
       autoIncrement: true,
       primaryKey: true,
     },
-    stockId: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        const id = this.getDataValue("id");
-        return `#BLD${String(id).padStart(5, "0")}`;
-      },
-    },
+   stockId: {
+  type: DataTypes.VIRTUAL,
+  get() {
+    const num = this.getDataValue("stockNumber");
+
+    return num
+      ? `#BLD${String(num).padStart(5, "0")}`
+      : "#BLD00000";
+  },
+},
+stockNumber: {
+  type: DataTypes.INTEGER,
+  allowNull: false,
+},
     hospitalId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -88,6 +98,10 @@ BloodBank.init(
     paranoid: true, // Enables Soft Delete
 
     indexes: [
+       {
+    unique: true,
+    fields: ["hospitalId", "stockNumber"],
+  },
       {
         unique: true,
         fields: ["hospitalId", "bloodGroup"], // Each hospital has unique blood group entries

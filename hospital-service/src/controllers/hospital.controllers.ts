@@ -522,7 +522,7 @@ export const sendCustomEmail: any = asyncHandler(async (req: Request, res: Respo
   `;
 
   await sendEmail(recipient, subject, html);
-  res.json({ success: true, message: "Notification email sent" });
+  res.json({ success: true, message: "Notification email sent", debug_recipient: recipient });
 });
 
 // GET ONE - GET /hospital/:id

@@ -265,7 +265,7 @@ export const createPatient: any = asyncHandler(async (req: Request, res: Respons
 
     // 4. Generate hospital-scoped patientNumber
     const [lastResult]: any = await Patient.sequelize!.query(
-      `SELECT COALESCE(MAX("patientNumber"), 0) AS "maxNum" FROM "patients" WHERE "hospitalId" = :hospitalId FOR UPDATE`,
+      `SELECT COALESCE(MAX("patientNumber"), 0) AS "maxNum" FROM "patients" WHERE "hospitalId" = :hospitalId`,
       {
         replacements: { hospitalId },
         type: QueryTypes.SELECT,

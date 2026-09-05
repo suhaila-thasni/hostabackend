@@ -24,6 +24,7 @@ interface FCMTOKEN {
 interface IStaff {
   id: number;
   hospitalId: number;
+  staffNumber: number;
   staffId?: string;
   name: string;
   designation?: string;
@@ -58,6 +59,7 @@ interface IStaff {
 type StaffCreationAttributes = Optional<
   IStaff,
   | "id"
+  | "staffNumber"
   | "staffId"
   | "email"
   | "password"
@@ -87,7 +89,8 @@ class Staff
 {
   public id!: number;
   public hospitalId!: number;
-  public staffId!: string;
+  public staffNumber!: number;
+  public readonly staffId!: string;
   public name!: string;
   public designation?: string;
   public joiningDate?: Date;
@@ -144,10 +147,19 @@ Staff.init(
       allowNull: false,
     },
 
+    staffNumber: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+
     staffId: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: true,
+      type: DataTypes.VIRTUAL,
+      get() {
+        const num = this.getDataValue("staffNumber");
+        return num
+          ? `#STF${String(num).padStart(5, "0")}`
+          : "#STF00000";
+      },
     },
 
     name: {
@@ -275,6 +287,10 @@ Staff.init(
     indexes: [
       {
         unique: true,
+        fields: ["hospitalId", "staffNumber"],
+      },
+      {
+        unique: true,
         fields: ["hospitalId", "phone"],
       },
       {
@@ -301,12 +317,6 @@ Staff.beforeUpdate(async (staff: Staff) => {
   if (staff.changed("password") && staff.password) {
     staff.password = await bcrypt.hash(staff.password, 10);
   }
-});
-
-// auto-generate staffId after record is created
-Staff.afterCreate(async (staff: Staff) => {
-  const generatedStaffId = `STF${String(staff.id).padStart(5, "0")}`;
-  await staff.update({ staffId: generatedStaffId });
 });
 
 export default Staff;

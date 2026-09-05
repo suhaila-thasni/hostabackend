@@ -16,9 +16,10 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
       subject,
       html,
     });
-
     console.log("Email sent:", info.messageId);
   } catch (error) {
     console.error("Email error:", error);
+    throw error; // Throw the error so the controller knows it failed
   }
 };
+

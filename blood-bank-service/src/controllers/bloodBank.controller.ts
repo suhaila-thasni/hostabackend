@@ -3,14 +3,27 @@ import asyncHandler from "express-async-handler";
 import BloodBank from "../models/bloodBank.model";
 import { httpClient } from "../utils/httpClient";
 import { publishEvent } from "../events/publisher";
-import { Op } from "sequelize";
+import { QueryTypes } from "sequelize";
 import { env } from "../config/env";
-
 const VALID_BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
+// const [lastStock]: any = await BloodBank.sequelize!.query(
+//   `
+//   SELECT COALESCE(MAX("stockNumber"), 0) AS "maxNum"
+//   FROM "blood_banks"
+//   WHERE "hospitalId" = :hospitalId
+//   `,
+//   {
+//     replacements: { hospitalId },
+//     type: QueryTypes.SELECT,
+//   }
+// );
+
+// const stockNumber = Number(lastStock?.maxNum || 0) + 1;
 // 🧩 Create or Update Stock (scoped by hospitalId)
 export const createOrUpdateStock = asyncHandler(async (req: any, res: Response) => {
-  const { hospitalId, bloodGroup, count } = req.body;
+  const { hospitalId, bloodGroup, count,  
+ } = req.body;
 
 
   let hospitalName = "";
@@ -60,22 +73,42 @@ export const createOrUpdateStock = asyncHandler(async (req: any, res: Response) 
       data: stock
     });
   } else {
-    // ⚔️ Create new record
-    stock = await BloodBank.create({ hospitalId, bloodGroup, count: count || 0 });
+  // Generate next stock number for this hospital
+  const [lastStock]: any = await BloodBank.sequelize!.query(
+    `
+    SELECT COALESCE(MAX("stockNumber"), 0) AS "maxNum"
+    FROM "blood_banks"
+    WHERE "hospitalId" = :hospitalId
+    `,
+    {
+      replacements: { hospitalId },
+      type: QueryTypes.SELECT,
+    }
+  );
 
-    await publishEvent("blood_bank_events", "STOCK_CREATED", {
-      hospitalId,
-      hospitalName,
-      bloodGroup,
-      count: count || 0
-    });
+  const stockNumber = Number(lastStock?.maxNum || 0) + 1;
 
-    res.status(201).json({
-      success: true,
-      message: `Blood group ${bloodGroup} record created with ${count} units for hospital ${hospitalId}`,
-      data: stock
-    });
-  }
+  // Create new record
+  stock = await BloodBank.create({
+    hospitalId,
+    bloodGroup,
+    count: count || 0,
+    stockNumber,
+  });
+
+  await publishEvent("blood_bank_events", "STOCK_CREATED", {
+    hospitalId,
+    hospitalName,
+    bloodGroup,
+    count: count || 0,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: `Blood group ${bloodGroup} record created with ${count} units for hospital ${hospitalId}`,
+    data: stock,
+  });
+}
 });
 
 // 🔍 Get All Inventory

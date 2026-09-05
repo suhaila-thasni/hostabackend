@@ -8,6 +8,10 @@ import sequelize from "../config/db";
 interface IBooking {
   id: number;
 
+  bookingNumber: number;
+  bookingId?: string;
+
+
   patient_name: string;
   patient_phone: string;
   patient_place?: string;
@@ -53,6 +57,8 @@ interface IBooking {
 type BookingCreationAttributes = Optional<
   IBooking,
   | "id"
+  |"bookingNumber"
+  | "bookingId"
   | "userId"
   | "patientId"
   | "patient_place"
@@ -74,6 +80,9 @@ class Booking
   implements IBooking
 {
   public id!: number;
+
+  public bookingNumber!: number;
+  public readonly bookingId!: string;
 
   public patient_name!: string;
   public patient_phone!: string;
@@ -127,7 +136,21 @@ Booking.init(
       autoIncrement: true,
       primaryKey: true,
     },
+  bookingNumber: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
 
+    bookingId: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        const num = this.getDataValue("bookingNumber");
+
+        return num
+          ? `#BK${String(num).padStart(5, "0")}`
+          : "#BK00000";
+      },
+    },
     patient_name: {
       type: DataTypes.STRING(120),
       allowNull: false,
@@ -278,6 +301,10 @@ Booking.init(
 
       {
         fields: ["status"],
+      },
+         {
+        unique: true,
+        fields: ["hospitalId", "bookingNumber"],
       },
     ],
   }

@@ -4,8 +4,8 @@ import jwt from "jsonwebtoken";
 import asyncHandler from "express-async-handler";
 import Doctor from "../models/doctor.model";
 import { publishEvent } from "../events/publisher";
-import { Op, Sequelize } from "sequelize";
 import sequelize from "../config/db";
+import { Op, Sequelize, QueryTypes } from "sequelize";
 import twilio from "twilio";
 import axios from "axios";
 import { logger } from "../utils/logger";
@@ -166,8 +166,25 @@ export const Registeration: any = asyncHandler(
     const transaction = await sequelize.transaction();
     let newDoctor!: Doctor;
 
+
+const [lastResult]: any = await Doctor.sequelize!.query(
+  `
+  SELECT COALESCE(MAX("doctorNumber"), 0) AS "maxNum"
+  FROM "doctor"
+  WHERE "hospitalId" = :hospitalId
+  `,
+  {
+    replacements: { hospitalId },
+    type: QueryTypes.SELECT,
+    transaction,
+  }
+);
+
+const doctorNumber = Number(lastResult?.maxNum || 0) + 1;
+
     try {
       newDoctor = await Doctor.create({
+        doctorNumber,
         firstName,
         lastName,
         phone: numericPhone,

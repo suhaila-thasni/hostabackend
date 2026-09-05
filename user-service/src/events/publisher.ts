@@ -50,10 +50,12 @@ export const publishEvent = async (exchange: string, routingKey: string, data: a
         channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(data)), { persistent: true });
 
             await axios.post(`${process.env.SOCKETIO_SERVICE_URL}/emit-event`, {
-            event: routingKey,
-            userId : data?.userId,
-            data
-        });
+                event: routingKey,
+                userId: data?.userId,
+                data
+            }, {
+                timeout: 3000,
+            });
 
     } catch (error) {
         console.error('❌ Event Publish Error:', error);
