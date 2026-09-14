@@ -453,9 +453,48 @@ export const updateData: any = asyncHandler(
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const updatePayload = req.body;
+      const updatePayload = { ...req.body };
+
       if (req.body.declineReason && !req.body.reason) {
         updatePayload.reason = req.body.declineReason;
+      }
+
+      // If doctor is changed, fetch the new doctor's details
+      if (updatePayload.doctorId !== undefined) {
+        try {
+          const doctorRes = await httpClient.get(
+            `${process.env.DOCTOR_SERVICE_URL}/doctor/${updatePayload.doctorId}`,
+            {
+              headers: {
+                Authorization: req.headers.authorization,
+              },
+            }
+          );
+
+          const newDoctor = doctorRes.data?.data;
+
+          if (!newDoctor) {
+            res.status(404).json({
+              success: false,
+              message: "Doctor not found",
+            });
+            return;
+          }
+
+          updatePayload.doctor_name =
+            newDoctor.displayName || newDoctor.name || "";
+
+          updatePayload.doctor_department =
+            newDoctor.department || "";
+        } catch (error: any) {
+          console.error("Failed to fetch new doctor:", error.message);
+
+          res.status(404).json({
+            success: false,
+            message: "Doctor not found",
+          });
+          return;
+        }
       }
 
       // Fetch old booking to detect token changes
