@@ -761,6 +761,7 @@ export const bookingDelete: any = asyncHandler(
 
     await publishEvent("booking_events", "BOOKING_DELETED", {
       bookingId: staff.id,
+      bookingNumber: staff.bookingNumber,
       userId: staff.userId,
       hospitalId: staff.hospitalId,
       doctorId: staff.doctorId,
