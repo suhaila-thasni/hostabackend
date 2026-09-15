@@ -5,8 +5,7 @@ const router = express.Router();
 
 router.use("/hospital", proxyRequest);
 router.use("/prescription-template", proxyRequest);
-
-
+router.use("/attendances", proxyRequest); // Added for attendance API
 
 
 export default router;

@@ -22,7 +22,7 @@ export const proxyRequest = async (req: Request, res: Response, next: NextFuncti
   try {
     // 🛡️ Safe Path Mapping: Gateway /api/blood-bank -> Microservice /blood-bank
    
-     const cleanedPath = req.originalUrl.replace("/api/hospital", "/hospital").replace("/api/prescription-template", "/prescription-template");
+     const cleanedPath = req.originalUrl.replace("/api/hospital", "/hospital").replace("/api/prescription-template", "/prescription-template").replace("/api/attendances", "/attendances");
     const url = `${SERVICES.HOSPITAL_SERVICE}${cleanedPath}`;
 
     const options = {

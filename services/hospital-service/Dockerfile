@@ -132,13 +132,14 @@ FROM public.ecr.aws/docker/library/node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install native build dependencies
-RUN apk add --no-cache python3 make g++
+# Install native build dependencies (needed to compile canvas)
+RUN apk add --no-cache python3 make g++ \
+    cairo-dev pango-dev libjpeg-turbo-dev giflib-dev librsvg-dev pixman-dev
 
 # Copy package files
 COPY package*.json .npmrc* ./
 
-# Install all dependencies
+# Install all dependencies (including canvas native build)
 RUN npm install --include=dev --legacy-peer-deps
 
 # Copy source code
@@ -155,17 +156,30 @@ WORKDIR /app
 # Production environment
 ENV NODE_ENV=production
 
+# Install runtime libraries needed by canvas (no -dev, just the shared libs)
+RUN apk add --no-cache cairo pango libjpeg-turbo giflib librsvg pixman
+
 # Copy package files
 COPY package*.json .npmrc* ./
 
-# Install production dependencies only
-RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund && rm -f .npmrc
+# Copy pre-built node_modules from builder (avoids re-compiling canvas)
+COPY --from=builder /app/node_modules ./node_modules
+
+# Prune devDependencies from the copied node_modules
+RUN npm prune --omit=dev --legacy-peer-deps && rm -f .npmrc
 
 # Copy compiled app
 COPY --from=builder /app/dist ./dist
 
 # Copy config folder if exists
 COPY --from=builder /app/config ./config
+
+# Copy AI face-recognition models
+COPY --from=builder /app/models ./models
+
+# Copy migrations and sequelize config
+COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/.sequelizerc ./.sequelizerc
 
 # Run as non-root user
 USER node
@@ -177,7 +191,6 @@ EXPOSE 3009
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 CMD node -e "require('http').get('http://localhost:3009/health',(res)=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
-# Start app
-CMD ["node", "dist/server.js"]
-
+# Run migrations then start app
+CMD ["sh", "-c", "npx sequelize-cli db:migrate && node dist/server.js"]
 

@@ -4,8 +4,10 @@ import fs from "fs";
 import path from "path";
 import axios from "axios";
 import Attendance from "../models/attendance.model";
+import Hospital from "../models/hospital.model";
 import { publishEvent } from "../events/publisher";
 import { logger } from "../utils/logger";
+import { verificationService } from "../services/verification.service";
 
 /* =======================
    CREATE ATTENDANCE (Check-In / Check-Out)
@@ -15,6 +17,8 @@ export const createAttendance = async (req: Request, res: Response) => {
   try {
     const {
       hospitalId,
+      employeeId,
+      employeeType,
       roleId,
       type,
       latitude,
@@ -27,12 +31,23 @@ export const createAttendance = async (req: Request, res: Response) => {
       location,
     } = req.body;
 
-    const user_id = roleId;
+    const resolvedEmployeeId = Number(employeeId ?? roleId);
+    if (!resolvedEmployeeId) {
+      res.status(400).json({
+        success: false,
+        message: "employeeId (or roleId) is required in request body.",
+      });
+      return;
+    }
+
+    const resolvedEmployeeType = employeeType || (typeof roles === 'string' ? roles : (Array.isArray(roles) && roles.length ? (typeof roles[0] === 'string' ? roles[0] : roles[0]?.name) : "Staff"));
     const now = new Date();
 
     // Resolve coordinates from top-level or nested location object
     const resolvedLat = latitude ?? location?.lat;
     const resolvedLng = longitude ?? location?.lng;
+    
+    const finalImage = image || selfie_url;
 
     // 1. Duplicate check - prevent double check-in/check-out for same day
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -40,7 +55,10 @@ export const createAttendance = async (req: Request, res: Response) => {
 
     const existingRecord = await Attendance.findOne({
       where: {
-        roleId: user_id,
+        [Op.or]: [
+          { employeeId: resolvedEmployeeId },
+          { roleId: resolvedEmployeeId }
+        ],
         type,
         timestamp: {
           [Op.gte]: startOfDay,
@@ -71,13 +89,25 @@ export const createAttendance = async (req: Request, res: Response) => {
       }
     }
 
+    // 3. Face Verification Check (Only if method is "Face")
+    if (method === "Face" || finalImage) {
+      const verification = await verificationService.verifyFace(resolvedEmployeeId, finalImage, resolvedEmployeeType);
+      if (!verification.success) {
+        res.status(403).json({ 
+          success: false, 
+          message: verification.message 
+        });
+        return;
+      }
+    }
+
     const timestamp = new Date();
 
     // 3. Handle Image Storage (save selfie to disk if base64)
     let final_selfie_url = image || selfie_url || null;
     if (image && image.startsWith("data:image")) {
       const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
-      const fileName = `attendance_${user_id}_${Date.now()}.jpg`;
+      const fileName = `attendance_${resolvedEmployeeId}_${Date.now()}.jpg`;
 
       const uploadDir = path.join(__dirname, "../../uploads/attendance");
       if (!fs.existsSync(uploadDir)) {
@@ -116,7 +146,9 @@ export const createAttendance = async (req: Request, res: Response) => {
     // 6. Create the attendance record
     const attendance = await Attendance.create({
       hospitalId,
-      roleId: user_id,
+      employeeId: resolvedEmployeeId,
+      employeeType: resolvedEmployeeType,
+      roleId: resolvedEmployeeId,
       type,
       timestamp,
       latitude: resolvedLat,
@@ -124,7 +156,7 @@ export const createAttendance = async (req: Request, res: Response) => {
       selfie_url: final_selfie_url,
       status,
       method: resolvedMethod,
-      roles,
+      roles: roles || [resolvedEmployeeType],
       department,
     });
 
@@ -149,6 +181,8 @@ export const createAttendance = async (req: Request, res: Response) => {
 
       await publishEvent("hospital_events", "ATTENDANCE_REGISTERED", {
         attendanceId: attendance.id,
+        employeeId: attendance.employeeId,
+        employeeType: attendance.employeeType,
         roleId: attendance.roleId,
         staffName,
         staffRole,
@@ -183,7 +217,12 @@ export const getAttendances = async (req: Request, res: Response) => {
   try {
     const where: any = {};
     if (req.query.hospitalId) where.hospitalId = req.query.hospitalId;
-    if (req.query.roleId) where.roleId = req.query.roleId;
+    
+    const targetId = req.query.employeeId || req.query.roleId;
+    if (targetId) {
+      where[Op.or] = [{ employeeId: targetId }, { roleId: targetId }];
+    }
+    if (req.query.employeeType) where.employeeType = req.query.employeeType;
     if (req.query.status) where.status = req.query.status;
     if (req.query.type) where.type = req.query.type;
     if (req.query.department) where.department = req.query.department;
@@ -205,7 +244,7 @@ export const getAttendances = async (req: Request, res: Response) => {
 
 export const getDailyStatus = async (req: Request, res: Response) => {
   try {
-    const roleId = Number(req.query.roleId || req.params.roleId);
+    const targetId = Number(req.query.employeeId || req.query.roleId || req.params.employeeId || req.params.roleId);
     const now = new Date();
 
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -213,7 +252,7 @@ export const getDailyStatus = async (req: Request, res: Response) => {
 
     const attendances = await Attendance.findAll({
       where: {
-        roleId,
+        [Op.or]: [{ employeeId: targetId }, { roleId: targetId }],
         timestamp: {
           [Op.gte]: startOfDay,
           [Op.lte]: endOfDay,
@@ -339,20 +378,16 @@ async function verifyAttendanceLocation(
   }
 
   try {
-    // Fetch hospital coordinates
-    const hospitalResponse = await axios.get(
-      `${process.env.HOSPITAL_SERVICE_URL || "http://localhost:3004"}/hospitals/${hospitalId}`,
-      { timeout: 10000, validateStatus: () => true }
-    );
+    // Fetch hospital coordinates directly from the database
+    const hospital = await Hospital.findByPk(hospitalId);
 
-    if (hospitalResponse.status !== 200 || !hospitalResponse.data?.success) {
+    if (!hospital) {
       return {
         success: false,
-        message: "Location verification failed: hospital details could not be fetched.",
+        message: "Location verification failed: hospital details could not be found.",
       };
     }
 
-    const hospital = hospitalResponse.data.data;
     const hospitalLat = Number(hospital.latitude);
     const hospitalLng = Number(hospital.longitude);
 

@@ -8,7 +8,9 @@ import sequelize from "../config/db";
 export interface IAttendance {
   id: number;
   hospitalId: number;
-  roleId: number; // Represents roleId assigned by the hospital
+  employeeId?: number; // Unique employee ID (Doctor ID / Staff ID)
+  employeeType?: string; // "Doctor" | "Staff" | "Nurse" | "Receptionist" | etc.
+  roleId: number; // Legacy support / roleId assigned by hospital
   type: string; // "check-in" | "check-out"
   timestamp: Date;
   latitude?: number;
@@ -41,6 +43,8 @@ type AttendanceCreationAttributes = Optional<IAttendance, "id">;
 class Attendance extends Model<IAttendance, AttendanceCreationAttributes> implements IAttendance {
   public declare id: number;
   public declare hospitalId: number;
+  public declare employeeId?: number;
+  public declare employeeType?: string;
   public declare roleId: number;
   public declare type: string;
   public declare timestamp: Date;
@@ -66,6 +70,8 @@ Attendance.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     hospitalId: { type: DataTypes.INTEGER, allowNull: false },
+    employeeId: { type: DataTypes.INTEGER, allowNull: true },
+    employeeType: { type: DataTypes.STRING, allowNull: true },
     roleId: {
       type: DataTypes.INTEGER,
       allowNull: false,

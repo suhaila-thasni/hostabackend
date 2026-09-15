@@ -584,7 +584,15 @@ export const verifyOtp: any = asyncHandler(async (req: Request, res: Response) =
 
 // GET ONE - GET /staff/:id
 export const getanStaff: any = asyncHandler(async (req: Request, res: Response) => {
-  const staff = await Staff.findOne({ where: { id: req.params.id, isDelete: false } });
+  const paramId = req.params.id;
+  const isNum = !isNaN(Number(paramId));
+  const whereCondition: any = { isDelete: false };
+  if (isNum) {
+    whereCondition[Op.or] = [{ id: Number(paramId) }, { roleId: Number(paramId) }];
+  } else {
+    whereCondition.id = paramId;
+  }
+  const staff = await Staff.findOne({ where: whereCondition });
   if (!staff) {
     res.status(404).json({
       success: false,
