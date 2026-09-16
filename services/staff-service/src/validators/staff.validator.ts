@@ -114,6 +114,10 @@ export const idParamSchema = z.object({
   id: z.string().regex(/^\d+$/, "Invalid ID format"),
 });
 
+export const accessCardSchema = z.object({
+  accessCardUid: z.string().min(1, "Access card UID is required"),
+});
+
 export type RegisterStaffInput = z.infer<typeof registerStaffSchema>;
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
 export type LoginStaffInput = z.infer<typeof loginStaffSchema>;

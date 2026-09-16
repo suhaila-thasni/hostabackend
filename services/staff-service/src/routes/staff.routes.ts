@@ -21,7 +21,10 @@ import {
   updateFcmTokenByEmail,
   updateStaffPassword,
   getStaffEmails,
-  getStaffEmailsByRoles
+  getStaffEmailsByRoles,
+  assignAccessCard,
+  revokeAccessCard,
+  getStaffByAccessCard
 } from "../controllers/staff.controllers";
 
 import { validate, validateParams } from "../middleware/validate.middleware";
@@ -35,6 +38,7 @@ import {
   updateStaffSchema,
   resetPasswordSchema,
   changePasswordSchema,
+  accessCardSchema,
 } from "../validators/staff.validator";
 import { authenticate } from "../middleware/authenticate";
 import { checkPermission } from "../middleware/role.middleware";
@@ -95,6 +99,7 @@ router.put("/staff/:id",authenticate, validateParams(idParamSchema), validate(up
 router.put("/staff/internal/:id/password", verifyInternalRequest, updateStaffPassword);
 router.get("/staff/internal/:id",verifyInternalRequest, validateParams(idParamSchema), getanStaff);
 router.get("/staff/internal/:id/hospitals", verifyInternalRequest, validateParams(idParamSchema), getStaffHospitals);
+router.get("/staff/internal/by-access-card/:accessCardUid", verifyInternalRequest, getStaffByAccessCard);
 
 
 
@@ -104,6 +109,9 @@ router.get("/staff/internal/:id/hospitals", verifyInternalRequest, validateParam
 
 
 router.delete("/staff/:id",authenticate, validateParams(idParamSchema), checkPermission("staff", "delete"), staffDelete);
+
+router.put("/staff/:id/access-card", authenticate, checkPermission("staff", "edit"), validateParams(idParamSchema), validate(accessCardSchema), assignAccessCard);
+router.delete("/staff/:id/access-card", authenticate, checkPermission("staff", "edit"), validateParams(idParamSchema), revokeAccessCard);
 
 router.post("/staff/emails", getStaffEmails);
 router.post("/staff/emails-by-roles", getStaffEmailsByRoles);

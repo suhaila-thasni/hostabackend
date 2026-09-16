@@ -6,7 +6,9 @@ import { z } from "zod";
 
 const attendanceBaseSchema = z.object({
   hospitalId: z.number().int(),
-  roleId: z.number().int(),
+  roleId: z.number().int().optional(), // Legacy — prefer employeeId
+  employeeId: z.number().int().optional(),
+  employeeType: z.enum(["Doctor", "Staff"]).optional(),
   type: z.enum(["check-in", "check-out"]),
   // `image` is the primary field for face verification (base64 or URL selfie)
   // `selfie_url` is a fallback alias used by some frontends
@@ -25,9 +27,19 @@ const attendanceBaseSchema = z.object({
     })
     .optional(),
   status: z.string().optional(),
+  deviceId: z.string().optional(),
 });
 
 export const attendanceSchema = attendanceBaseSchema.superRefine((data, ctx) => {
+  // Must provide at least one identifier
+  if (data.employeeId === undefined && data.roleId === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "employeeId or roleId is required",
+      path: ["employeeId"],
+    });
+  }
+
   const hasTopLevelCoordinates = data.latitude !== undefined && data.longitude !== undefined;
   const hasLocationObject = data.location?.lat !== undefined && data.location?.lng !== undefined;
 
@@ -48,4 +60,13 @@ export const updateAttendanceSchema = attendanceBaseSchema.partial();
 
 export const idParamSchema = z.object({
   id: z.string().regex(/^\d+$/, "ID must be a number"),
+});
+
+export const rfidAttendanceSchema = z.object({
+  hospitalId: z.number().int(),
+  accessCardUid: z.string().min(1, "Access card UID is required"),
+  type: z.enum(["check-in", "check-out"]),
+  deviceId: z.string().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
 });

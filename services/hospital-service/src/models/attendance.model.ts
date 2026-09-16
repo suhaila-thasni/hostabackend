@@ -25,6 +25,7 @@ export interface IAttendance {
   creator_id?: number;
   editor_type?: string;
   editor_id?: number;
+  deviceId?: string;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date;
@@ -60,6 +61,7 @@ class Attendance extends Model<IAttendance, AttendanceCreationAttributes> implem
   public declare creator_id?: number;
   public declare editor_type?: string;
   public declare editor_id?: number;
+  public declare deviceId?: string;
 }
 
 /* =======================
@@ -91,6 +93,7 @@ Attendance.init(
     creator_id: { type: DataTypes.INTEGER, allowNull: true },
     editor_type: { type: DataTypes.STRING, allowNull: true },
     editor_id: { type: DataTypes.INTEGER, allowNull: true },
+    deviceId: { type: DataTypes.STRING, allowNull: true },
   },
   {
     sequelize,

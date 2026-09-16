@@ -1702,4 +1702,98 @@ export const updateFcmTokenByEmail: any = asyncHandler(async (req: Request, res:
   });
 });
 
+/* =======================
+   ACCESS CARD
+======================= */
+
+export const assignAccessCard: any = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { accessCardUid } = req.body;
+    
+    const staff = await Staff.findByPk(id);
+    if (!staff) {
+      res.status(404).json({ success: false, message: "Staff not found" });
+      return;
+    }
+    
+    // Check if another staff in the same hospital already has this card
+    const existing = await Staff.findOne({
+      where: {
+        accessCardUid,
+        hospitalId: staff.hospitalId,
+        id: { [Op.ne]: id }
+      }
+    });
+    
+    if (existing) {
+      res.status(400).json({ success: false, message: "This access card is already assigned to another staff in this hospital." });
+      return;
+    }
+    
+    await staff.update({ accessCardUid });
+    
+    res.status(200).json({
+      success: true,
+      message: "Access card assigned successfully",
+      data: { id: staff.id, accessCardUid: staff.accessCardUid }
+    });
+  }
+);
+
+export const revokeAccessCard: any = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    
+    const staff = await Staff.findByPk(id);
+    if (!staff) {
+      res.status(404).json({ success: false, message: "Staff not found" });
+      return;
+    }
+    
+    await staff.update({ accessCardUid: null as any });
+    
+    res.status(200).json({
+      success: true,
+      message: "Access card revoked successfully",
+    });
+  }
+);
+
+export const getStaffByAccessCard: any = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { accessCardUid } = req.params;
+    const hospitalId = req.query.hospitalId;
+    
+    if (!hospitalId) {
+      res.status(400).json({ success: false, message: "hospitalId query param is required" });
+      return;
+    }
+    
+    const staff = await Staff.findOne({
+      where: {
+        accessCardUid,
+        hospitalId: Number(hospitalId),
+        isDelete: false
+      }
+    });
+    
+    if (!staff) {
+      res.status(404).json({ success: false, message: "Staff not found for this access card" });
+      return;
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        id: staff.id,
+        hospitalId: staff.hospitalId,
+        roleId: staff.roleId,
+        employeeType: "Staff",
+        name: staff.name
+      }
+    });
+  }
+);
+
 

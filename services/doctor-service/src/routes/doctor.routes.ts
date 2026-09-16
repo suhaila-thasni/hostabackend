@@ -20,7 +20,10 @@ import {
   logout,
   updateFcmTokenByEmail,
   getDoctorEmails,
-  getDoctorEmailsByRoles
+  getDoctorEmailsByRoles,
+  assignAccessCard,
+  revokeAccessCard,
+  getDoctorByAccessCard
 } from "../controllers/doctor.controllers";
 import { validate } from "../middleware/validate.middleware";
 import { 
@@ -38,7 +41,7 @@ import { check } from "zod";
 import { verifyInternalRequest } from "../middleware/internalAuth";
 import { updateDoctorPassword } from "../controllers/doctor.controllers";
 import { validateParams } from "../middleware/validate.middleware";
-import { idParamSchema } from "../validators/doctor.validator";
+import { idParamSchema, accessCardSchema } from "../validators/doctor.validator";
 
 const router = Router();
 
@@ -92,6 +95,7 @@ router.post("/doctor/update-fcm-token", updateFcmTokenByEmail);
 router.put("/doctor/internal/:id/password", verifyInternalRequest, updateDoctorPassword);
 router.get("/doctor/internal/:id",verifyInternalRequest, validateParams(idParamSchema), getanDoctor);
 router.get("/doctor/internal/:id/hospitals", verifyInternalRequest, validateParams(idParamSchema), getDoctorHospitals);
+router.get("/doctor/internal/by-access-card/:accessCardUid", verifyInternalRequest, getDoctorByAccessCard);
 
 
 
@@ -111,6 +115,9 @@ router.put("/doctor/:id", authenticate, checkPermission('doctor','edit'), update
 
 
 router.delete("/doctor/:id", authenticate, checkPermission('doctor','delete'), doctorDelete);
+
+router.put("/doctor/:id/access-card", authenticate, checkPermission('doctor','edit'), validateParams(idParamSchema), validate(accessCardSchema), assignAccessCard);
+router.delete("/doctor/:id/access-card", authenticate, checkPermission('doctor','edit'), validateParams(idParamSchema), revokeAccessCard);
 
 router.post("/doctor/emails", getDoctorEmails);
 router.post("/doctor/emails-by-roles", getDoctorEmailsByRoles);

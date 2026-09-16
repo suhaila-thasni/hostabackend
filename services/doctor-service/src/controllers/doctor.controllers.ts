@@ -1772,3 +1772,97 @@ export const getDoctorEmailsByRoles: any = asyncHandler(
     res.status(200).json(results);
   }
 );
+
+/* =======================
+   ACCESS CARD
+======================= */
+
+export const assignAccessCard: any = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { accessCardUid } = req.body;
+    
+    const doctor = await Doctor.findByPk(id);
+    if (!doctor) {
+      res.status(404).json({ success: false, message: "Doctor not found" });
+      return;
+    }
+    
+    // Check if another doctor in the same hospital already has this card
+    const existing = await Doctor.findOne({
+      where: {
+        accessCardUid,
+        hospitalId: doctor.hospitalId,
+        id: { [Op.ne]: id }
+      }
+    });
+    
+    if (existing) {
+      res.status(400).json({ success: false, message: "This access card is already assigned to another doctor in this hospital." });
+      return;
+    }
+    
+    await doctor.update({ accessCardUid });
+    
+    res.status(200).json({
+      success: true,
+      message: "Access card assigned successfully",
+      data: { id: doctor.id, accessCardUid: doctor.accessCardUid }
+    });
+  }
+);
+
+export const revokeAccessCard: any = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    
+    const doctor = await Doctor.findByPk(id);
+    if (!doctor) {
+      res.status(404).json({ success: false, message: "Doctor not found" });
+      return;
+    }
+    
+    await doctor.update({ accessCardUid: null as any });
+    
+    res.status(200).json({
+      success: true,
+      message: "Access card revoked successfully",
+    });
+  }
+);
+
+export const getDoctorByAccessCard: any = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { accessCardUid } = req.params;
+    const hospitalId = req.query.hospitalId;
+    
+    if (!hospitalId) {
+      res.status(400).json({ success: false, message: "hospitalId query param is required" });
+      return;
+    }
+    
+    const doctor = await Doctor.findOne({
+      where: {
+        accessCardUid,
+        hospitalId: Number(hospitalId),
+        isDelete: false
+      }
+    });
+    
+    if (!doctor) {
+      res.status(404).json({ success: false, message: "Doctor not found for this access card" });
+      return;
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        id: doctor.id,
+        hospitalId: doctor.hospitalId,
+        roleId: doctor.roleId,
+        employeeType: "Doctor",
+        name: doctor.displayName
+      }
+    });
+  }
+);

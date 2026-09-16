@@ -454,3 +454,163 @@ function calculateDistanceMeters(lat1: number, lon1: number, lat2: number, lon2:
 function toRadians(value: number): number {
   return (value * Math.PI) / 180;
 }
+
+/* =======================
+   RFID ATTENDANCE
+======================= */
+
+export const createRfidAttendance = async (req: Request, res: Response) => {
+  try {
+    const { hospitalId, accessCardUid, type, deviceId, latitude, longitude } = req.body;
+    
+    // 1. Look up doctor by accessCardUid
+    let employeeData = null;
+    let employeeType = "Staff";
+    
+    try {
+      const doctorRes = await axios.get(`${process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3007"}/doctor/internal/by-access-card/${accessCardUid}`, {
+        params: { hospitalId },
+        headers: { "x-internal-secret": process.env.INTERNAL_SECRET || "internal_secret_key" },
+        validateStatus: () => true
+      });
+      
+      if (doctorRes.status === 200 && doctorRes.data?.success) {
+        employeeData = doctorRes.data.data;
+        employeeType = "Doctor";
+      }
+    } catch (err: any) {
+      logger.error("Failed to query doctor service for RFID", { error: err.message });
+    }
+    
+    // 2. If not doctor, look up staff
+    if (!employeeData) {
+      try {
+        const staffRes = await axios.get(`${process.env.STAFF_SERVICE_URL || "http://staff-service:3006"}/staff/internal/by-access-card/${accessCardUid}`, {
+          params: { hospitalId },
+          headers: { "x-internal-secret": process.env.INTERNAL_SECRET || "internal_secret_key" },
+          validateStatus: () => true
+        });
+        
+        if (staffRes.status === 200 && staffRes.data?.success) {
+          employeeData = staffRes.data.data;
+          employeeType = "Staff";
+        }
+      } catch (err: any) {
+        logger.error("Failed to query staff service for RFID", { error: err.message });
+      }
+    }
+    
+    if (!employeeData) {
+      res.status(404).json({ success: false, message: "No employee found with this access card." });
+      return;
+    }
+    
+    const resolvedEmployeeId = employeeData.id;
+    const resolvedRoleId = employeeData.roleId;
+    const now = new Date();
+    
+    // 3. Duplicate check
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    const existingRecord = await Attendance.findOne({
+      where: {
+        [Op.or]: [
+          { employeeId: resolvedEmployeeId },
+          { roleId: resolvedEmployeeId }
+        ],
+        type,
+        timestamp: {
+          [Op.gte]: startOfDay,
+          [Op.lte]: endOfDay,
+        },
+      },
+    });
+
+    if (existingRecord) {
+      res.status(400).json({
+        success: false,
+        message: `You have already recorded a ${type} for today.`,
+      });
+      return;
+    }
+    
+    // 4. Location Verification (if coordinates are provided)
+    if (latitude !== undefined && longitude !== undefined) {
+      const locationVerification = await verifyAttendanceLocation(hospitalId, latitude, longitude);
+      if (!locationVerification.success) {
+        res.status(403).json({
+          success: false,
+          message: locationVerification.message,
+          distanceMeters: locationVerification.distanceMeters,
+          allowedRadiusMeters: locationVerification.allowedRadiusMeters,
+        });
+        return;
+      }
+    }
+    
+    const timestamp = new Date();
+    const hours = timestamp.getHours();
+    const minutes = timestamp.getMinutes();
+    let status = "verified";
+
+    if (type === "check-in") {
+      if (hours > 9 || (hours === 9 && minutes > 0)) {
+        status = "Late";
+      } else {
+        status = "Present";
+      }
+    } else if (type === "check-out") {
+      if (hours < 17) {
+        status = "Early Departure";
+      } else {
+        status = "Shift Completed";
+      }
+    }
+    
+    const attendance = await Attendance.create({
+      hospitalId,
+      employeeId: resolvedEmployeeId,
+      employeeType: employeeType,
+      roleId: resolvedRoleId || resolvedEmployeeId,
+      type,
+      timestamp,
+      latitude,
+      longitude,
+      status,
+      method: "Access Card",
+      deviceId,
+      roles: [employeeType],
+    });
+    
+    try {
+      await publishEvent("hospital_events", "ATTENDANCE_REGISTERED", {
+        attendanceId: attendance.id,
+        employeeId: attendance.employeeId,
+        employeeType: attendance.employeeType,
+        roleId: attendance.roleId,
+        staffName: employeeData.name,
+        staffRole: employeeType,
+        type: attendance.type,
+        status: attendance.status,
+        method: attendance.method,
+        checkInTime: attendance.type === "check-in" ? attendance.timestamp : undefined,
+        checkOutTime: attendance.type === "check-out" ? attendance.timestamp : undefined,
+        hospitalId: attendance.hospitalId,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish ATTENDANCE_REGISTERED event:", { error: err.message });
+    }
+
+    res.status(201).json({
+      success: true,
+      status,
+      message: `${type} successful via Access Card`,
+      data: attendance,
+    });
+    
+  } catch (error: any) {
+    logger.error("Error creating RFID attendance", { error });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

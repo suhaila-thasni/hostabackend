@@ -49,6 +49,7 @@ interface IStaff {
   hospitalName: string;
   fcmToken: FCMTOKEN[];
   status?: string;
+  accessCardUid?: string;
 
 }
 
@@ -77,6 +78,7 @@ type StaffCreationAttributes = Optional<
   | "otp"
   | "otpExpiry"
   | "status"
+  | "accessCardUid"
 >;
 
 /* =======================
@@ -115,6 +117,7 @@ class Staff
   public hospitalName: string;
   public fcmToken: FCMTOKEN[];
   public status?: string;
+  public accessCardUid?: string;
 
   // timestamps
   public readonly createdAt!: Date;
@@ -266,6 +269,10 @@ Staff.init(
     otpExpiry: {
       type: DataTypes.DATE,
     },
+    accessCardUid: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
    
   },
   {
@@ -296,6 +303,10 @@ Staff.init(
       {
         unique: true,
         fields: ["hospitalId", "email"],
+      },
+      {
+        unique: true,
+        fields: ["hospitalId", "accessCardUid"],
       },
     ],
   }

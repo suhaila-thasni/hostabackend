@@ -79,6 +79,7 @@ interface IDoctor {
   regNo?: string;
   autoDecline?: number;
   appointmentCount?: number;
+  accessCardUid?: string;
 }
 
 /* =======================
@@ -87,7 +88,7 @@ interface IDoctor {
 
 type DoctorCreationAttributes = Optional<
   IDoctor,
-  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consultingTwo" | "consultingOne" | "department" | "specialist" | "displayName" | "hospitalId" | "deleteDate" | "status"
+  "id" |  "email" |  "joiningDate" | "password" | "fees" | "dob" | "gender" | "knowLanguages" | "qualification" | "consultingTwo" | "consultingOne" | "department" | "specialist" | "displayName" | "hospitalId" | "deleteDate" | "status" | "accessCardUid"
 >;
 
 /* =======================
@@ -134,6 +135,7 @@ class Doctor
   public autoDecline?: number;
   public appointmentCount?: number;
   public fcmToken: FCMTOKEN[];
+  public accessCardUid?: string;
 }
 
 /* =======================
@@ -323,6 +325,10 @@ doctorId: {
       type: DataTypes.DATE,
       allowNull: true,
     },
+    accessCardUid: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     
     
   },
@@ -356,6 +362,10 @@ indexes: [
   {
     unique: true,
     fields: ["hospitalId", "email"],
+  },
+  {
+    unique: true,
+    fields: ["hospitalId", "accessCardUid"],
   },
 ],
   }

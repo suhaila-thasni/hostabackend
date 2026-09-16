@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { validate, validateParams } from "../middleware/validate.middleware";
-import { attendanceSchema, updateAttendanceSchema, idParamSchema } from "../validators/attendance.validator";
+import { attendanceSchema, updateAttendanceSchema, idParamSchema, rfidAttendanceSchema } from "../validators/attendance.validator";
 import {
   createAttendance,
   getAttendances,
@@ -8,11 +8,13 @@ import {
   updateAttendance,
   deleteAttendance,
   getDailyStatus,
+  createRfidAttendance,
 } from "../controllers/attendance.controllers";
 
 const router = Router();
 
 router.post("/attendances", validate(attendanceSchema), createAttendance);
+router.post("/attendances/card", validate(rfidAttendanceSchema), createRfidAttendance);
 router.get("/attendances", getAttendances);
 router.get("/attendances/status", getDailyStatus);
 router.get("/attendances/:id", validateParams(idParamSchema), getAttendanceById);

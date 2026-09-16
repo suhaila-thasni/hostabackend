@@ -141,9 +141,12 @@ export const changePasswordSchema = z.object({
 });
 
 
-// ID parameter validation
 export const idParamSchema = z.object({
   id: z.string().regex(/^\d+$/, "Invalid ID format"),
+});
+
+export const accessCardSchema = z.object({
+  accessCardUid: z.string().min(1, "Access card UID is required"),
 });
 
 export type RegisterDoctorInput = z.infer<typeof registerDoctorSchema>;
