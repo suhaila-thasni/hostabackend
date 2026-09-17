@@ -31,6 +31,8 @@ interface IStaff {
   joiningDate?: Date;
   staffType?: string;
   jobType?: string;
+  shiftStartTime?: string;
+  shiftEndTime?: string;
   address: IAddress;
   phone: string;
   email?: string;
@@ -72,6 +74,8 @@ type StaffCreationAttributes = Optional<
   | "joiningDate"
   | "staffType"
   | "jobType"
+  | "shiftStartTime"
+  | "shiftEndTime"
   | "isActive"
   | "isDelete"
   | "deleteDate"
@@ -98,6 +102,8 @@ class Staff
   public joiningDate?: Date;
   public staffType?: string;
   public jobType?: string;
+  public shiftStartTime?: string;
+  public shiftEndTime?: string;
   public phone!: string;
   public email?: string;
   public password?: string;
@@ -188,6 +194,14 @@ Staff.init(
 
     jobType: {
       type: DataTypes.STRING,
+    },
+    shiftStartTime: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    shiftEndTime: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
 
     qualification: {
