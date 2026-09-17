@@ -49,9 +49,10 @@ export const createAttendance = async (req: Request, res: Response) => {
     
     const finalImage = image || selfie_url;
 
-    // 1. Duplicate check - prevent double check-in/check-out for same day
+    // 1. Find today's record (we'll use it for both check-in and check-out)
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const dateString = now.toISOString().split("T")[0]; // YYYY-MM-DD
 
     const existingRecord = await Attendance.findOne({
       where: {
@@ -59,7 +60,6 @@ export const createAttendance = async (req: Request, res: Response) => {
           { employeeId: resolvedEmployeeId },
           { roleId: resolvedEmployeeId }
         ],
-        type,
         timestamp: {
           [Op.gte]: startOfDay,
           [Op.lte]: endOfDay,
@@ -67,10 +67,18 @@ export const createAttendance = async (req: Request, res: Response) => {
       },
     });
 
-    if (existingRecord) {
+    if (type === "check-in" && existingRecord && existingRecord.checkInTime) {
       res.status(400).json({
         success: false,
-        message: `You have already recorded a ${type} for today.`,
+        message: `You have already checked in for today.`,
+      });
+      return;
+    }
+    
+    if (type === "check-out" && existingRecord && existingRecord.checkOutTime) {
+      res.status(400).json({
+        success: false,
+        message: `You have already checked out for today.`,
       });
       return;
     }
@@ -103,7 +111,7 @@ export const createAttendance = async (req: Request, res: Response) => {
 
     const timestamp = new Date();
 
-    // 3. Handle Image Storage (save selfie to disk if base64)
+    // 4. Handle Image Storage (save selfie to disk if base64)
     let final_selfie_url = image || selfie_url || null;
     if (image && image.startsWith("data:image")) {
       const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
@@ -119,20 +127,18 @@ export const createAttendance = async (req: Request, res: Response) => {
       final_selfie_url = `/uploads/attendance/${fileName}`;
     }
 
-    // 4. Determine status (Late vs Present for check-in, Early vs Completed for check-out)
+    // 5. Determine status (Late vs Present for check-in, Early vs Completed for check-out)
     const hours = timestamp.getHours();
     const minutes = timestamp.getMinutes();
     let status = "verified";
 
     if (type === "check-in") {
-      // Default shift start: 09:00 AM
       if (hours > 9 || (hours === 9 && minutes > 0)) {
         status = "Late";
       } else {
         status = "Present";
       }
     } else if (type === "check-out") {
-      // Default shift end: 17:00 (5:00 PM)
       if (hours < 17) {
         status = "Early Departure";
       } else {
@@ -140,45 +146,92 @@ export const createAttendance = async (req: Request, res: Response) => {
       }
     }
 
-    // 5. Determine method
     const resolvedMethod = method || (image ? "Face" : "Punch In");
 
-    // 6. Create the attendance record
-    const attendance = await Attendance.create({
-      hospitalId,
-      employeeId: resolvedEmployeeId,
-      employeeType: resolvedEmployeeType,
-      roleId: resolvedEmployeeId,
-      type,
-      timestamp,
-      latitude: resolvedLat,
-      longitude: resolvedLng,
-      selfie_url: final_selfie_url,
-      status,
-      method: resolvedMethod,
-      roles: roles || [resolvedEmployeeType],
-      department,
-    });
+    // 6. Fetch name if possible before creating/updating
+    let staffName = "Unknown staff";
+    let staffRole = resolvedEmployeeType;
+    let staffDepartment = department;
 
-    // 7. Publish event via RabbitMQ
     try {
-      let staffName = "Unknown staff";
-      let staffRole = "Unknown";
-
-      try {
-        const staffResponse = await axios.get(
-          `${process.env.STAFF_SERVICE_URL || "http://staff-service:3006"}/staffs/${attendance.roleId}/details`,
-          { timeout: 10000, validateStatus: () => true }
+      if (resolvedEmployeeType && resolvedEmployeeType.toLowerCase() === "doctor") {
+        const doctorResponse = await axios.get(
+          `${process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3007"}/doctor/internal/${resolvedEmployeeId}`,
+          { 
+            timeout: 10000, 
+            validateStatus: () => true,
+            headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" }
+          }
         );
-
-        if (staffResponse.status === 200 && staffResponse.data?.success) {
-          staffName = staffResponse.data.name || staffResponse.data.username || staffName;
-          staffRole = staffResponse.data.role || staffRole;
+        if (doctorResponse.status === 200 && doctorResponse.data?.success) {
+          const docData = doctorResponse.data.data;
+          staffName = docData?.displayName || docData?.name || docData?.username || (docData?.firstName ? `${docData.firstName} ${docData.lastName || ''}`.trim() : staffName);
+          staffRole = docData?.role || staffRole;
+          staffDepartment = docData?.department || staffDepartment;
         }
-      } catch (error: any) {
-        logger.error("Failed to enrich attendance event with staff details:", { error: error.message });
+      } else {
+        const staffResponse = await axios.get(
+          `${process.env.STAFF_SERVICE_URL || "http://staff-service:3006"}/staff/internal/${resolvedEmployeeId}`,
+          { 
+            timeout: 10000, 
+            validateStatus: () => true,
+            headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" }
+          }
+        );
+        if (staffResponse.status === 200 && staffResponse.data?.success) {
+          const staffData = staffResponse.data.data;
+          staffName = staffData?.name || staffData?.username || staffName;
+          staffRole = staffData?.role || staffRole;
+          staffDepartment = staffData?.department || staffData?.designation || staffDepartment;
+        }
+      }
+    } catch (error: any) {
+      logger.error("Failed to fetch employee details for attendance:", { error: error.message });
+    }
+
+    // 7. Create or update the attendance record
+    let attendance;
+    if (type === "check-in" || !existingRecord) {
+      attendance = await Attendance.create({
+        hospitalId,
+        employeeId: resolvedEmployeeId,
+        employeeType: staffRole,
+        roleId: resolvedEmployeeId,
+        name: staffName,
+        type,
+        attendanceType: "Shift",
+        date: dateString,
+        checkInTime: type === "check-in" ? timestamp : undefined,
+        checkOutTime: type === "check-out" ? timestamp : undefined,
+        timestamp,
+        latitude: resolvedLat,
+        longitude: resolvedLng,
+        selfie_url: final_selfie_url,
+        status,
+        method: resolvedMethod,
+        roles: roles || [staffRole],
+        department: staffDepartment,
+      });
+    } else {
+      // type === "check-out"
+      let durationStr = existingRecord.duration || "0h 0m";
+      if (existingRecord.checkInTime) {
+        const diffMs = timestamp.getTime() - new Date(existingRecord.checkInTime).getTime();
+        const diffHrs = Math.floor(diffMs / 3600000);
+        const diffMins = Math.floor((diffMs % 3600000) / 60000);
+        durationStr = `${diffHrs}h ${diffMins}m`;
       }
 
+      existingRecord.checkOutTime = timestamp;
+      existingRecord.duration = durationStr;
+      existingRecord.status = status;
+      if (final_selfie_url) existingRecord.selfie_url = final_selfie_url;
+      await existingRecord.save();
+      attendance = existingRecord;
+    }
+
+    // 8. Publish event via RabbitMQ
+    try {
       await publishEvent("hospital_events", "ATTENDANCE_REGISTERED", {
         attendanceId: attendance.id,
         employeeId: attendance.employeeId,
@@ -189,8 +242,8 @@ export const createAttendance = async (req: Request, res: Response) => {
         type: attendance.type,
         status: attendance.status,
         method: attendance.method,
-        checkInTime: attendance.type === "check-in" ? attendance.timestamp : undefined,
-        checkOutTime: attendance.type === "check-out" ? attendance.timestamp : undefined,
+        checkInTime: attendance.checkInTime,
+        checkOutTime: attendance.checkOutTime,
         hospitalId: attendance.hospitalId,
       });
     } catch (err: any) {
@@ -487,7 +540,7 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
       try {
         const staffRes = await axios.get(`${process.env.STAFF_SERVICE_URL || "http://staff-service:3006"}/staff/internal/by-access-card/${accessCardUid}`, {
           params: { hospitalId },
-          headers: { "x-internal-secret": process.env.INTERNAL_SECRET || "internal_secret_key" },
+          headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
           validateStatus: () => true
         });
         

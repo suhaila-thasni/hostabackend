@@ -11,7 +11,12 @@ export interface IAttendance {
   employeeId?: number; // Unique employee ID (Doctor ID / Staff ID)
   employeeType?: string; // "Doctor" | "Staff" | "Nurse" | "Receptionist" | etc.
   roleId: number; // Legacy support / roleId assigned by hospital
-  type: string; // "check-in" | "check-out"
+  name?: string;
+  type?: string; // legacy support, may be replaced by attendanceType
+  attendanceType?: string;
+  date?: string; // YYYY-MM-DD format
+  checkInTime?: Date;
+  checkOutTime?: Date;
   timestamp: Date;
   latitude?: number;
   longitude?: number;
@@ -47,7 +52,12 @@ class Attendance extends Model<IAttendance, AttendanceCreationAttributes> implem
   public declare employeeId?: number;
   public declare employeeType?: string;
   public declare roleId: number;
-  public declare type: string;
+  public declare name?: string;
+  public declare type?: string;
+  public declare attendanceType?: string;
+  public declare date?: string;
+  public declare checkInTime?: Date;
+  public declare checkOutTime?: Date;
   public declare timestamp: Date;
   public declare latitude?: number;
   public declare longitude?: number;
@@ -79,7 +89,12 @@ Attendance.init(
       allowNull: false,
       comment: "References roleId assigned by the hospital",
     },
-    type: { type: DataTypes.STRING, allowNull: false }, // "check-in" | "check-out"
+    name: { type: DataTypes.STRING, allowNull: true },
+    type: { type: DataTypes.STRING, allowNull: true }, // Legacy
+    attendanceType: { type: DataTypes.STRING, allowNull: true },
+    date: { type: DataTypes.DATEONLY, allowNull: true },
+    checkInTime: { type: DataTypes.DATE, allowNull: true },
+    checkOutTime: { type: DataTypes.DATE, allowNull: true },
     timestamp: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     latitude: { type: DataTypes.DECIMAL(10, 8), allowNull: true },
     longitude: { type: DataTypes.DECIMAL(11, 8), allowNull: true },
