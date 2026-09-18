@@ -11,7 +11,6 @@ const attendanceBaseSchema = z.object({
   employeeType: z.enum(["Doctor", "Staff"]).optional(),
   type: z.enum(["check-in", "check-out"]),
   name: z.string().optional(),
-  attendanceType: z.string().optional(),
   date: z.string().or(z.date()).optional(),
   checkInTime: z.string().or(z.date()).optional(),
   checkOutTime: z.string().or(z.date()).optional(),

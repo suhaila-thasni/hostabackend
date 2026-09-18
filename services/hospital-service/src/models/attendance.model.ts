@@ -12,8 +12,7 @@ export interface IAttendance {
   employeeType?: string; // "Doctor" | "Staff" | "Nurse" | "Receptionist" | etc.
   roleId: number; // Legacy support / roleId assigned by hospital
   name?: string;
-  type?: string; // legacy support, may be replaced by attendanceType
-  attendanceType?: string;
+  type?: string; // legacy support
   date?: string; // YYYY-MM-DD format
   checkInTime?: Date;
   checkOutTime?: Date;
@@ -54,7 +53,6 @@ class Attendance extends Model<IAttendance, AttendanceCreationAttributes> implem
   public declare roleId: number;
   public declare name?: string;
   public declare type?: string;
-  public declare attendanceType?: string;
   public declare date?: string;
   public declare checkInTime?: Date;
   public declare checkOutTime?: Date;
@@ -91,7 +89,6 @@ Attendance.init(
     },
     name: { type: DataTypes.STRING, allowNull: true },
     type: { type: DataTypes.STRING, allowNull: true }, // Legacy
-    attendanceType: { type: DataTypes.STRING, allowNull: true },
     date: { type: DataTypes.DATEONLY, allowNull: true },
     checkInTime: { type: DataTypes.DATE, allowNull: true },
     checkOutTime: { type: DataTypes.DATE, allowNull: true },

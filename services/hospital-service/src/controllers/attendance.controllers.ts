@@ -78,17 +78,21 @@ export const getAttendanceStatus = (
     }
   }
 
-  const currentHours = timestamp.getHours();
-  const currentMinutes = timestamp.getMinutes();
+  const targetTimeStr = timestamp.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+  const targetTime = new Date(targetTimeStr);
+  const currentHours = targetTime.getHours();
+  const currentMinutes = targetTime.getMinutes();
   let status = "verified";
 
-  if (type === "check-in") {
+  const normType = type ? type.toLowerCase() : "";
+
+  if (normType === "check-in") {
     if (currentHours > expectedStartHours || (currentHours === expectedStartHours && currentMinutes > expectedStartMins)) {
       status = "Late";
     } else {
       status = "Present";
     }
-  } else if (type === "check-out") {
+  } else if (normType === "check-out") {
     let adjustedEnd = expectedEndHours;
     if (expectedEndHours < expectedStartHours) {
        adjustedEnd += 24;
@@ -119,7 +123,6 @@ export const createAttendance = async (req: Request, res: Response) => {
       employeeId,
       employeeType,
       roleId,
-      type,
       latitude,
       longitude,
       image,
@@ -129,6 +132,7 @@ export const createAttendance = async (req: Request, res: Response) => {
       department,
       location,
     } = req.body;
+    const type = req.body.type ? req.body.type.toLowerCase() : "";
 
     const resolvedEmployeeId = Number(employeeId ?? roleId);
     if (!resolvedEmployeeId) {
@@ -285,7 +289,6 @@ export const createAttendance = async (req: Request, res: Response) => {
         roleId: resolvedEmployeeId,
         name: staffName,
         type,
-        attendanceType: "Shift",
         date: dateString,
         checkInTime: type === "check-in" ? timestamp : undefined,
         checkOutTime: type === "check-out" ? timestamp : undefined,
@@ -311,6 +314,7 @@ export const createAttendance = async (req: Request, res: Response) => {
       existingRecord.checkOutTime = timestamp;
       existingRecord.duration = durationStr;
       existingRecord.status = status;
+      existingRecord.type = type;
       if (final_selfie_url) existingRecord.selfie_url = final_selfie_url;
       await existingRecord.save();
       attendance = existingRecord;
@@ -365,11 +369,56 @@ export const getAttendances = async (req: Request, res: Response) => {
     if (req.query.status) where.status = req.query.status;
     if (req.query.type) where.type = req.query.type;
     if (req.query.department) where.department = req.query.department;
+    
+    if (req.query.search) {
+      const searchParam = req.query.search;
+      const searchString = Array.isArray(searchParam) ? searchParam[0] : searchParam;
+      const searchTerm = `%${searchString}%`;
+      const searchCondition = {
+        [Op.or]: [
+          { name: { [Op.iLike]: searchTerm } },
+          { employeeType: { [Op.iLike]: searchTerm } }
+        ]
+      };
+      
+      // If there's already an Op.or (e.g. from employeeId/roleId), we need to use Op.and to combine them
+      if (where[Op.or]) {
+        const existingOr = where[Op.or];
+        delete where[Op.or];
+        where[Op.and] = [ { [Op.or]: existingOr }, searchCondition ];
+      } else {
+        Object.assign(where, searchCondition);
+      }
+    }
+    const todayParam = req.query.today;
+    const isTodayFilter = todayParam === 'true' || (Array.isArray(todayParam) && todayParam.includes('true'));
+    
+    if (isTodayFilter) {
+      // Get today's date in IST
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const nowIST = new Date(now.getTime() + istOffset);
+      const todayStr = nowIST.toISOString().split('T')[0]; // YYYY-MM-DD in IST
+      // IST day boundaries converted to UTC via explicit offset
+      const startUTC = new Date(todayStr + 'T00:00:00.000+05:30');
+      const endUTC = new Date(todayStr + 'T23:59:59.999+05:30');
+      where.timestamp = { [Op.gte]: startUTC, [Op.lte]: endUTC };
+      logger.info("TODAY FILTER APPLIED", { todayStr, startUTC: startUTC.toISOString(), endUTC: endUTC.toISOString() });
+    } else if (req.query.date) {
+      const dateParam = req.query.date;
+      const dateStr = Array.isArray(dateParam) ? dateParam[0] : dateParam; // expected YYYY-MM-DD
+      const startUTC = new Date(dateStr + 'T00:00:00.000+05:30');
+      const endUTC = new Date(dateStr + 'T23:59:59.999+05:30');
+      where.timestamp = { [Op.gte]: startUTC, [Op.lte]: endUTC };
+    }
+
+    logger.info("ATTENDANCE QUERY WHERE", { where: JSON.stringify(where), query: req.query });
 
     const attendances = await Attendance.findAll({
       where,
       order: [["timestamp", "DESC"]],
     });
+    logger.info("ATTENDANCE QUERY RESULTS", { count: attendances.length });
     res.status(200).json({ success: true, data: attendances });
   } catch (error: any) {
     logger.error("Error fetching attendances", { error });
@@ -394,7 +443,7 @@ export const getDailyStatus = async (req: Request, res: Response) => {
         [Op.or]: [{ employeeId: targetId }, { roleId: targetId }],
         timestamp: {
           [Op.gte]: startOfDay,
-          [Op.lte]: endOfDay,
+          [Op.lte]: endOfDay
         },
       },
     });
