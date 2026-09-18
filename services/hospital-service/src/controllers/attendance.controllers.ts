@@ -9,6 +9,105 @@ import { publishEvent } from "../events/publisher";
 import { logger } from "../utils/logger";
 import { verificationService } from "../services/verification.service";
 
+export const getAttendanceStatus = (
+  type: string, 
+  timestamp: Date, 
+  employeeType: string, 
+  employeeData: any
+): string => {
+  let expectedStartHours = 9;
+  let expectedStartMins = 0;
+  let expectedEndHours = 17;
+  let expectedEndMins = 0;
+
+  const parseTime = (timeStr: string) => {
+    if (!timeStr) return null;
+    const match = timeStr.match(/(\d+):(\d+)(?:\s*(AM|PM))?/i);
+    if (!match) return null;
+    let h = parseInt(match[1], 10);
+    let m = parseInt(match[2], 10);
+    const mod = match[3];
+    if (mod) {
+      if (mod.toUpperCase() === "PM" && h < 12) h += 12;
+      if (mod.toUpperCase() === "AM" && h === 12) h = 0;
+    }
+    return { hours: h, minutes: m };
+  };
+
+  if (employeeType && employeeType.toLowerCase() === "doctor" && employeeData) {
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const currentDayStr = days[timestamp.getDay()];
+    
+    let startStr, endStr;
+    if (employeeData.consultingOne && Array.isArray(employeeData.consultingOne)) {
+      const todaySchedule = employeeData.consultingOne.find((s: any) => s.day === currentDayStr);
+      if (todaySchedule) {
+        startStr = todaySchedule.start_time;
+        endStr = todaySchedule.end_time;
+      }
+    } else if (employeeData.consultingTwo && Array.isArray(employeeData.consultingTwo)) {
+       const todaySchedule = employeeData.consultingTwo.find((s: any) => s.day === currentDayStr);
+       if (todaySchedule) {
+         if (todaySchedule.morning_session) {
+           startStr = todaySchedule.morning_session.open;
+           if (!todaySchedule.evening_session) endStr = todaySchedule.morning_session.close;
+         }
+         if (todaySchedule.evening_session) {
+           if (!startStr) startStr = todaySchedule.evening_session.open;
+           endStr = todaySchedule.evening_session.close;
+         }
+       }
+    }
+    
+    if (startStr) {
+      const parsedStart = parseTime(startStr);
+      if (parsedStart) { expectedStartHours = parsedStart.hours; expectedStartMins = parsedStart.minutes; }
+    }
+    if (endStr) {
+      const parsedEnd = parseTime(endStr);
+      if (parsedEnd) { expectedEndHours = parsedEnd.hours; expectedEndMins = parsedEnd.minutes; }
+    }
+  } else if (employeeData) {
+    if (employeeData.shiftStartTime) {
+      const parsedStart = parseTime(employeeData.shiftStartTime);
+      if (parsedStart) { expectedStartHours = parsedStart.hours; expectedStartMins = parsedStart.minutes; }
+    }
+    if (employeeData.shiftEndTime) {
+      const parsedEnd = parseTime(employeeData.shiftEndTime);
+      if (parsedEnd) { expectedEndHours = parsedEnd.hours; expectedEndMins = parsedEnd.minutes; }
+    }
+  }
+
+  const currentHours = timestamp.getHours();
+  const currentMinutes = timestamp.getMinutes();
+  let status = "verified";
+
+  if (type === "check-in") {
+    if (currentHours > expectedStartHours || (currentHours === expectedStartHours && currentMinutes > expectedStartMins)) {
+      status = "Late";
+    } else {
+      status = "Present";
+    }
+  } else if (type === "check-out") {
+    let adjustedEnd = expectedEndHours;
+    if (expectedEndHours < expectedStartHours) {
+       adjustedEnd += 24;
+    }
+    let adjustedCurrent = currentHours;
+    if (expectedEndHours < expectedStartHours && currentHours < expectedStartHours) {
+       adjustedCurrent += 24;
+    }
+
+    if (adjustedCurrent < adjustedEnd || (adjustedCurrent === adjustedEnd && currentMinutes < expectedEndMins)) {
+      status = "Early Departure";
+    } else {
+      status = "Shift Completed";
+    }
+  }
+  
+  return status;
+};
+
 /* =======================
    CREATE ATTENDANCE (Check-In / Check-Out)
 ======================= */
@@ -127,31 +226,13 @@ export const createAttendance = async (req: Request, res: Response) => {
       final_selfie_url = `/uploads/attendance/${fileName}`;
     }
 
-    // 5. Determine status (Late vs Present for check-in, Early vs Completed for check-out)
-    const hours = timestamp.getHours();
-    const minutes = timestamp.getMinutes();
-    let status = "verified";
-
-    if (type === "check-in") {
-      if (hours > 9 || (hours === 9 && minutes > 0)) {
-        status = "Late";
-      } else {
-        status = "Present";
-      }
-    } else if (type === "check-out") {
-      if (hours < 17) {
-        status = "Early Departure";
-      } else {
-        status = "Shift Completed";
-      }
-    }
-
     const resolvedMethod = method || (image ? "Face" : "Punch In");
 
-    // 6. Fetch name if possible before creating/updating
+    // 5. Fetch name and shift times before creating/updating
     let staffName = "Unknown staff";
     let staffRole = resolvedEmployeeType;
     let staffDepartment = department;
+    let employeeData = null;
 
     try {
       if (resolvedEmployeeType && resolvedEmployeeType.toLowerCase() === "doctor") {
@@ -165,6 +246,7 @@ export const createAttendance = async (req: Request, res: Response) => {
         );
         if (doctorResponse.status === 200 && doctorResponse.data?.success) {
           const docData = doctorResponse.data.data;
+          employeeData = docData;
           staffName = docData?.displayName || docData?.name || docData?.username || (docData?.firstName ? `${docData.firstName} ${docData.lastName || ''}`.trim() : staffName);
           staffRole = docData?.role || staffRole;
           staffDepartment = docData?.department || staffDepartment;
@@ -180,6 +262,7 @@ export const createAttendance = async (req: Request, res: Response) => {
         );
         if (staffResponse.status === 200 && staffResponse.data?.success) {
           const staffData = staffResponse.data.data;
+          employeeData = staffData;
           staffName = staffData?.name || staffData?.username || staffName;
           staffRole = staffData?.role || staffRole;
           staffDepartment = staffData?.department || staffData?.designation || staffDepartment;
@@ -188,6 +271,9 @@ export const createAttendance = async (req: Request, res: Response) => {
     } catch (error: any) {
       logger.error("Failed to fetch employee details for attendance:", { error: error.message });
     }
+
+    // 6. Determine status (Late vs Present for check-in, Early vs Completed for check-out)
+    const status = getAttendanceStatus(type, timestamp, resolvedEmployeeType, employeeData);
 
     // 7. Create or update the attendance record
     let attendance;
@@ -523,7 +609,7 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
     try {
       const doctorRes = await axios.get(`${process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3007"}/doctor/internal/by-access-card/${accessCardUid}`, {
         params: { hospitalId },
-        headers: { "x-internal-secret": process.env.INTERNAL_SECRET || "internal_secret_key" },
+        headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
         validateStatus: () => true
       });
       
@@ -603,23 +689,7 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
     }
     
     const timestamp = new Date();
-    const hours = timestamp.getHours();
-    const minutes = timestamp.getMinutes();
-    let status = "verified";
-
-    if (type === "check-in") {
-      if (hours > 9 || (hours === 9 && minutes > 0)) {
-        status = "Late";
-      } else {
-        status = "Present";
-      }
-    } else if (type === "check-out") {
-      if (hours < 17) {
-        status = "Early Departure";
-      } else {
-        status = "Shift Completed";
-      }
-    }
+    const status = getAttendanceStatus(type, timestamp, employeeType, employeeData);
     
     const attendance = await Attendance.create({
       hospitalId,

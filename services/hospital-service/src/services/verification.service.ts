@@ -83,8 +83,11 @@ export class VerificationService {
 
       if (isDoctor) {
         // Fetch doctor reference image from Doctor Service
-        const doctorUrl = `${VerificationService.DOCTOR_SERVICE_URL}/doctor/${roleId}`;
-        const doctorResponse = await axios.get(doctorUrl, { validateStatus: () => true });
+        const doctorUrl = `${VerificationService.DOCTOR_SERVICE_URL}/doctor/internal/${roleId}`;
+        const doctorResponse = await axios.get(doctorUrl, { 
+          validateStatus: () => true,
+          headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" }
+        });
 
         if (doctorResponse.status !== 200 || !doctorResponse.data?.success) {
           console.error(`[Face-Verification] Doctor service fetch failed (${doctorUrl}):`, doctorResponse.status, doctorResponse.data);
@@ -94,16 +97,12 @@ export class VerificationService {
 
         referenceImage = doctorResponse.data.data?.imageUrl;
       } else {
-        // Fetch staff reference image from Staff Service (try /staff/:id first, then /staffs/:id/details)
-        let staffResponse = await axios.get(`${VerificationService.STAFF_SERVICE_URL}/staff/${roleId}`, {
-          validateStatus: () => true
+        // Fetch staff reference image from Staff Service using internal API
+        const staffUrl = `${VerificationService.STAFF_SERVICE_URL}/staff/internal/${roleId}`;
+        let staffResponse = await axios.get(staffUrl, {
+          validateStatus: () => true,
+          headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" }
         });
-
-        if (staffResponse.status !== 200 || !staffResponse.data?.success) {
-          staffResponse = await axios.get(`${VerificationService.STAFF_SERVICE_URL}/staffs/${roleId}/details`, {
-            validateStatus: () => true
-          });
-        }
 
         if (staffResponse.status !== 200 || !staffResponse.data?.success) {
           console.error("[Face-Verification] Staff service fetch failed:", staffResponse.status, staffResponse.data);
