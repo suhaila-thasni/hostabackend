@@ -11,6 +11,7 @@ import cookieParser from "cookie-parser";
 import hospitalRoutes from "./routes/hospital.routes";
 import prescriptionTemplateRoutes from "./routes/prescription.routes";
 import attendanceRoutes from "./routes/attendance.routes";
+import rfidDeviceRoutes from "./routes/rfidDevice.routes";
 
 import { requestLogger } from "./middleware/logger.middleware";
 
@@ -79,6 +80,7 @@ app.use(cookieParser());
 app.use("/", hospitalRoutes);
 app.use("/", prescriptionTemplateRoutes);
 app.use("/", attendanceRoutes);
+app.use("/rfid-devices", rfidDeviceRoutes);
 
 /**
  * HEALTH

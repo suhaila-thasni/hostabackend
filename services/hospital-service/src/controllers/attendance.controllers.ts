@@ -5,6 +5,7 @@ import path from "path";
 import axios from "axios";
 import Attendance from "../models/attendance.model";
 import Hospital from "../models/hospital.model";
+import RfidDevice from "../models/rfidDevice.model";
 import { publishEvent } from "../events/publisher";
 import { logger } from "../utils/logger";
 import { verificationService } from "../services/verification.service";
@@ -649,9 +650,34 @@ function toRadians(value: number): number {
 
 export const createRfidAttendance = async (req: Request, res: Response) => {
   try {
-    const { hospitalId, accessCardUid, type, deviceId, latitude, longitude } = req.body;
+    // 1. Device Authentication
+    const apiKey = req.headers["x-api-key"] as string;
+    const secretKey = req.headers["x-secret-key"] as string;
+    const headerDeviceId = req.headers["x-device-id"] as string;
+
+    if (!apiKey || !secretKey || !headerDeviceId) {
+      res.status(401).json({ success: false, message: "Unauthorized: Missing device credentials in headers." });
+      return;
+    }
+
+    const device = await RfidDevice.findOne({ where: { apiKey, deviceId: headerDeviceId, status: "Active" } });
+    if (!device) {
+      res.status(401).json({ success: false, message: "Unauthorized: Invalid API Key or inactive device." });
+      return;
+    }
+
+    const isSecretValid = await device.verifySecret(secretKey);
+    if (!isSecretValid) {
+      res.status(401).json({ success: false, message: "Unauthorized: Invalid Secret Key." });
+      return;
+    }
+
+    // Use hospitalId and deviceId from the authenticated device, overriding the body
+    const hospitalId = device.hospitalId;
+    const deviceId = device.deviceId;
+    const { accessCardUid, type, latitude, longitude } = req.body;
     
-    // 1. Look up doctor by accessCardUid
+    // 2. Look up doctor by accessCardUid
     let employeeData = null;
     let employeeType = "Staff";
     
@@ -697,9 +723,10 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
     const resolvedRoleId = employeeData.roleId;
     const now = new Date();
     
-    // 3. Duplicate check
+    // 3. Duplicate check & Record Retrieval
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const dateString = now.toISOString().split("T")[0]; // YYYY-MM-DD
 
     const existingRecord = await Attendance.findOne({
       where: {
@@ -707,7 +734,6 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
           { employeeId: resolvedEmployeeId },
           { roleId: resolvedEmployeeId }
         ],
-        type,
         timestamp: {
           [Op.gte]: startOfDay,
           [Op.lte]: endOfDay,
@@ -715,10 +741,18 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
       },
     });
 
-    if (existingRecord) {
+    if (type === "check-in" && existingRecord && existingRecord.checkInTime) {
       res.status(400).json({
         success: false,
-        message: `You have already recorded a ${type} for today.`,
+        message: `You have already checked in for today.`,
+      });
+      return;
+    }
+    
+    if (type === "check-out" && existingRecord && existingRecord.checkOutTime) {
+      res.status(400).json({
+        success: false,
+        message: `You have already checked out for today.`,
       });
       return;
     }
@@ -740,20 +774,47 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
     const timestamp = new Date();
     const status = getAttendanceStatus(type, timestamp, employeeType, employeeData);
     
-    const attendance = await Attendance.create({
-      hospitalId,
-      employeeId: resolvedEmployeeId,
-      employeeType: employeeType,
-      roleId: resolvedRoleId || resolvedEmployeeId,
-      type,
-      timestamp,
-      latitude,
-      longitude,
-      status,
-      method: "Access Card",
-      deviceId,
-      roles: [employeeType],
-    });
+    const staffName = employeeData?.displayName || employeeData?.name || employeeData?.username || (employeeData?.firstName ? `${employeeData.firstName} ${employeeData.lastName || ''}`.trim() : "Unknown");
+    const staffDepartment = employeeData?.department || employeeData?.designation;
+
+    let attendance;
+    if (type === "check-in" || !existingRecord) {
+      attendance = await Attendance.create({
+        hospitalId,
+        employeeId: resolvedEmployeeId,
+        employeeType: employeeType,
+        roleId: resolvedRoleId || resolvedEmployeeId,
+        name: staffName,
+        type,
+        date: dateString,
+        checkInTime: type === "check-in" ? timestamp : undefined,
+        checkOutTime: type === "check-out" ? timestamp : undefined,
+        timestamp,
+        latitude,
+        longitude,
+        status,
+        method: "Access Card",
+        deviceId,
+        roles: [employeeType],
+        department: staffDepartment,
+      });
+    } else {
+      // type === "check-out" and existingRecord exists (check-in)
+      let durationStr = existingRecord.duration || "0h 0m";
+      if (existingRecord.checkInTime) {
+        const diffMs = timestamp.getTime() - new Date(existingRecord.checkInTime).getTime();
+        const diffHrs = Math.floor(diffMs / 3600000);
+        const diffMins = Math.floor((diffMs % 3600000) / 60000);
+        durationStr = `${diffHrs}h ${diffMins}m`;
+      }
+
+      existingRecord.checkOutTime = timestamp;
+      existingRecord.duration = durationStr;
+      existingRecord.status = status;
+      existingRecord.type = type;
+      await existingRecord.save();
+      attendance = existingRecord;
+    }
     
     try {
       await publishEvent("hospital_events", "ATTENDANCE_REGISTERED", {
@@ -761,7 +822,7 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
         employeeId: attendance.employeeId,
         employeeType: attendance.employeeType,
         roleId: attendance.roleId,
-        staffName: employeeData.name,
+        staffName: staffName,
         staffRole: employeeType,
         type: attendance.type,
         status: attendance.status,
