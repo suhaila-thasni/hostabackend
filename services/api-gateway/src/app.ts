@@ -119,6 +119,9 @@ app.use(
         allowedHeaders: [
             "Content-Type",
             "Authorization",
+            "x-api-key",
+            "x-secret-key",
+            "x-device-id",
         ],
     })
 );

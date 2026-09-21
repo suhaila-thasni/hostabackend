@@ -5,15 +5,17 @@ import path from "path";
 import axios from "axios";
 import Attendance from "../models/attendance.model";
 import Hospital from "../models/hospital.model";
-import RfidDevice from "../models/rfidDevice.model";
+import RfidDevice from "../models/Device.model";
+import FingerprintEnrollment from "../models/fingerprintEnrollment.model";
 import { publishEvent } from "../events/publisher";
 import { logger } from "../utils/logger";
 import { verificationService } from "../services/verification.service";
+import { createFingerprintHash } from "./fingerprintEnrollment.controllers";
 
 export const getAttendanceStatus = (
-  type: string, 
-  timestamp: Date, 
-  employeeType: string, 
+  type: string,
+  timestamp: Date,
+  employeeType: string,
   employeeData: any
 ): string => {
   let expectedStartHours = 9;
@@ -38,7 +40,7 @@ export const getAttendanceStatus = (
   if (employeeType && employeeType.toLowerCase() === "doctor" && employeeData) {
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const currentDayStr = days[timestamp.getDay()];
-    
+
     let startStr, endStr;
     if (employeeData.consultingOne && Array.isArray(employeeData.consultingOne)) {
       const todaySchedule = employeeData.consultingOne.find((s: any) => s.day === currentDayStr);
@@ -47,19 +49,19 @@ export const getAttendanceStatus = (
         endStr = todaySchedule.end_time;
       }
     } else if (employeeData.consultingTwo && Array.isArray(employeeData.consultingTwo)) {
-       const todaySchedule = employeeData.consultingTwo.find((s: any) => s.day === currentDayStr);
-       if (todaySchedule) {
-         if (todaySchedule.morning_session) {
-           startStr = todaySchedule.morning_session.open;
-           if (!todaySchedule.evening_session) endStr = todaySchedule.morning_session.close;
-         }
-         if (todaySchedule.evening_session) {
-           if (!startStr) startStr = todaySchedule.evening_session.open;
-           endStr = todaySchedule.evening_session.close;
-         }
-       }
+      const todaySchedule = employeeData.consultingTwo.find((s: any) => s.day === currentDayStr);
+      if (todaySchedule) {
+        if (todaySchedule.morning_session) {
+          startStr = todaySchedule.morning_session.open;
+          if (!todaySchedule.evening_session) endStr = todaySchedule.morning_session.close;
+        }
+        if (todaySchedule.evening_session) {
+          if (!startStr) startStr = todaySchedule.evening_session.open;
+          endStr = todaySchedule.evening_session.close;
+        }
+      }
     }
-    
+
     if (startStr) {
       const parsedStart = parseTime(startStr);
       if (parsedStart) { expectedStartHours = parsedStart.hours; expectedStartMins = parsedStart.minutes; }
@@ -96,11 +98,11 @@ export const getAttendanceStatus = (
   } else if (normType === "check-out") {
     let adjustedEnd = expectedEndHours;
     if (expectedEndHours < expectedStartHours) {
-       adjustedEnd += 24;
+      adjustedEnd += 24;
     }
     let adjustedCurrent = currentHours;
     if (expectedEndHours < expectedStartHours && currentHours < expectedStartHours) {
-       adjustedCurrent += 24;
+      adjustedCurrent += 24;
     }
 
     if (adjustedCurrent < adjustedEnd || (adjustedCurrent === adjustedEnd && currentMinutes < expectedEndMins)) {
@@ -109,7 +111,7 @@ export const getAttendanceStatus = (
       status = "Shift Completed";
     }
   }
-  
+
   return status;
 };
 
@@ -150,7 +152,7 @@ export const createAttendance = async (req: Request, res: Response) => {
     // Resolve coordinates from top-level or nested location object
     const resolvedLat = latitude ?? location?.lat;
     const resolvedLng = longitude ?? location?.lng;
-    
+
     const finalImage = image || selfie_url;
 
     // 1. Find today's record (we'll use it for both check-in and check-out)
@@ -178,7 +180,7 @@ export const createAttendance = async (req: Request, res: Response) => {
       });
       return;
     }
-    
+
     if (type === "check-out" && existingRecord && existingRecord.checkOutTime) {
       res.status(400).json({
         success: false,
@@ -205,9 +207,9 @@ export const createAttendance = async (req: Request, res: Response) => {
     if (method === "Face" || finalImage) {
       const verification = await verificationService.verifyFace(resolvedEmployeeId, finalImage, resolvedEmployeeType);
       if (!verification.success) {
-        res.status(403).json({ 
-          success: false, 
-          message: verification.message 
+        res.status(403).json({
+          success: false,
+          message: verification.message
         });
         return;
       }
@@ -243,8 +245,8 @@ export const createAttendance = async (req: Request, res: Response) => {
       if (resolvedEmployeeType && resolvedEmployeeType.toLowerCase() === "doctor") {
         const doctorResponse = await axios.get(
           `${process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3007"}/doctor/internal/${resolvedEmployeeId}`,
-          { 
-            timeout: 10000, 
+          {
+            timeout: 10000,
             validateStatus: () => true,
             headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" }
           }
@@ -259,8 +261,8 @@ export const createAttendance = async (req: Request, res: Response) => {
       } else {
         const staffResponse = await axios.get(
           `${process.env.STAFF_SERVICE_URL || "http://staff-service:3006"}/staff/internal/${resolvedEmployeeId}`,
-          { 
-            timeout: 10000, 
+          {
+            timeout: 10000,
             validateStatus: () => true,
             headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" }
           }
@@ -361,7 +363,7 @@ export const getAttendances = async (req: Request, res: Response) => {
   try {
     const where: any = {};
     if (req.query.hospitalId) where.hospitalId = req.query.hospitalId;
-    
+
     const targetId = req.query.employeeId || req.query.roleId;
     if (targetId) {
       where[Op.or] = [{ employeeId: targetId }, { roleId: targetId }];
@@ -370,7 +372,7 @@ export const getAttendances = async (req: Request, res: Response) => {
     if (req.query.status) where.status = req.query.status;
     if (req.query.type) where.type = req.query.type;
     if (req.query.department) where.department = req.query.department;
-    
+
     if (req.query.search) {
       const searchParam = req.query.search;
       const searchString = Array.isArray(searchParam) ? searchParam[0] : searchParam;
@@ -381,19 +383,19 @@ export const getAttendances = async (req: Request, res: Response) => {
           { employeeType: { [Op.iLike]: searchTerm } }
         ]
       };
-      
+
       // If there's already an Op.or (e.g. from employeeId/roleId), we need to use Op.and to combine them
       if (where[Op.or]) {
         const existingOr = where[Op.or];
         delete where[Op.or];
-        where[Op.and] = [ { [Op.or]: existingOr }, searchCondition ];
+        where[Op.and] = [{ [Op.or]: existingOr }, searchCondition];
       } else {
         Object.assign(where, searchCondition);
       }
     }
     const todayParam = req.query.today;
     const isTodayFilter = todayParam === 'true' || (Array.isArray(todayParam) && todayParam.includes('true'));
-    
+
     if (isTodayFilter) {
       // Get today's date in IST
       const now = new Date();
@@ -676,18 +678,18 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
     const hospitalId = device.hospitalId;
     const deviceId = device.deviceId;
     const { accessCardUid, type, latitude, longitude } = req.body;
-    
+
     // 2. Look up doctor by accessCardUid
     let employeeData = null;
     let employeeType = "Staff";
-    
+
     try {
       const doctorRes = await axios.get(`${process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3007"}/doctor/internal/by-access-card/${accessCardUid}`, {
         params: { hospitalId },
         headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
         validateStatus: () => true
       });
-      
+
       if (doctorRes.status === 200 && doctorRes.data?.success) {
         employeeData = doctorRes.data.data;
         employeeType = "Doctor";
@@ -695,7 +697,7 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
     } catch (err: any) {
       logger.error("Failed to query doctor service for RFID", { error: err.message });
     }
-    
+
     // 2. If not doctor, look up staff
     if (!employeeData) {
       try {
@@ -704,7 +706,7 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
           headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
           validateStatus: () => true
         });
-        
+
         if (staffRes.status === 200 && staffRes.data?.success) {
           employeeData = staffRes.data.data;
           employeeType = "Staff";
@@ -713,16 +715,16 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
         logger.error("Failed to query staff service for RFID", { error: err.message });
       }
     }
-    
+
     if (!employeeData) {
       res.status(404).json({ success: false, message: "No employee found with this access card." });
       return;
     }
-    
+
     const resolvedEmployeeId = employeeData.id;
     const resolvedRoleId = employeeData.roleId;
     const now = new Date();
-    
+
     // 3. Duplicate check & Record Retrieval
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -748,7 +750,7 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
       });
       return;
     }
-    
+
     if (type === "check-out" && existingRecord && existingRecord.checkOutTime) {
       res.status(400).json({
         success: false,
@@ -756,7 +758,7 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
       });
       return;
     }
-    
+
     // 4. Location Verification (if coordinates are provided)
     if (latitude !== undefined && longitude !== undefined) {
       const locationVerification = await verifyAttendanceLocation(hospitalId, latitude, longitude);
@@ -770,10 +772,10 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
         return;
       }
     }
-    
+
     const timestamp = new Date();
     const status = getAttendanceStatus(type, timestamp, employeeType, employeeData);
-    
+
     const staffName = employeeData?.displayName || employeeData?.name || employeeData?.username || (employeeData?.firstName ? `${employeeData.firstName} ${employeeData.lastName || ''}`.trim() : "Unknown");
     const staffDepartment = employeeData?.department || employeeData?.designation;
 
@@ -815,7 +817,7 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
       await existingRecord.save();
       attendance = existingRecord;
     }
-    
+
     try {
       await publishEvent("hospital_events", "ATTENDANCE_REGISTERED", {
         attendanceId: attendance.id,
@@ -841,9 +843,223 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
       message: `${type} successful via Access Card`,
       data: attendance,
     });
-    
+
   } catch (error: any) {
     logger.error("Error creating RFID attendance", { error });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =======================
+   FINGERPRINT ATTENDANCE
+======================= */
+
+export const createFingerprintAttendance = async (req: Request, res: Response) => {
+  try {
+    // 1. Device Authentication
+    const apiKey = req.headers["x-api-key"] as string;
+    const secretKey = req.headers["x-secret-key"] as string;
+    const headerDeviceId = req.headers["x-device-id"] as string;
+
+    if (!apiKey || !secretKey || !headerDeviceId) {
+      res.status(401).json({ success: false, message: "Unauthorized: Missing device credentials in headers." });
+      return;
+    }
+
+    const device = await RfidDevice.findOne({
+      where: {
+        apiKey,
+        deviceId: headerDeviceId,
+        deviceType: "fingerprint",
+        status: "Active",
+      },
+    });
+
+    if (!device) {
+      res.status(401).json({ success: false, message: "Unauthorized: Invalid API Key or inactive fingerprint device." });
+      return;
+    }
+
+    const isSecretValid = await device.verifySecret(secretKey);
+    if (!isSecretValid) {
+      res.status(401).json({ success: false, message: "Unauthorized: Invalid Secret Key." });
+      return;
+    }
+
+    const { fingerprintTemplate, fingerprintHash, templateReference, type, latitude, longitude } = req.body;
+    const resolvedFingerprintHash =
+      fingerprintHash ||
+      createFingerprintHash(fingerprintTemplate || templateReference);
+
+    // 2. Resolve employee from active enrollment
+    const enrollment = await FingerprintEnrollment.findOne({
+      where: {
+        hospitalId: device.hospitalId,
+        fingerprintHash: resolvedFingerprintHash,
+        status: "Active",
+      },
+    });
+
+    if (!enrollment) {
+      res.status(404).json({ success: false, message: "No active employee fingerprint enrollment found." });
+      return;
+    }
+
+    const hospitalId = device.hospitalId;
+    const deviceId = device.deviceId;
+    const resolvedEmployeeId = enrollment.employeeId;
+    const employeeType = enrollment.employeeType;
+    const now = new Date();
+
+    // 3. Duplicate check & Record Retrieval
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const dateString = now.toISOString().split("T")[0];
+
+    const existingRecord = await Attendance.findOne({
+      where: {
+        [Op.or]: [
+          { employeeId: resolvedEmployeeId },
+          { roleId: resolvedEmployeeId },
+        ],
+        timestamp: {
+          [Op.gte]: startOfDay,
+          [Op.lte]: endOfDay,
+        },
+      },
+    });
+
+    if (type === "check-in" && existingRecord && existingRecord.checkInTime) {
+      res.status(400).json({
+        success: false,
+        message: "You have already checked in for today.",
+      });
+      return;
+    }
+
+    if (type === "check-out" && existingRecord && existingRecord.checkOutTime) {
+      res.status(400).json({
+        success: false,
+        message: "You have already checked out for today.",
+      });
+      return;
+    }
+
+    // 4. Location Verification (if coordinates are provided)
+    if (latitude !== undefined && longitude !== undefined) {
+      const locationVerification = await verifyAttendanceLocation(hospitalId, latitude, longitude);
+      if (!locationVerification.success) {
+        res.status(403).json({
+          success: false,
+          message: locationVerification.message,
+          distanceMeters: locationVerification.distanceMeters,
+          allowedRadiusMeters: locationVerification.allowedRadiusMeters,
+        });
+        return;
+      }
+    }
+
+    // 5. Fetch employee details for schedule/status enrichment
+    let employeeData: any = null;
+    try {
+      const serviceUrl =
+        employeeType === "Doctor"
+          ? `${process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3007"}/doctor/internal/${resolvedEmployeeId}`
+          : `${process.env.STAFF_SERVICE_URL || "http://staff-service:3006"}/staff/internal/${resolvedEmployeeId}`;
+
+      const employeeRes = await axios.get(serviceUrl, {
+        timeout: 10000,
+        validateStatus: () => true,
+        headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
+      });
+
+      if (employeeRes.status === 200 && employeeRes.data?.success) {
+        employeeData = employeeRes.data.data;
+      }
+    } catch (err: any) {
+      logger.error("Failed to fetch employee details for fingerprint attendance", { error: err.message });
+    }
+
+    const timestamp = new Date();
+    const status = getAttendanceStatus(type, timestamp, employeeType, employeeData);
+    const staffName =
+      employeeData?.displayName ||
+      employeeData?.name ||
+      employeeData?.username ||
+      enrollment.employeeName ||
+      "Unknown";
+    const staffDepartment =
+      employeeData?.department ||
+      employeeData?.designation ||
+      enrollment.department;
+
+    let attendance;
+    if (type === "check-in" || !existingRecord) {
+      attendance = await Attendance.create({
+        hospitalId,
+        employeeId: resolvedEmployeeId,
+        employeeType,
+        roleId: employeeData?.roleId || resolvedEmployeeId,
+        name: staffName,
+        type,
+        date: dateString,
+        checkInTime: type === "check-in" ? timestamp : undefined,
+        checkOutTime: type === "check-out" ? timestamp : undefined,
+        timestamp,
+        latitude,
+        longitude,
+        status,
+        method: "Fingerprint",
+        deviceId,
+        roles: [employeeType],
+        department: staffDepartment,
+      });
+    } else {
+      let durationStr = existingRecord.duration || "0h 0m";
+      if (existingRecord.checkInTime) {
+        const diffMs = timestamp.getTime() - new Date(existingRecord.checkInTime).getTime();
+        const diffHrs = Math.floor(diffMs / 3600000);
+        const diffMins = Math.floor((diffMs % 3600000) / 60000);
+        durationStr = `${diffHrs}h ${diffMins}m`;
+      }
+
+      existingRecord.checkOutTime = timestamp;
+      existingRecord.duration = durationStr;
+      existingRecord.status = status;
+      existingRecord.type = type;
+      existingRecord.method = "Fingerprint";
+      existingRecord.deviceId = deviceId;
+      await existingRecord.save();
+      attendance = existingRecord;
+    }
+
+    try {
+      await publishEvent("hospital_events", "ATTENDANCE_REGISTERED", {
+        attendanceId: attendance.id,
+        employeeId: attendance.employeeId,
+        employeeType: attendance.employeeType,
+        roleId: attendance.roleId,
+        staffName,
+        staffRole: employeeType,
+        type: attendance.type,
+        status: attendance.status,
+        method: attendance.method,
+        checkInTime: attendance.checkInTime,
+        checkOutTime: attendance.checkOutTime,
+        hospitalId: attendance.hospitalId,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish ATTENDANCE_REGISTERED event:", { error: err.message });
+    }
+
+    res.status(201).json({
+      success: true,
+      status,
+      message: `${type} successful via Fingerprint`,
+      data: attendance,
+    });
+  } catch (error: any) {
+    logger.error("Error creating fingerprint attendance", { error });
     res.status(500).json({ success: false, message: error.message });
   }
 };

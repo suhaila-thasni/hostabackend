@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
-import RfidDevice from "../models/rfidDevice.model";
+import RfidDevice from "../models/Device.model";
+import FingerprintEnrollment from "../models/fingerprintEnrollment.model";
 import { logger } from "../utils/logger";
 
 /* =======================
@@ -318,7 +319,7 @@ export const regenerateCredentials = async (req: Request, res: Response) => {
 
     device.apiKey = newApiKey;
     device.secretKey = newPlainSecretKey; // Will be hashed by beforeUpdate hook
-    
+
     await device.save();
 
     res.status(200).json({
@@ -339,6 +340,53 @@ export const regenerateCredentials = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error("Error regenerating credentials for RFID device", { error });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =======================
+   GET ASSIGNED EMPLOYEES FOR A DEVICE
+======================= */
+export const getDeviceEmployees = async (req: Request, res: Response) => {
+  try {
+    const deviceIdParam = req.params.id;
+
+    const device = await RfidDevice.findByPk(deviceIdParam);
+    if (!device) {
+      res.status(404).json({ success: false, message: "Device not found." });
+      return;
+    }
+
+    const whereClause: any = { deviceDbId: device.id };
+    if (req.query.status) whereClause.status = req.query.status;
+    if (req.query.employeeType) whereClause.employeeType = req.query.employeeType;
+
+    const employees = await FingerprintEnrollment.findAll({
+      where: whereClause,
+      attributes: [
+        "id",
+        "employeeId",
+        "employeeType",
+        "employeeName",
+        "employeeCode",
+        "department",
+        "fingerPosition",
+        "quality",
+        "status",
+        "enrolledAt",
+      ],
+      order: [["enrolledAt", "DESC"]],
+    });
+
+    res.status(200).json({
+      success: true,
+      deviceId: device.deviceId,
+      deviceName: device.deviceName,
+      totalEmployees: employees.length,
+      data: employees,
+    });
+  } catch (error: any) {
+    logger.error("Error fetching device employees", { error });
     res.status(500).json({ success: false, message: error.message });
   }
 };

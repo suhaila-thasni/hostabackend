@@ -74,3 +74,24 @@ export const rfidAttendanceSchema = z.object({
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
 });
+
+export const fingerprintAttendanceSchema = z
+  .object({
+    hospitalId: z.number().int().optional(),
+    fingerprintTemplate: z.string().min(1).optional(),
+    fingerprintHash: z.string().min(1).optional(),
+    templateReference: z.string().min(1).optional(),
+    type: z.enum(["check-in", "check-out"]),
+    deviceId: z.string().optional(),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.fingerprintTemplate && !data.fingerprintHash && !data.templateReference) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "fingerprintTemplate, fingerprintHash, or templateReference is required",
+        path: ["fingerprintTemplate"],
+      });
+    }
+  });

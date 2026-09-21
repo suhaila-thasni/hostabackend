@@ -11,7 +11,8 @@ import cookieParser from "cookie-parser";
 import hospitalRoutes from "./routes/hospital.routes";
 import prescriptionTemplateRoutes from "./routes/prescription.routes";
 import attendanceRoutes from "./routes/attendance.routes";
-import rfidDeviceRoutes from "./routes/rfidDevice.routes";
+import rfidDeviceRoutes from "./routes/Device.routes";
+import fingerprintEnrollmentRoutes from "./routes/fingerprintEnrollment.routes";
 
 import { requestLogger } from "./middleware/logger.middleware";
 
@@ -56,7 +57,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-api-key", "x-secret-key", "x-device-id"],
   })
 );
 
@@ -81,6 +82,7 @@ app.use("/", hospitalRoutes);
 app.use("/", prescriptionTemplateRoutes);
 app.use("/", attendanceRoutes);
 app.use("/devices", rfidDeviceRoutes);
+app.use("/fingerprint-enrollments", fingerprintEnrollmentRoutes);
 
 /**
  * HEALTH

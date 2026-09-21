@@ -8,12 +8,13 @@ import {
   restoreDevice,
   permanentlyDeleteDevice,
   regenerateCredentials,
+  getDeviceEmployees,
 } from "../controllers/rfidDevice.controllers";
 import { validate } from "../middleware/validate.middleware";
 import {
   registerRfidDeviceSchema,
   updateRfidDeviceSchema,
-} from "../validators/rfidDevice.validator";
+} from "../validators/Device.validator";
 
 const router = Router();
 
@@ -48,5 +49,8 @@ router.put("/:id/regenerate-credentials", regenerateCredentials);
 
 // Permanently delete device (Only if unregistered)
 router.delete("/:id/permanent", permanentlyDeleteDevice);
+
+// Get assigned employees for a device
+router.get("/:id/employees", getDeviceEmployees);
 
 export default router;
