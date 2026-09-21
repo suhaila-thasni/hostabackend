@@ -8,7 +8,7 @@ import { logger } from "../utils/logger";
 ======================= */
 export const registerDevice = async (req: Request, res: Response) => {
   try {
-    const { hospitalId, deviceId, deviceName, location, locationImage, deviceType } = req.body;
+    const { hospitalId, deviceId, deviceName, location, locationImage, deviceImage, deviceType } = req.body;
 
     // Check if device ID already exists
     const existingDevice = await RfidDevice.findOne({ where: { deviceId } });
@@ -28,6 +28,7 @@ export const registerDevice = async (req: Request, res: Response) => {
       deviceName,
       location,
       locationImage,
+      deviceImage,
       deviceType,
       apiKey,
       secretKey: plainSecretKey,
@@ -43,6 +44,7 @@ export const registerDevice = async (req: Request, res: Response) => {
         deviceName: newDevice.deviceName,
         location: newDevice.location,
         locationImage: newDevice.locationImage,
+        deviceImage: newDevice.deviceImage,
         deviceType: newDevice.deviceType,
         status: newDevice.status,
       },
@@ -107,7 +109,7 @@ export const getDevices = async (req: Request, res: Response) => {
 export const updateDevice = async (req: Request, res: Response) => {
   try {
     const deviceIdParam = req.params.id;
-    const { deviceName, location, locationImage, deviceType, status } = req.body;
+    const { deviceName, location, locationImage, deviceImage, deviceType, status, imageUrl } = req.body;
 
     const device = await RfidDevice.findByPk(deviceIdParam);
     if (!device) {
@@ -124,6 +126,8 @@ export const updateDevice = async (req: Request, res: Response) => {
     if (deviceName) device.deviceName = deviceName;
     if (location) device.location = location;
     if (locationImage !== undefined) device.locationImage = locationImage;
+    if (deviceImage !== undefined) device.deviceImage = deviceImage;
+    if (imageUrl !== undefined) device.deviceImage = imageUrl;
     if (deviceType) device.deviceType = deviceType;
     if (status) device.status = status;
 
@@ -139,6 +143,7 @@ export const updateDevice = async (req: Request, res: Response) => {
         deviceName: device.deviceName,
         location: device.location,
         locationImage: device.locationImage,
+        deviceImage: device.deviceImage,
         deviceType: device.deviceType,
         status: device.status,
         apiKey: device.apiKey,

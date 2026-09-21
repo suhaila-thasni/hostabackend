@@ -17,7 +17,7 @@ dotenv.config();
 /*                                  CONSTANTS                                 */
 /* -------------------------------------------------------------------------- */
 
-const VALID_ROLES = ["hospital", "user", "doctor", "staff", "ad", "documents", "labresults", "category", "speciality"] as const;
+const VALID_ROLES = ["hospital", "user", "doctor", "staff", "ad", "documents", "labresults", "category", "speciality", "device"] as const;
 
 const SERVICE_CONFIG: Record<
   string,
@@ -61,6 +61,10 @@ const SERVICE_CONFIG: Record<
     labresults: {
     baseUrl: process.env.USER_SERVICE_URL,
     endpoint: "lab-results",
+  },
+  device: {
+    baseUrl: process.env.HOSPITAL_SERVICE_URL,
+    endpoint: "devices",
   },
 };
 

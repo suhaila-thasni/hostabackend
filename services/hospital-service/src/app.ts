@@ -80,7 +80,7 @@ app.use(cookieParser());
 app.use("/", hospitalRoutes);
 app.use("/", prescriptionTemplateRoutes);
 app.use("/", attendanceRoutes);
-app.use("/rfid-devices", rfidDeviceRoutes);
+app.use("/devices", rfidDeviceRoutes);
 
 /**
  * HEALTH

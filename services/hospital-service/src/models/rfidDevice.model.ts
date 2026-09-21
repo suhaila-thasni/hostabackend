@@ -10,7 +10,8 @@ export interface RfidDeviceAttributes {
   deviceName: string;
   location: string;
   locationImage?: string;
-  deviceType: string;
+  deviceImage?: string;
+  deviceType: "face" | "rfid" | "fingerprint";
   apiKey: string;
   secretKey: string;
   status: "Active" | "Disabled" | "Unregistered";
@@ -28,7 +29,8 @@ class RfidDevice extends Model<RfidDeviceAttributes, RfidDeviceCreationAttribute
   public deviceName!: string;
   public location!: string;
   public locationImage?: string;
-  public deviceType!: string;
+  public deviceImage?: string;
+  public deviceType!: "face" | "rfid" | "fingerprint";
   public apiKey!: string;
   public secretKey!: string;
   public status!: "Active" | "Disabled" | "Unregistered";
@@ -77,8 +79,12 @@ RfidDevice.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    deviceType: {
+    deviceImage: {
       type: DataTypes.STRING,
+      allowNull: true,
+    },
+    deviceType: {
+      type: DataTypes.ENUM("face", "rfid", "fingerprint"),
       allowNull: false,
     },
     apiKey: {
