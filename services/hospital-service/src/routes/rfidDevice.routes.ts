@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   registerDevice,
   getDevices,
+  getDeviceById,
   updateDevice,
   unregisterDevice,
   restoreDevice,
@@ -25,6 +26,9 @@ router.post(
 
 // Get all RFID devices (filtered by hospitalId/status)
 router.get("/", getDevices);
+
+// Get a single RFID device by ID
+router.get("/:id", getDeviceById);
 
 // Update a specific RFID device (Active/Disabled toggle, details)
 router.put(

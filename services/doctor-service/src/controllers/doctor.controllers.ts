@@ -1861,7 +1861,8 @@ export const getDoctorByAccessCard: any = asyncHandler(
         hospitalId: doctor.hospitalId,
         roleId: doctor.roleId,
         employeeType: "Doctor",
-        name: doctor.displayName
+        name: doctor.displayName,
+        department: doctor.department
       }
     });
   }

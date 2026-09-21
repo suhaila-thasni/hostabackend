@@ -1790,7 +1790,8 @@ export const getStaffByAccessCard: any = asyncHandler(
         hospitalId: staff.hospitalId,
         roleId: staff.roleId,
         employeeType: "Staff",
-        name: staff.name
+        name: staff.name,
+        designation: staff.designation
       }
     });
   }

@@ -59,6 +59,27 @@ export const registerDevice = async (req: Request, res: Response) => {
 };
 
 /* =======================
+   GET ONE DEVICE BY ID
+======================= */
+export const getDeviceById = async (req: Request, res: Response) => {
+  try {
+    const device = await RfidDevice.findByPk(req.params.id, {
+      attributes: { exclude: ["secretKey"] },
+    });
+
+    if (!device) {
+      res.status(404).json({ success: false, message: "Device not found." });
+      return;
+    }
+
+    res.status(200).json({ success: true, data: device });
+  } catch (error: any) {
+    logger.error("Error fetching RFID device", { error });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =======================
    GET ALL DEVICES
 ======================= */
 export const getDevices = async (req: Request, res: Response) => {
