@@ -833,6 +833,7 @@ export const getStaffs = asyncHandler(
       gender,
       phone,
       status,
+      accessCardAssigned,
       designation,
       staffType,
       email,
@@ -851,6 +852,7 @@ export const getStaffs = asyncHandler(
     gender = normalize(gender);
     phone = normalize(phone);
     status = normalize(status);
+    const accessCardAssignedFilter = normalize(accessCardAssigned);
     designation = normalize(designation);
     staffType = normalize(staffType);
     email = normalize(email);
@@ -879,6 +881,13 @@ export const getStaffs = asyncHandler(
     // boolean fix (IMPORTANT)
     if (status !== undefined) {
       whereClause.isActive = status === "true" || status === true;
+    }
+
+    if (accessCardAssignedFilter === "true" || accessCardAssignedFilter === true || accessCardAssignedFilter === "1") {
+      whereClause.accessCardUid = {
+        [Op.not]: null,
+        [Op.ne]: "",
+      };
     }
 
     // normal filters

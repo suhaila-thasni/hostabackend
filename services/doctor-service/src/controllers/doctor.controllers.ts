@@ -877,6 +877,7 @@ export const getDoctors = asyncHandler(
       speciality,
       name,
       status,
+      accessCardAssigned,
       search_query,
       page = 1,
       limit = 10,
@@ -886,6 +887,7 @@ export const getDoctors = asyncHandler(
     speciality = normalizeQuery(speciality);
     name = normalizeQuery(name);
     status = normalizeQuery(status);
+    const accessCardAssignedFilter = normalizeQuery(accessCardAssigned);
     search_query = normalizeQuery(search_query);
     page = normalizeQuery(page);
     limit = normalizeQuery(limit);
@@ -911,6 +913,15 @@ export const getDoctors = asyncHandler(
     if (status !== undefined) {
       andConditions.push({
         isActive: status === "true",
+      });
+    }
+
+    if (accessCardAssignedFilter === "true" || accessCardAssignedFilter === true || accessCardAssignedFilter === "1") {
+      andConditions.push({
+        accessCardUid: {
+          [Op.not]: null,
+          [Op.ne]: "",
+        },
       });
     }
 

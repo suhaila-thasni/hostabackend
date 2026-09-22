@@ -500,13 +500,14 @@ const updateImageUrl = async (
   }
 
   const url = `${service.baseUrl}/${service.endpoint}/${id}`;
+  const payload =
+    role === "device" && imageType
+      ? { [imageType]: imageKey }
+      : { imageUrl: imageKey };
 
   await axios.put(
     url,
-    {
-      imageKey,
-      imageType,
-    },
+    payload,
     {
       headers: {
         Authorization: authorization || "",
@@ -547,12 +548,14 @@ export const createPresignurl = asyncHandler(
         !size ||
         !role ||
         !id ||
-        !imageType
+        (role === "device" && !imageType)
       ) {
         res.status(400).json({
           success: false,
           message:
-            "filename, contentType, size, role, id and imageType are required",
+            role === "device"
+              ? "filename, contentType, size, role, id and imageType are required"
+              : "filename, contentType, size, role and id are required",
         });
         return;
       }
@@ -569,7 +572,7 @@ export const createPresignurl = asyncHandler(
 
       /* -------------------------- VALIDATE IMAGE TYPE ------------------------ */
 
-      if (!isValidImageType(imageType)) {
+      if (role === "device" && !isValidImageType(imageType)) {
         res.status(400).json({
           success: false,
           message:
@@ -596,7 +599,10 @@ export const createPresignurl = asyncHandler(
         .replace(/\s+/g, "-")
         .replace(/[^a-zA-Z0-9._-]/g, "");
 
-      const uniqueKey = `devices/${id}/${imageType}/${uuidv4()}-${safeFilename}`;
+      const uniqueKey =
+        role === "device"
+          ? `devices/${id}/${imageType}/${uuidv4()}-${safeFilename}`
+          : `${role}/${id}/${uuidv4()}-${safeFilename}`;
 
       /* ----------------------------- S3 COMMAND ------------------------------ */
 
@@ -630,7 +636,7 @@ export const createPresignurl = asyncHandler(
         message: "Presigned URL created successfully",
         presignedUrl,
         key: uniqueKey,
-        imageType,
+        ...(imageType ? { imageType } : {}),
         expiresIn: 300,
       });
 
@@ -683,12 +689,14 @@ export const editAPresignurl = asyncHandler(
         !contentType ||
         !role ||
         !id ||
-        !imageType
+        (role === "device" && !imageType)
       ) {
         res.status(400).json({
           success: false,
           message:
-            "filename, contentType, role, id and imageType are required",
+            role === "device"
+              ? "filename, contentType, role, id and imageType are required"
+              : "filename, contentType, role and id are required",
         });
         return;
       }
@@ -701,7 +709,7 @@ export const editAPresignurl = asyncHandler(
         return;
       }
 
-      if (!isValidImageType(imageType)) {
+      if (role === "device" && !isValidImageType(imageType)) {
         res.status(400).json({
           success: false,
           message:
@@ -733,7 +741,9 @@ export const editAPresignurl = asyncHandler(
 
       const objectKey =
         key ||
-        `devices/${id}/${imageType}/${uuidv4()}-${safeFilename}`;
+        (role === "device"
+          ? `devices/${id}/${imageType}/${uuidv4()}-${safeFilename}`
+          : `${role}/${id}/${uuidv4()}-${safeFilename}`);
 
       /* ----------------------------- S3 COMMAND ------------------------------ */
 
@@ -771,7 +781,7 @@ export const editAPresignurl = asyncHandler(
         message: "Edit presigned URL created successfully",
         presignedUrl,
         key: objectKey,
-        imageType,
+        ...(imageType ? { imageType } : {}),
         expiresIn: 300,
       });
 
@@ -824,11 +834,13 @@ export const deleteAPresignurl = asyncHandler(
         return;
       }
 
-      if (!role || !id || !imageType) {
+      if (!role || !id || (role === "device" && !imageType)) {
         res.status(400).json({
           success: false,
           message:
-            "role, id and imageType are required",
+            role === "device"
+              ? "role, id and imageType are required"
+              : "role and id are required",
         });
         return;
       }
@@ -841,7 +853,7 @@ export const deleteAPresignurl = asyncHandler(
         return;
       }
 
-      if (!isValidImageType(imageType)) {
+      if (role === "device" && !isValidImageType(imageType)) {
         res.status(400).json({
           success: false,
           message:
