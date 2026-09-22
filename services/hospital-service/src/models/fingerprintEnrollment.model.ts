@@ -132,3 +132,18 @@ RfidDevice.hasMany(FingerprintEnrollment, { foreignKey: "deviceDbId" });
 FingerprintEnrollment.belongsTo(RfidDevice, { foreignKey: "deviceDbId" });
 
 export default FingerprintEnrollment;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
