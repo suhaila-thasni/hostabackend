@@ -13,7 +13,6 @@ export interface FingerprintEnrollmentAttributes {
   employeeId: number;
   employeeType: FingerprintEmployeeType;
   employeeName: string;
-  employeeCode?: string | null;
   department?: string | null;
   deviceId: string;
   deviceDbId?: number | null;
@@ -32,7 +31,6 @@ export interface FingerprintEnrollmentCreationAttributes
   extends Optional<
     FingerprintEnrollmentAttributes,
     | "id"
-    | "employeeCode"
     | "department"
     | "deviceDbId"
     | "fingerPosition"
@@ -43,18 +41,16 @@ export interface FingerprintEnrollmentCreationAttributes
     | "enrolledAt"
     | "createdAt"
     | "updatedAt"
-  > {}
+  > { }
 
 class FingerprintEnrollment
   extends Model<FingerprintEnrollmentAttributes, FingerprintEnrollmentCreationAttributes>
-  implements FingerprintEnrollmentAttributes
-{
+  implements FingerprintEnrollmentAttributes {
   public id!: number;
   public hospitalId!: number;
   public employeeId!: number;
   public employeeType!: FingerprintEmployeeType;
   public employeeName!: string;
-  public employeeCode?: string | null;
   public department?: string | null;
   public deviceId!: string;
   public deviceDbId?: number | null;
@@ -83,7 +79,6 @@ FingerprintEnrollment.init(
     employeeId: { type: DataTypes.INTEGER, allowNull: false },
     employeeType: { type: DataTypes.ENUM("Doctor", "Staff"), allowNull: false },
     employeeName: { type: DataTypes.STRING, allowNull: false },
-    employeeCode: { type: DataTypes.STRING, allowNull: true },
     department: { type: DataTypes.STRING, allowNull: true },
     deviceId: { type: DataTypes.STRING, allowNull: false },
     deviceDbId: {
@@ -120,6 +115,7 @@ FingerprintEnrollment.init(
     indexes: [
       { unique: true, fields: ["hospitalId", "employeeId", "employeeType", "fingerPosition"] },
       { unique: true, fields: ["hospitalId", "fingerprintHash"] },
+      { unique: true, fields: ["hospitalId", "employeeId", "employeeType", "deviceId"], name: "fingerprint_enrollments_employee_device_unique" },
       { fields: ["hospitalId", "status"] },
       { fields: ["deviceId"] },
     ],

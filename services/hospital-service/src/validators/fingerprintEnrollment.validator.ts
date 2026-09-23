@@ -6,7 +6,6 @@ export const fingerprintEnrollmentSchema = z
     employeeId: z.number().int().positive(),
     employeeType: z.enum(["Doctor", "Staff"]),
     employeeName: z.string().min(1, "Employee name is required"),
-    employeeCode: z.string().optional(),
     department: z.string().optional(),
     deviceId: z.string().min(1, "Device ID is required"),
     deviceDbId: z.number().int().positive().optional(),
@@ -29,7 +28,6 @@ export const fingerprintEnrollmentSchema = z
 
 export const updateFingerprintEnrollmentSchema = z.object({
   employeeName: z.string().min(1).optional(),
-  employeeCode: z.string().optional(),
   department: z.string().optional(),
   deviceId: z.string().min(1).optional(),
   deviceDbId: z.number().int().positive().optional(),

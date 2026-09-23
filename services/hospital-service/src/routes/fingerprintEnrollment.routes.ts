@@ -8,6 +8,7 @@ import {
 import {
   createFingerprintEnrollment,
   deactivateFingerprintEnrollment,
+  activateFingerprintEnrollment,
   getFingerprintEnrollmentById,
   getFingerprintEnrollments,
   updateFingerprintEnrollment,
@@ -20,5 +21,6 @@ router.get("/", getFingerprintEnrollments);
 router.get("/:id", validateParams(idParamSchema), getFingerprintEnrollmentById);
 router.put("/:id", validateParams(idParamSchema), validate(updateFingerprintEnrollmentSchema), updateFingerprintEnrollment);
 router.put("/:id/deactivate", validateParams(idParamSchema), deactivateFingerprintEnrollment);
+router.put("/:id/activate", validateParams(idParamSchema), activateFingerprintEnrollment);
 
 export default router;

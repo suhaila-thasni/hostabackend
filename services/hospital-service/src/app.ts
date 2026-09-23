@@ -14,6 +14,8 @@ import attendanceRoutes from "./routes/attendance.routes";
 import rfidDeviceRoutes from "./routes/Device.routes";
 import fingerprintEnrollmentRoutes from "./routes/fingerprintEnrollment.routes";
 
+import rfidCardAssignmentRoutes from "./routes/rfidCardAssignment.routes";
+
 import { requestLogger } from "./middleware/logger.middleware";
 
 import { logger } from "./utils/logger";
@@ -83,6 +85,7 @@ app.use("/", prescriptionTemplateRoutes);
 app.use("/", attendanceRoutes);
 app.use("/devices", rfidDeviceRoutes);
 app.use("/fingerprint-enrollments", fingerprintEnrollmentRoutes);
+app.use("/rfid-card-assignments", rfidCardAssignmentRoutes);
 
 /**
  * HEALTH

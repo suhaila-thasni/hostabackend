@@ -20,7 +20,6 @@ export const createFingerprintEnrollment = async (req: Request, res: Response) =
       employeeId,
       employeeType,
       employeeName,
-      employeeCode,
       department,
       deviceId,
       deviceDbId,
@@ -47,36 +46,61 @@ export const createFingerprintEnrollment = async (req: Request, res: Response) =
       return;
     }
 
-    const fingerprintHash = resolveFingerprintHash(req.body);
-
-    const [enrollment, created] = await FingerprintEnrollment.upsert(
-      {
+    // Check if employee is already enrolled to this device
+    const existingEnrollment = await FingerprintEnrollment.findOne({
+      where: {
         hospitalId,
         employeeId,
         employeeType,
-        employeeName,
-        employeeCode,
-        department,
         deviceId: device.deviceId,
-        deviceDbId: device.id,
-        fingerPosition: fingerPosition || "right-thumb",
-        fingerprintHash,
-        templateReference,
-        quality: quality || "Good",
-        attempts: attempts || 1,
         status: "Active",
-        enrolledAt: new Date(),
       },
-      { returning: true }
-    );
+    });
 
-    res.status(created ? 201 : 200).json({
+    if (existingEnrollment) {
+      res.status(400).json({
+        success: false,
+        message: "Employee is already enrolled to this device.",
+      });
+      return;
+    }
+
+    const fingerprintHash = resolveFingerprintHash(req.body);
+
+    const enrollment = await FingerprintEnrollment.create({
+      hospitalId,
+      employeeId,
+      employeeType,
+      employeeName,
+      department,
+      deviceId: device.deviceId,
+      deviceDbId: device.id,
+      fingerPosition: fingerPosition || "right-thumb",
+      fingerprintHash,
+      templateReference,
+      quality: quality || "Good",
+      attempts: attempts || 1,
+      status: "Active",
+      enrolledAt: new Date(),
+    });
+
+    res.status(201).json({
       success: true,
-      message: created ? "Fingerprint enrolled successfully." : "Fingerprint enrollment updated successfully.",
+      message: "Fingerprint enrolled successfully.",
       data: enrollment,
     });
   } catch (error: any) {
     logger.error("Error creating fingerprint enrollment", { error });
+
+    // Handle unique constraint violation
+    if (error.name === "SequelizeUniqueConstraintError") {
+      res.status(400).json({
+        success: false,
+        message: "Employee is already enrolled to this device.",
+      });
+      return;
+    }
+
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -162,6 +186,28 @@ export const deactivateFingerprintEnrollment = async (req: Request, res: Respons
     });
   } catch (error: any) {
     logger.error("Error deactivating fingerprint enrollment", { error });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const activateFingerprintEnrollment = async (req: Request, res: Response) => {
+  try {
+    const enrollment = await FingerprintEnrollment.findByPk(req.params.id);
+    if (!enrollment) {
+      res.status(404).json({ success: false, message: "Fingerprint enrollment not found." });
+      return;
+    }
+
+    enrollment.status = "Active";
+    await enrollment.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Fingerprint enrollment activated successfully.",
+      data: enrollment,
+    });
+  } catch (error: any) {
+    logger.error("Error activating fingerprint enrollment", { error });
     res.status(500).json({ success: false, message: error.message });
   }
 };

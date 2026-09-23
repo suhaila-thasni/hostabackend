@@ -9,7 +9,7 @@ import {
   permanentlyDeleteDevice,
   regenerateCredentials,
   getDeviceEmployees,
-} from "../controllers/rfidDevice.controllers";
+} from "../controllers/Device.controllers";
 import { validate } from "../middleware/validate.middleware";
 import {
   registerRfidDeviceSchema,
