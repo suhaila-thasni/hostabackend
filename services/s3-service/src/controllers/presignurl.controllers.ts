@@ -530,32 +530,21 @@ const isValidImageType = (value: unknown): value is ImageType => {
 
 export const createPresignurl = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
+
+
+     console.log("🔥 NEW PRESIGN CONTROLLER");
+  console.log("BODY:", JSON.stringify(req.body, null, 2));
+
+  
     try {
-      const {
-        filename,
-        contentType,
-        size,
-        role,
-        id,
-        imageType,
-      } = req.body;
+      const { role, id, images, filename, contentType, size, imageType } = req.body;
 
       /* ------------------------------ VALIDATION ----------------------------- */
 
-      if (
-        !filename ||
-        !contentType ||
-        !size ||
-        !role ||
-        !id ||
-        (role === "device" && !imageType)
-      ) {
+      if (!role || !id) {
         res.status(400).json({
           success: false,
-          message:
-            role === "device"
-              ? "filename, contentType, size, role, id and imageType are required"
-              : "filename, contentType, size, role and id are required",
+          message: "role and id are required",
         });
         return;
       }
@@ -570,18 +559,125 @@ export const createPresignurl = asyncHandler(
         return;
       }
 
-      /* -------------------------- VALIDATE IMAGE TYPE ------------------------ */
+      /* -------------------------- HANDLE ARRAY MODE ------------------------ */
 
-      if (role === "device" && !isValidImageType(imageType)) {
-        res.status(400).json({
-          success: false,
-          message:
-            "Invalid imageType. Use deviceImage or locationImage",
+      if (images && Array.isArray(images)) {
+        // Handle multiple images in array format
+        if (images.length === 0) {
+          res.status(400).json({
+            success: false,
+            message: "images array cannot be empty",
+          });
+          return;
+        }
+
+        const results = [];
+
+        for (const img of images) {
+          const { filename: imgFilename, contentType: imgContentType, size: imgSize, imageType: imgImageType } = img;
+
+          if (!imgFilename || !imgContentType || !imgSize) {
+            res.status(400).json({
+              success: false,
+              message: "Each image must have filename, contentType, and size",
+            });
+            return;
+          }
+
+          if (role === "device" && !imgImageType) {
+            res.status(400).json({
+              success: false,
+              message: "imageType is required for device role",
+            });
+            return;
+          }
+
+          if (role === "device" && !isValidImageType(imgImageType)) {
+            res.status(400).json({
+              success: false,
+              message: "Invalid imageType. Use deviceImage or locationImage",
+            });
+            return;
+          }
+
+          const fileSize = Number(imgSize);
+          if (!Number.isFinite(fileSize) || fileSize <= 0) {
+            res.status(400).json({
+              success: false,
+              message: "Invalid file size",
+            });
+            return;
+          }
+
+          const safeFilename = imgFilename
+            .replace(/\s+/g, "-")
+            .replace(/[^a-zA-Z0-9._-]/g, "");
+
+          const uniqueKey =
+            role === "device"
+              ? `devices/${id}/${imgImageType}/${uuidv4()}-${safeFilename}`
+              : `${role}/${id}/${uuidv4()}-${safeFilename}`;
+
+          const command = new PutObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: uniqueKey,
+            ContentType: imgContentType,
+            ContentLength: fileSize,
+          });
+
+          const presignedUrl = await getSignedUrl(S3, command, {
+            expiresIn: 300,
+          });
+
+          await updateImageUrl(
+            role as Role,
+            id,
+            uniqueKey,
+            imgImageType,
+            req.headers.authorization
+          );
+
+          results.push({
+            imageType: imgImageType,
+            presignedUrl,
+            key: uniqueKey,
+            expiresIn: 300,
+          });
+        }
+
+        res.status(200).json({
+          success: true,
+          message: "Presigned URLs created successfully",
+          images: results,
         });
         return;
       }
 
-      /* ---------------------------- VALIDATE SIZE ---------------------------- */
+      /* -------------------------- HANDLE SINGLE MODE ------------------------ */
+
+      if (!filename || !contentType || !size) {
+        res.status(400).json({
+          success: false,
+          message: "filename, contentType, and size are required",
+        });
+        return;
+      }
+
+      if (role === "device" && !imageType) {
+        res.status(400).json({
+          success: false,
+          message: "imageType is required for device role",
+        });
+        return;
+      }
+
+      if (role === "device" && !isValidImageType(imageType)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid imageType. Use deviceImage or locationImage",
+        });
+        return;
+      }
 
       const fileSize = Number(size);
 
@@ -593,8 +689,6 @@ export const createPresignurl = asyncHandler(
         return;
       }
 
-      /* ---------------------------- GENERATE KEY ----------------------------- */
-
       const safeFilename = filename
         .replace(/\s+/g, "-")
         .replace(/[^a-zA-Z0-9._-]/g, "");
@@ -604,8 +698,6 @@ export const createPresignurl = asyncHandler(
           ? `devices/${id}/${imageType}/${uuidv4()}-${safeFilename}`
           : `${role}/${id}/${uuidv4()}-${safeFilename}`;
 
-      /* ----------------------------- S3 COMMAND ------------------------------ */
-
       const command = new PutObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: uniqueKey,
@@ -613,13 +705,9 @@ export const createPresignurl = asyncHandler(
         ContentLength: fileSize,
       });
 
-      /* --------------------------- PRESIGNED URL ----------------------------- */
-
       const presignedUrl = await getSignedUrl(S3, command, {
         expiresIn: 300,
       });
-
-      /* --------------------------- UPDATE SERVICE ---------------------------- */
 
       await updateImageUrl(
         role as Role,
@@ -628,8 +716,6 @@ export const createPresignurl = asyncHandler(
         imageType,
         req.headers.authorization
       );
-
-      /* ------------------------------- RESPONSE ------------------------------ */
 
       res.status(200).json({
         success: true,
@@ -680,23 +766,15 @@ export const editAPresignurl = asyncHandler(
         role,
         id,
         imageType,
+        images,
       } = req.body;
 
       /* ------------------------------ VALIDATION ----------------------------- */
 
-      if (
-        !filename ||
-        !contentType ||
-        !role ||
-        !id ||
-        (role === "device" && !imageType)
-      ) {
+      if (!role || !id) {
         res.status(400).json({
           success: false,
-          message:
-            role === "device"
-              ? "filename, contentType, role, id and imageType are required"
-              : "filename, contentType, role and id are required",
+          message: "role and id are required",
         });
         return;
       }
@@ -705,6 +783,126 @@ export const editAPresignurl = asyncHandler(
         res.status(400).json({
           success: false,
           message: "Invalid role",
+        });
+        return;
+      }
+
+      /* -------------------------- HANDLE ARRAY MODE ------------------------ */
+
+      if (images && Array.isArray(images)) {
+        if (images.length === 0) {
+          res.status(400).json({
+            success: false,
+            message: "images array cannot be empty",
+          });
+          return;
+        }
+
+        const results = [];
+
+        for (const img of images) {
+          const {
+            filename: imgFilename,
+            contentType: imgContentType,
+            size: imgSize,
+            key: imgKey,
+            imageType: imgImageType,
+          } = img;
+
+          if (!imgFilename || !imgContentType) {
+            res.status(400).json({
+              success: false,
+              message: "Each image must have filename and contentType",
+            });
+            return;
+          }
+
+          if (role === "device" && !imgImageType) {
+            res.status(400).json({
+              success: false,
+              message: "imageType is required for device role",
+            });
+            return;
+          }
+
+          if (role === "device" && !isValidImageType(imgImageType)) {
+            res.status(400).json({
+              success: false,
+              message: "Invalid imageType. Use deviceImage or locationImage",
+            });
+            return;
+          }
+
+          const fileSize = imgSize ? Number(imgSize) : undefined;
+          if (
+            fileSize !== undefined &&
+            (!Number.isFinite(fileSize) || fileSize <= 0)
+          ) {
+            res.status(400).json({
+              success: false,
+              message: "Invalid file size",
+            });
+            return;
+          }
+
+          const safeFilename = imgFilename
+            .replace(/\s+/g, "-")
+            .replace(/[^a-zA-Z0-9._-]/g, "");
+
+          const objectKey =
+            imgKey ||
+            (role === "device"
+              ? `devices/${id}/${imgImageType}/${uuidv4()}-${safeFilename}`
+              : `${role}/${id}/${uuidv4()}-${safeFilename}`);
+
+          const command = new PutObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: objectKey,
+            ContentType: imgContentType,
+            ...(fileSize ? { ContentLength: fileSize } : {}),
+          });
+
+          const presignedUrl = await getSignedUrl(S3, command, {
+            expiresIn: 300,
+          });
+
+          await updateImageUrl(
+            role as Role,
+            id,
+            objectKey,
+            imgImageType,
+            req.headers.authorization
+          );
+
+          results.push({
+            imageType: imgImageType,
+            presignedUrl,
+            key: objectKey,
+            expiresIn: 300,
+          });
+        }
+
+        res.status(200).json({
+          success: true,
+          message: "Edit presigned URLs created successfully",
+          images: results,
+        });
+        return;
+      }
+
+      /* -------------------------- HANDLE SINGLE MODE ------------------------ */
+
+      if (
+        !filename ||
+        !contentType ||
+        (role === "device" && !imageType)
+      ) {
+        res.status(400).json({
+          success: false,
+          message:
+            role === "device"
+              ? "filename, contentType, role, id and imageType are required"
+              : "filename, contentType, role and id are required",
         });
         return;
       }
@@ -753,8 +951,8 @@ export const editAPresignurl = asyncHandler(
         ContentType: contentType,
         ...(fileSize
           ? {
-              ContentLength: fileSize,
-            }
+            ContentLength: fileSize,
+          }
           : {}),
       });
 
