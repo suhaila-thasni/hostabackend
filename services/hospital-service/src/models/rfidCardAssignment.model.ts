@@ -12,7 +12,6 @@ export interface RfidCardAssignmentAttributes {
   employeeId: number;
   employeeType: RfidEmployeeType;
   employeeName: string;
-  employeeCode?: string | null;
   department?: string | null;
   deviceId: string;
   deviceDbId?: number | null;
@@ -27,25 +26,22 @@ export interface RfidCardAssignmentCreationAttributes
   extends Optional<
     RfidCardAssignmentAttributes,
     | "id"
-    | "employeeCode"
     | "department"
     | "deviceDbId"
     | "status"
     | "assignedAt"
     | "createdAt"
     | "updatedAt"
-  > {}
+  > { }
 
 class RfidCardAssignment
   extends Model<RfidCardAssignmentAttributes, RfidCardAssignmentCreationAttributes>
-  implements RfidCardAssignmentAttributes
-{
+  implements RfidCardAssignmentAttributes {
   public id!: number;
   public hospitalId!: number;
   public employeeId!: number;
   public employeeType!: RfidEmployeeType;
   public employeeName!: string;
-  public employeeCode?: string | null;
   public department?: string | null;
   public deviceId!: string;
   public deviceDbId?: number | null;
@@ -70,7 +66,6 @@ RfidCardAssignment.init(
     employeeId: { type: DataTypes.INTEGER, allowNull: false },
     employeeType: { type: DataTypes.ENUM("Doctor", "Staff"), allowNull: false },
     employeeName: { type: DataTypes.STRING, allowNull: false },
-    employeeCode: { type: DataTypes.STRING, allowNull: true },
     department: { type: DataTypes.STRING, allowNull: true },
     deviceId: { type: DataTypes.STRING, allowNull: false },
     deviceDbId: {
