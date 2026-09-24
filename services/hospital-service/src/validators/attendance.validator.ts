@@ -83,8 +83,6 @@ export const fingerprintAttendanceSchema = z
     templateReference: z.string().min(1).optional(),
     type: z.enum(["check-in", "check-out"]),
     deviceId: z.string().optional(),
-    latitude: z.number().min(-90).max(90).optional(),
-    longitude: z.number().min(-180).max(180).optional(),
   })
   .superRefine((data, ctx) => {
     if (!data.fingerprintTemplate && !data.fingerprintHash && !data.templateReference) {

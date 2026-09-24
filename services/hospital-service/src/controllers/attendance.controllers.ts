@@ -886,7 +886,7 @@ export const createFingerprintAttendance = async (req: Request, res: Response) =
       return;
     }
 
-    const { fingerprintTemplate, fingerprintHash, templateReference, type, latitude, longitude } = req.body;
+    const { fingerprintTemplate, fingerprintHash, templateReference, type } = req.body;
     const resolvedFingerprintHash =
       fingerprintHash ||
       createFingerprintHash(fingerprintTemplate || templateReference);
@@ -945,21 +945,7 @@ export const createFingerprintAttendance = async (req: Request, res: Response) =
       return;
     }
 
-    // 4. Location Verification (if coordinates are provided)
-    if (latitude !== undefined && longitude !== undefined) {
-      const locationVerification = await verifyAttendanceLocation(hospitalId, latitude, longitude);
-      if (!locationVerification.success) {
-        res.status(403).json({
-          success: false,
-          message: locationVerification.message,
-          distanceMeters: locationVerification.distanceMeters,
-          allowedRadiusMeters: locationVerification.allowedRadiusMeters,
-        });
-        return;
-      }
-    }
-
-    // 5. Fetch employee details for schedule/status enrichment
+    // 4. Fetch employee details for schedule/status enrichment
     let employeeData: any = null;
     try {
       const serviceUrl =
@@ -1006,8 +992,6 @@ export const createFingerprintAttendance = async (req: Request, res: Response) =
         checkInTime: type === "check-in" ? timestamp : undefined,
         checkOutTime: type === "check-out" ? timestamp : undefined,
         timestamp,
-        latitude,
-        longitude,
         status,
         method: "Fingerprint",
         deviceId,
