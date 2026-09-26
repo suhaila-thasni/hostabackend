@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Op } from "sequelize";
 import crypto from "crypto";
 import RfidDevice from "../models/Device.model";
 import FingerprintEnrollment from "../models/fingerprintEnrollment.model";
@@ -121,6 +122,15 @@ export const getDevices = async (req: Request, res: Response) => {
     const whereClause: any = {};
     if (req.query.hospitalId) whereClause.hospitalId = req.query.hospitalId;
     if (req.query.status) whereClause.status = req.query.status;
+
+    if (req.query.search) {
+      const searchStr = `%${req.query.search}%`;
+      whereClause[Op.or] = [
+        { deviceName: { [Op.iLike]: searchStr } },
+        { location: { [Op.iLike]: searchStr } },
+        { deviceType: { [Op.iLike]: searchStr } },
+      ];
+    }
 
     const devices = await RfidDevice.findAll({
       where: whereClause,

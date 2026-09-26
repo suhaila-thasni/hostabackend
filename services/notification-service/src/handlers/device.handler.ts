@@ -36,10 +36,19 @@ export const handleDeviceEvent = async (routingKey: string, content: any) => {
       return;
   }
 
-  // 1. Save and Emit for SuperAdmin (includes hospitalName)
+  // Create descriptive text for the message body
+  const deviceName = content.deviceName || "Unknown Device";
+  const deviceIdStr = content.deviceId ? `(${content.deviceId})` : "";
+  const location = content.location ? `at ${content.location}` : "";
+  const hospitalName = content.hospitalName || "Unknown Hospital";
+
+  const baseMessage = `${title}: ${deviceName} ${deviceIdStr} ${location}`.trim();
+
+  // 1. Save and Emit for SuperAdmin (includes hospitalName in the message string)
+  const superAdminMessage = `${hospitalName} | ${baseMessage}`;
   await Notification.create({
     superAdminIds: [1],
-    message: title,
+    message: superAdminMessage,
     metadata: {
       event: routingKey,
       ...content,
@@ -48,18 +57,18 @@ export const handleDeviceEvent = async (routingKey: string, content: any) => {
 
   safeSocketEmit("role_1", "device_event", {
     event: routingKey,
-    message: title,
+    message: superAdminMessage,
     data: content,
   });
 
-  // 2. Save and Emit for Hospital (excludes hospitalName since they already know it)
+  // 2. Save and Emit for Hospital (excludes hospitalName from the message string)
   if (hospitalId) {
     // Create a copy of the content without hospitalName
-    const { hospitalName, ...hospitalContent } = content;
+    const { hospitalName: _, ...hospitalContent } = content;
 
     await Notification.create({
       hospitalIds: [hospitalId],
-      message: title,
+      message: baseMessage,
       metadata: {
         event: routingKey,
         ...hospitalContent,
@@ -68,7 +77,7 @@ export const handleDeviceEvent = async (routingKey: string, content: any) => {
 
     safeSocketEmit(`hospital_${hospitalId}`, "device_event", {
       event: routingKey,
-      message: title,
+      message: baseMessage,
       data: hospitalContent,
     });
   }
