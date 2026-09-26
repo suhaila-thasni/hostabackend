@@ -199,11 +199,18 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "ad_events", "AD_UPDATED");
         await channel.bindQueue(queue, "ad_events", "AD_DELETED");
 
-        // 14. Prescription
+        // 14. Prescription & Hospital Prescription Templates
         await channel.assertExchange("prescription_events", "direct", { durable: true });
+        
+        // Patient Prescriptions
         await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_CREATED");
         await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_UPDATED");
         await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_DELETED");
+
+        // Hospital Prescription Templates
+        await channel.bindQueue(queue, "prescription_events", "HOSPITALPRESCRIPTION_REGISTERED");
+        await channel.bindQueue(queue, "prescription_events", "HOSPITAL_PRESCRIPTION_UPDATED");
+        await channel.bindQueue(queue, "prescription_events", "HOSPITAL_PRESCRIPTION_DELETED");
 
         // 15. Email
         await channel.assertExchange("email_events", "direct", { durable: true });
@@ -238,7 +245,7 @@ export const startConsumer = async () => {
                         await handleDeviceEvent(routingKey, content);
                     } else if (routingKey.startsWith("PATIENT_")) {
                         await handlePatientEvent(routingKey, content);
-                    } else if (routingKey.startsWith("PRESCRIPTION_")) {
+                    } else if (routingKey.startsWith("PRESCRIPTION_") || routingKey.includes("PRESCRIPTION")) {
                         await handlePrescriptionEvent(routingKey, content);
                     } else if (routingKey.startsWith("AD_")) {
                         await handleAdEvent(routingKey, content);

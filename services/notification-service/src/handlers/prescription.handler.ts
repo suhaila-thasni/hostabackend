@@ -8,17 +8,24 @@ const formatPrescriptionId = (id: number | string): string => {
 };
 
 export const handlePrescriptionEvent = async (routingKey: string, content: any) => {
-  if (routingKey === "PRESCRIPTION_CREATED" || routingKey === "PRESCRIPTION_UPDATED" || routingKey === "PRESCRIPTION_DELETED") {
+  if (
+    routingKey === "PRESCRIPTION_CREATED" ||
+    routingKey === "PRESCRIPTION_UPDATED" ||
+    routingKey === "PRESCRIPTION_DELETED" ||
+    routingKey === "HOSPITALPRESCRIPTION_REGISTERED" ||
+    routingKey === "HOSPITAL_PRESCRIPTION_UPDATED" ||
+    routingKey === "HOSPITAL_PRESCRIPTION_DELETED"
+  ) {
     const doctorName = content.doctorName || "Doctor";
     const hospitalName = content.hospitalName || "the hospital";
     const formattedId = formatPrescriptionId(content.prescriptionNumber || content.prescriptionId);
 
     let msg = "";
-    if (routingKey === "PRESCRIPTION_CREATED") {
+    if (routingKey === "PRESCRIPTION_CREATED" || routingKey === "HOSPITALPRESCRIPTION_REGISTERED") {
       msg = `A new prescription ${formattedId} has been added for your patient profile by ${doctorName} at ${hospitalName}.`;
-    } else if (routingKey === "PRESCRIPTION_UPDATED") {
+    } else if (routingKey === "PRESCRIPTION_UPDATED" || routingKey === "HOSPITAL_PRESCRIPTION_UPDATED") {
       msg = `Prescription ${formattedId} on your profile has been updated by ${doctorName} at ${hospitalName}.`;
-    } else if (routingKey === "PRESCRIPTION_DELETED") {
+    } else if (routingKey === "PRESCRIPTION_DELETED" || routingKey === "HOSPITAL_PRESCRIPTION_DELETED") {
       msg = `Prescription ${formattedId} on your profile has been blacklisted by ${hospitalName}.`;
     }
 

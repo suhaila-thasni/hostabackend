@@ -69,7 +69,7 @@ export const Registeration = asyncHandler(
 
     // Publish event
     await publishEvent(
-      "hospitalPrescription_events",
+      "prescription_events",
       "HOSPITALPRESCRIPTION_REGISTERED",
       {
         hospitalId,
@@ -187,7 +187,7 @@ export const prescriptionDelete = asyncHandler(
 
     // Publish event
     await publishEvent(
-      "hospitalPrescription_events",
+      "prescription_events",
       "HOSPITAL_PRESCRIPTION_DELETED",
       {
         hospitalId,
@@ -297,7 +297,7 @@ export const updatePrescription = asyncHandler(
 
     // Publish event
     await publishEvent(
-      "hospitalPrescription_events",
+      "prescription_events",
       "HOSPITAL_PRESCRIPTION_UPDATED",
       {
         prescriptionId: id,
