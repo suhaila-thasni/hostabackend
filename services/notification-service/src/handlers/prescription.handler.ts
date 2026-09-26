@@ -21,12 +21,24 @@ export const handlePrescriptionEvent = async (routingKey: string, content: any) 
     const formattedId = formatPrescriptionId(content.prescriptionNumber || content.prescriptionId);
 
     let msg = "";
-    if (routingKey === "PRESCRIPTION_CREATED" || routingKey === "HOSPITALPRESCRIPTION_REGISTERED") {
-      msg = `A new prescription ${formattedId} has been added for your patient profile by ${doctorName} at ${hospitalName}.`;
-    } else if (routingKey === "PRESCRIPTION_UPDATED" || routingKey === "HOSPITAL_PRESCRIPTION_UPDATED") {
-      msg = `Prescription ${formattedId} on your profile has been updated by ${doctorName} at ${hospitalName}.`;
-    } else if (routingKey === "PRESCRIPTION_DELETED" || routingKey === "HOSPITAL_PRESCRIPTION_DELETED") {
-      msg = `Prescription ${formattedId} on your profile has been blacklisted by ${hospitalName}.`;
+    const isHospitalTemplate = routingKey.includes("HOSPITAL");
+
+    if (isHospitalTemplate) {
+      if (routingKey === "HOSPITALPRESCRIPTION_REGISTERED") {
+        msg = `A new prescription template has been successfully registered.`;
+      } else if (routingKey === "HOSPITAL_PRESCRIPTION_UPDATED") {
+        msg = `Prescription template has been updated successfully.`;
+      } else if (routingKey === "HOSPITAL_PRESCRIPTION_DELETED") {
+        msg = `Prescription template has been removed.`;
+      }
+    } else {
+      if (routingKey === "PRESCRIPTION_CREATED") {
+        msg = `A new prescription ${formattedId} has been added for your patient profile by ${doctorName} at ${hospitalName}.`;
+      } else if (routingKey === "PRESCRIPTION_UPDATED") {
+        msg = `Prescription ${formattedId} on your profile has been updated by ${doctorName} at ${hospitalName}.`;
+      } else if (routingKey === "PRESCRIPTION_DELETED") {
+        msg = `Prescription ${formattedId} on your profile has been blacklisted by ${hospitalName}.`;
+      }
     }
 
     const includeHospital = routingKey !== "PRESCRIPTION_CREATED";
