@@ -36,27 +36,40 @@ export const handleDeviceEvent = async (routingKey: string, content: any) => {
       return;
   }
 
-  // Save notification for SuperAdmin
-  // The 'message' field will act as the title in the UI
+  // 1. Save and Emit for SuperAdmin (includes hospitalName)
   await Notification.create({
     superAdminIds: [1],
-    hospitalIds: hospitalId ? [hospitalId] : [],
     message: title,
-  }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
+    metadata: {
+      event: routingKey,
+      ...content,
+    },
+  }).catch((err) => console.error(`Failed to save ${routingKey} notification for SuperAdmin`, err));
 
-  // Real-time notification to SuperAdmin
   safeSocketEmit("role_1", "device_event", {
     event: routingKey,
     message: title,
     data: content,
   });
 
-  // Real-time notification to hospital-specific room
+  // 2. Save and Emit for Hospital (excludes hospitalName since they already know it)
   if (hospitalId) {
+    // Create a copy of the content without hospitalName
+    const { hospitalName, ...hospitalContent } = content;
+
+    await Notification.create({
+      hospitalIds: [hospitalId],
+      message: title,
+      metadata: {
+        event: routingKey,
+        ...hospitalContent,
+      },
+    }).catch((err) => console.error(`Failed to save ${routingKey} notification for Hospital`, err));
+
     safeSocketEmit(`hospital_${hospitalId}`, "device_event", {
       event: routingKey,
       message: title,
-      data: content,
+      data: hospitalContent,
     });
   }
 };

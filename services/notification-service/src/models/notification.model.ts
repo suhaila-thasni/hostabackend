@@ -28,6 +28,7 @@ interface INotification {
   superAdminIds?: number[];
 
   message: string;
+  metadata?: object;
 
   userReadStatus?: object;
   hospitalReadStatus?: object;
@@ -54,6 +55,7 @@ type NotificationCreationAttributes =
     | "pharmacyIds"
     | "labIds"
     | "superAdminIds"
+    | "metadata"
     | "userReadStatus"
     | "hospitalReadStatus"
     | "doctorReadStatus"
@@ -87,6 +89,7 @@ class Notification
   public superAdminIds?: number[];
 
   public message!: string;
+  public metadata?: object;
 
   public userReadStatus?: object;
   public hospitalReadStatus?: object;
@@ -158,6 +161,12 @@ Notification.init(
     message: {
       type: DataTypes.TEXT,
       allowNull: false,
+    },
+
+    metadata: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: null,
     },
 
     /* READ STATUS */
