@@ -3,6 +3,7 @@ import crypto from "crypto";
 import RfidDevice from "../models/Device.model";
 import FingerprintEnrollment from "../models/fingerprintEnrollment.model";
 import { logger } from "../utils/logger";
+import { publishEvent } from "../events/publisher";
 
 /* =======================
    REGISTER NEW RFID DEVICE
@@ -35,6 +36,33 @@ export const registerDevice = async (req: Request, res: Response) => {
       secretKey: plainSecretKey,
     });
 
+
+
+
+
+
+
+
+    // Publish DEVICE_REGISTERED event
+    try {
+      await publishEvent("hospital_events", "DEVICE_REGISTERED", {
+        id: newDevice.id,
+        hospitalId: newDevice.hospitalId,
+        deviceId: newDevice.deviceId,
+        deviceName: newDevice.deviceName,
+        deviceType: newDevice.deviceType,
+        location: newDevice.location,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish DEVICE_REGISTERED event:", { error: err.message });
+    }
+
+
+
+
+
+
+    
     res.status(201).json({
       success: true,
       message: "RFID Device registered successfully.",
@@ -134,6 +162,29 @@ export const updateDevice = async (req: Request, res: Response) => {
 
     await device.save();
 
+
+
+
+
+
+    // Publish DEVICE_UPDATED event
+    try {
+      await publishEvent("hospital_events", "DEVICE_UPDATED", {
+        id: device.id,
+        hospitalId: device.hospitalId,
+        deviceId: device.deviceId,
+        deviceName: device.deviceName,
+        deviceType: device.deviceType,
+        status: device.status,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish DEVICE_UPDATED event:", { error: err.message });
+    }
+
+
+
+
+
     res.status(200).json({
       success: true,
       message: "Device updated successfully.",
@@ -185,6 +236,26 @@ export const unregisterDevice = async (req: Request, res: Response) => {
 
     await device.save();
 
+
+
+
+    // Publish DEVICE_UNREGISTERED event
+    try {
+      await publishEvent("hospital_events", "DEVICE_UNREGISTERED", {
+        id: device.id,
+        hospitalId: device.hospitalId,
+        deviceId: device.deviceId,
+        deviceName: device.deviceName,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish DEVICE_UNREGISTERED event:", { error: err.message });
+    }
+
+
+
+
+
+
     res.status(200).json({
       success: true,
       message: "Device unregistered successfully. Credentials have been revoked.",
@@ -234,6 +305,30 @@ export const restoreDevice = async (req: Request, res: Response) => {
 
     await device.save();
 
+
+
+
+
+    // Publish DEVICE_RESTORED event
+    try {
+      await publishEvent("hospital_events", "DEVICE_RESTORED", {
+        id: device.id,
+        hospitalId: device.hospitalId,
+        deviceId: device.deviceId,
+        deviceName: device.deviceName,
+        deviceType: device.deviceType,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish DEVICE_RESTORED event:", { error: err.message });
+    }
+
+
+
+
+
+
+    
+
     res.status(200).json({
       success: true,
       message: "Device restored successfully with new credentials.",
@@ -282,7 +377,52 @@ export const permanentlyDeleteDevice = async (req: Request, res: Response) => {
       return;
     }
 
+
+
+
+
+
+    const deviceData = {
+      id: device.id,
+      hospitalId: device.hospitalId,
+      deviceId: device.deviceId,
+      deviceName: device.deviceName,
+    };
+
+
+
+
+
+
     await device.destroy();
+
+
+
+
+
+
+
+
+
+    // Publish DEVICE_DELETED event
+    try {
+      await publishEvent("hospital_events", "DEVICE_DELETED", deviceData);
+    } catch (err: any) {
+      logger.error("Failed to publish DEVICE_DELETED event:", { error: err.message });
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     res.status(200).json({
       success: true,
@@ -321,6 +461,35 @@ export const regenerateCredentials = async (req: Request, res: Response) => {
     device.secretKey = newPlainSecretKey; // Will be hashed by beforeUpdate hook
 
     await device.save();
+
+
+
+
+
+
+
+
+
+    // Publish DEVICE_CREDENTIALS_REGENERATED event
+    try {
+      await publishEvent("hospital_events", "DEVICE_CREDENTIALS_REGENERATED", {
+        id: device.id,
+        hospitalId: device.hospitalId,
+        deviceId: device.deviceId,
+        deviceName: device.deviceName,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish DEVICE_CREDENTIALS_REGENERATED event:", { error: err.message });
+    }
+
+
+
+
+
+
+
+
+
 
     res.status(200).json({
       success: true,
@@ -368,7 +537,6 @@ export const getDeviceEmployees = async (req: Request, res: Response) => {
         "employeeId",
         "employeeType",
         "employeeName",
-        "employeeCode",
         "department",
         "fingerPosition",
         "quality",

@@ -30,7 +30,7 @@ router.get("/", authenticate, checkPermission("Device", "view"),getDevices);
 router.get("/:id", authenticate, checkPermission("Device", "view"),getDeviceById);
 
 // Update a specific RFID device (Active/Disabled toggle, details)
-router.put("/:id",authenticate,checkPermission("Device","update"),validate(updateRfidDeviceSchema),updateDevice);
+router.put("/:id",authenticate,checkPermission("Device","edit"),validate(updateRfidDeviceSchema),updateDevice);
 
 // Unregister device (Soft delete, revoke credentials)
 router.put("/:id/unregister",authenticate,checkPermission("Device","edit"), unregisterDevice);

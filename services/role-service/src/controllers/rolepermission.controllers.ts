@@ -21,8 +21,14 @@ export const createRolepermission = asyncHandler(
       }
 
       // 1️⃣ Get existing permissions
+      const whereClause: any = { roleId };
+      // Only filter by hospitalId/labId/pharmacyId if they are explicitly provided (not null)
+      if (hospitalId !== null && hospitalId !== undefined && hospitalId !== "") whereClause.hospitalId = hospitalId;
+      if (labId !== null && labId !== undefined && labId !== "") whereClause.labId = labId;
+      if (pharmacyId !== null && pharmacyId !== undefined && pharmacyId !== "") whereClause.pharmacyId = pharmacyId;
+
       const existing = await Rolepermission.findAll({
-        where: { roleId },
+        where: whereClause,
       });
 
       const existingIds = existing.map((p: any) => p.permissionId);
@@ -39,11 +45,17 @@ export const createRolepermission = asyncHandler(
 
       // 4️⃣ DELETE removed permissions
       if (toDelete.length > 0) {
+        const deleteWhereClause: any = {
+          roleId,
+          permissionId: toDelete,
+        };
+        // Only filter by hospitalId/labId/pharmacyId if they are explicitly provided (not null or empty)
+        if (hospitalId !== null && hospitalId !== undefined && hospitalId !== "") deleteWhereClause.hospitalId = hospitalId;
+        if (labId !== null && labId !== undefined && labId !== "") deleteWhereClause.labId = labId;
+        if (pharmacyId !== null && pharmacyId !== undefined && pharmacyId !== "") deleteWhereClause.pharmacyId = pharmacyId;
+
         await Rolepermission.destroy({
-          where: {
-            roleId,
-            permissionId: toDelete,
-          },
+          where: deleteWhereClause,
         });
       }
 
@@ -117,43 +129,43 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
     return;
   }
 
-// export const updateData: any = asyncHandler(async (req: Request, res: Response) => {
-//   const { id } = req.params;
-//   const updatePayload = req.body;
+  // export const updateData: any = asyncHandler(async (req: Request, res: Response) => {
+  //   const { id } = req.params;
+  //   const updatePayload = req.body;
 
-//   const rolepermission = await Rolepermission.update(updatePayload, {
-//     where: { id: id },
-//     returning: true,
-//   });
+  //   const rolepermission = await Rolepermission.update(updatePayload, {
+  //     where: { id: id },
+  //     returning: true,
+  //   });
 
-//   // rolepermission[0] => affected rows count
-//   // rolepermission[1] => updated rows array
+  //   // rolepermission[0] => affected rows count
+  //   // rolepermission[1] => updated rows array
 
-//   if (!rolepermission[1] || rolepermission[1].length === 0) {
-//     res.status(404).json({
-//       success: false,
-//       message: "Rolepermission not found",
-//       data: null,
-//     });
-//     return;
-//   }
+  //   if (!rolepermission[1] || rolepermission[1].length === 0) {
+  //     res.status(404).json({
+  //       success: false,
+  //       message: "Rolepermission not found",
+  //       data: null,
+  //     });
+  //     return;
+  //   }
 
-//   // ✅ FIXED
-//   const updatedRolepermission = rolepermission[1][0];
+  //   // ✅ FIXED
+  //   const updatedRolepermission = rolepermission[1][0];
 
-//   await publishEvent("rolepermission_events", "ROLEPERMISSION_UPDATED", {
-//     RolepermissionId: updatedRolepermission.id,
-//   });
+  //   await publishEvent("rolepermission_events", "ROLEPERMISSION_UPDATED", {
+  //     RolepermissionId: updatedRolepermission.id,
+  //   });
 
-//   res.status(200).json({
-//     success: true,
-//     message: "Successfully updated",
-//     data: updatedRolepermission,
-//   });
-// });
+  //   res.status(200).json({
+  //     success: true,
+  //     message: "Successfully updated",
+  //     data: updatedRolepermission,
+  //   });
+  // });
 
   // ✅ Get updated booking object
-  const updatedRolepermission = Rolepermission[1][0];
+  const updatedRolepermission = rolepermission[1][0];
 
   await publishEvent("rolepermission_events", "ROLEPERMISSION_UPDATED", {
     RolepermissionId: updatedRolepermission.id,
@@ -203,13 +215,13 @@ export const rolepermissionDelete: any = asyncHandler(async (req: Request, res: 
 export const getRolepermission: any = asyncHandler(async (req: Request, res: Response) => {
 
 
-   let { hospitalId, labId, pharmacyId, roleId }: any = req.query;
-    
+  let { hospitalId, labId, pharmacyId, roleId }: any = req.query;
 
-    if (Array.isArray(hospitalId)) hospitalId = hospitalId[0];
-        if (Array.isArray(labId)) labId = labId[0];
-    if (Array.isArray(pharmacyId)) pharmacyId = pharmacyId[0];
-        if (Array.isArray(roleId)) roleId = roleId[0];
+
+  if (Array.isArray(hospitalId)) hospitalId = hospitalId[0];
+  if (Array.isArray(labId)) labId = labId[0];
+  if (Array.isArray(pharmacyId)) pharmacyId = pharmacyId[0];
+  if (Array.isArray(roleId)) roleId = roleId[0];
 
 
 
@@ -228,15 +240,15 @@ export const getRolepermission: any = asyncHandler(async (req: Request, res: Res
     whereClause.pharmacyId = Number(pharmacyId);
   }
 
-    if (roleId !== undefined) {
+  if (roleId !== undefined) {
     whereClause.roleId = Number(roleId);
   }
 
   const rolepermission = await Rolepermission.findAll({
     where: whereClause,
-  });  
+  });
 
-  
+
 
   if (rolepermission.length === 0) {
     res.status(404).json({
@@ -320,17 +332,17 @@ export const rolepermissionAssgin = asyncHandler(
           const doctorData = doctorResponse?.data?.data;
 
           if (doctorData) {
-         
 
-             await axios.put(
-    `${process.env.DOCTOR_SERVICE_URL}/doctor/${doctor.id}`,
-    { roleId: doctor.roleId },
-    {
-      headers: req.headers.authorization
-        ? { Authorization: req.headers.authorization }
-        : {},
-    }
-  );
+
+            await axios.put(
+              `${process.env.DOCTOR_SERVICE_URL}/doctor/${doctor.id}`,
+              { roleId: doctor.roleId },
+              {
+                headers: req.headers.authorization
+                  ? { Authorization: req.headers.authorization }
+                  : {},
+              }
+            );
           }
         } catch (error) {
           console.error(`Failed to update doctor ${doctor.id}`, error);
@@ -355,14 +367,14 @@ export const rolepermissionAssgin = asyncHandler(
 
           if (staffData) {
             await axios.put(
-    `${process.env.STAFF_SERVICE_URL}/staff/${staff.id}`,
-    { roleId: staff.roleId },
-    {
-      headers: req.headers.authorization
-        ? { Authorization: req.headers.authorization }
-        : {},
-    }
-  );
+              `${process.env.STAFF_SERVICE_URL}/staff/${staff.id}`,
+              { roleId: staff.roleId },
+              {
+                headers: req.headers.authorization
+                  ? { Authorization: req.headers.authorization }
+                  : {},
+              }
+            );
           }
         } catch (error) {
           console.error(`Failed to update staff ${staff.id}`, error);

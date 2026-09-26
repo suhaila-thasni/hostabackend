@@ -5,6 +5,7 @@ import { handleBookingEvent } from "../handlers/booking.handler";
 import { handleDoctorEvent } from "../handlers/doctor.handler";
 import { handleStaffEvent } from "../handlers/staff.handler";
 import { handleHospitalEvent } from "../handlers/hospital.handler";
+import { handleDeviceEvent } from "../handlers/device.handler";
 import { handlePatientEvent } from "../handlers/patient.handler";
 import { handlePrescriptionEvent } from "../handlers/prescription.handler";
 import { handleAdEvent } from "../handlers/ad.handler";
@@ -102,6 +103,14 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "hospital_events", "HOSPITAL_DELETED");
         await channel.bindQueue(queue, "hospital_events", "HOSPITAL_BLACKLISTED");
         await channel.bindQueue(queue, "hospital_events", "HOSPITAL_RECOVERED");
+
+        // 1b. Device (same exchange as hospital)
+        await channel.bindQueue(queue, "hospital_events", "DEVICE_REGISTERED");
+        await channel.bindQueue(queue, "hospital_events", "DEVICE_UPDATED");
+        await channel.bindQueue(queue, "hospital_events", "DEVICE_UNREGISTERED");
+        await channel.bindQueue(queue, "hospital_events", "DEVICE_RESTORED");
+        await channel.bindQueue(queue, "hospital_events", "DEVICE_DELETED");
+        await channel.bindQueue(queue, "hospital_events", "DEVICE_CREDENTIALS_REGENERATED");
 
         // 2. Booking
         await channel.assertExchange("booking_events", "direct", { durable: true });
@@ -225,6 +234,8 @@ export const startConsumer = async () => {
                         await handleStaffEvent(routingKey, content);
                     } else if (routingKey.startsWith("HOSPITAL_")) {
                         await handleHospitalEvent(routingKey, content);
+                    } else if (routingKey.startsWith("DEVICE_")) {
+                        await handleDeviceEvent(routingKey, content);
                     } else if (routingKey.startsWith("PATIENT_")) {
                         await handlePatientEvent(routingKey, content);
                     } else if (routingKey.startsWith("PRESCRIPTION_")) {

@@ -16,7 +16,7 @@ export const createPermission: any =
     const permissions = req.body.permissions;
 
     if (!permissions || !Array.isArray(permissions)) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "permissions must be an array"
       });
@@ -48,7 +48,7 @@ export const createPermission: any =
 
 
 // GET ONE - GET /Permission/:id
-export const getanPermission : any = asyncHandler(async (req: Request, res: Response) => {
+export const getanPermission: any = asyncHandler(async (req: Request, res: Response) => {
   const permission = await Permission.findByPk(req.params.id);
   if (!permission) {
     res.status(404).json({
@@ -144,7 +144,7 @@ export const permissionDelete: any = asyncHandler(async (req: Request, res: Resp
 // GET ALL - GET /Permission
 
 export const getPermission = asyncHandler(
-  async (req: Request, res: Response) : Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     let {
       page = 1,
       limit = 10,
@@ -188,7 +188,7 @@ export const getPermission = asyncHandler(
     });
 
     if (permission.count === 0) {
-       res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "No data found",
         data: [],
@@ -207,7 +207,7 @@ export const getPermission = asyncHandler(
 
     const totalPages = Math.ceil(permission.count / limitNum);
 
-     res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Permissions fetched successfully",
       data: permission.rows,
