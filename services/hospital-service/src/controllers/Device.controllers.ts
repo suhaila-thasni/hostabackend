@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import crypto from "crypto";
 import RfidDevice from "../models/Device.model";
 import FingerprintEnrollment from "../models/fingerprintEnrollment.model";
+import Hospital from "../models/hospital.model";
 import { logger } from "../utils/logger";
 import { publishEvent } from "../events/publisher";
 
@@ -45,9 +46,11 @@ export const registerDevice = async (req: Request, res: Response) => {
 
     // Publish DEVICE_REGISTERED event
     try {
+      const hospital = await Hospital.findByPk(newDevice.hospitalId, { attributes: ["name"] });
       await publishEvent("hospital_events", "DEVICE_REGISTERED", {
         id: newDevice.id,
         hospitalId: newDevice.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
         deviceId: newDevice.deviceId,
         deviceName: newDevice.deviceName,
         deviceType: newDevice.deviceType,
@@ -169,9 +172,11 @@ export const updateDevice = async (req: Request, res: Response) => {
 
     // Publish DEVICE_UPDATED event
     try {
+      const hospital = await Hospital.findByPk(device.hospitalId, { attributes: ["name"] });
       await publishEvent("hospital_events", "DEVICE_UPDATED", {
         id: device.id,
         hospitalId: device.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
         deviceId: device.deviceId,
         deviceName: device.deviceName,
         deviceType: device.deviceType,
@@ -241,9 +246,11 @@ export const unregisterDevice = async (req: Request, res: Response) => {
 
     // Publish DEVICE_UNREGISTERED event
     try {
+      const hospital = await Hospital.findByPk(device.hospitalId, { attributes: ["name"] });
       await publishEvent("hospital_events", "DEVICE_UNREGISTERED", {
         id: device.id,
         hospitalId: device.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
         deviceId: device.deviceId,
         deviceName: device.deviceName,
       });
@@ -311,9 +318,11 @@ export const restoreDevice = async (req: Request, res: Response) => {
 
     // Publish DEVICE_RESTORED event
     try {
+      const hospital = await Hospital.findByPk(device.hospitalId, { attributes: ["name"] });
       await publishEvent("hospital_events", "DEVICE_RESTORED", {
         id: device.id,
         hospitalId: device.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
         deviceId: device.deviceId,
         deviceName: device.deviceName,
         deviceType: device.deviceType,
@@ -382,27 +391,16 @@ export const permanentlyDeleteDevice = async (req: Request, res: Response) => {
 
 
 
+    const hospital = await Hospital.findByPk(device.hospitalId, { attributes: ["name"] });
     const deviceData = {
       id: device.id,
       hospitalId: device.hospitalId,
+      hospitalName: hospital?.name || "Unknown Hospital",
       deviceId: device.deviceId,
       deviceName: device.deviceName,
     };
 
-
-
-
-
-
     await device.destroy();
-
-
-
-
-
-
-
-
 
     // Publish DEVICE_DELETED event
     try {
@@ -472,9 +470,11 @@ export const regenerateCredentials = async (req: Request, res: Response) => {
 
     // Publish DEVICE_CREDENTIALS_REGENERATED event
     try {
+      const hospital = await Hospital.findByPk(device.hospitalId, { attributes: ["name"] });
       await publishEvent("hospital_events", "DEVICE_CREDENTIALS_REGENERATED", {
         id: device.id,
         hospitalId: device.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
         deviceId: device.deviceId,
         deviceName: device.deviceName,
       });

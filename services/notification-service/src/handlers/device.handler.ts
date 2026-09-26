@@ -2,35 +2,33 @@ import Notification from "../models/notification.model";
 import { safeSocketEmit } from "../utils/socket.emitter";
 
 export const handleDeviceEvent = async (routingKey: string, content: any) => {
-  const deviceName = content.deviceName || "Unknown Device";
-  const deviceId = content.deviceId || "N/A";
   const hospitalId = content.hospitalId;
 
-  let msg = "";
+  let title = "";
 
   switch (routingKey) {
     case "DEVICE_REGISTERED":
-      msg = `New device registered: "${deviceName}" (Device ID: ${deviceId}) at location "${content.location || "N/A"}" — Type: ${content.deviceType || "N/A"}`;
+      title = "Device Registered";
       break;
 
     case "DEVICE_UPDATED":
-      msg = `Device updated: "${deviceName}" (Device ID: ${deviceId}) — Status: ${content.status || "N/A"}`;
+      title = "Device Updated";
       break;
 
     case "DEVICE_UNREGISTERED":
-      msg = `Device unregistered: "${deviceName}" (Device ID: ${deviceId}) — Credentials have been revoked.`;
+      title = "Device Unregistered";
       break;
 
     case "DEVICE_RESTORED":
-      msg = `Device restored: "${deviceName}" (Device ID: ${deviceId}) — New credentials have been generated.`;
+      title = "Device Restored";
       break;
 
     case "DEVICE_DELETED":
-      msg = `Device permanently deleted: "${deviceName}" (Device ID: ${deviceId})`;
+      title = "Device Permanently Deleted";
       break;
 
     case "DEVICE_CREDENTIALS_REGENERATED":
-      msg = `Device credentials regenerated: "${deviceName}" (Device ID: ${deviceId})`;
+      title = "Device Credentials Regenerated";
       break;
 
     default:
@@ -39,23 +37,25 @@ export const handleDeviceEvent = async (routingKey: string, content: any) => {
   }
 
   // Save notification for SuperAdmin
+  // The 'message' field will act as the title in the UI
   await Notification.create({
     superAdminIds: [1],
-    message: msg,
+    hospitalIds: hospitalId ? [hospitalId] : [],
+    message: title,
   }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 
   // Real-time notification to SuperAdmin
   safeSocketEmit("role_1", "device_event", {
     event: routingKey,
-    message: msg,
+    message: title,
     data: content,
   });
 
-  // Real-time notification to hospital-specific room (so hospital admins get device updates)
+  // Real-time notification to hospital-specific room
   if (hospitalId) {
     safeSocketEmit(`hospital_${hospitalId}`, "device_event", {
       event: routingKey,
-      message: msg,
+      message: title,
       data: content,
     });
   }
