@@ -237,6 +237,7 @@ export const createPrescription: any = asyncHandler(async (req: Request, res: Re
       bookingId,
       doctorId,
       patientId: finalPatientId,
+      patientNumber: patientExists?.patientNumber || finalPatientId,
       userId: finalUserId,
       hospitalId: prescription.hospitalId,
       doctorName: fetchedDoctorName,
@@ -498,6 +499,8 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
   await publishEvent("prescription_events", "PRESCRIPTION_UPDATED", {
     prescriptionId: prescription[1][0].id,
     prescriptionNumber: prescription[1][0].prescriptionNumber,
+    patientId: prescription[1][0].patientId,
+    patientNumber: patient ? patient.patientNumber : null,
     userId: patient ? patient.userId : null,
     hospitalId: prescription[1][0].hospitalId,
     doctorName: doctorName,
@@ -581,6 +584,8 @@ export const deletePrescription: any = asyncHandler(async (req: Request, res: Re
     {
       prescriptionId: Number(req.params.id),
       prescriptionNumber: user.prescriptionNumber,
+      patientId: user.patientId,
+      patientNumber: patient ? patient.patientNumber : null,
       userId: patient ? patient.userId : null,
       hospitalId: user.hospitalId,
       doctorName: doctorName,
