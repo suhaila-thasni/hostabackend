@@ -5,9 +5,9 @@ export const handleDocumentEvent = async (routingKey: string, content: any) => {
   let msg = "";
 
   if (routingKey === "DOCUMENT_REGISTERED") {
-    msg = `A new document has been uploaded for ${content.patientName || "the patient"}`;
+    msg = `A new document "${content.documentName || "Untitled"}" has been uploaded`;
   } else if (routingKey === "DOCUMENT_UPDATED") {
-    msg = `A document has been updated for ${content.patientName || "the patient"}`;
+    msg = `Document "${content.documentName || "Untitled"}" has been updated`;
   } else if (routingKey === "DOCUMENT_DELETED") {
     msg = `A document has been deleted for ${content.patientName || "the patient"}`;
   } else {

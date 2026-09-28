@@ -23,6 +23,7 @@ export const handlePatientEvent = async (
     } else if (routingKey === "PATIENT_RECOVERED") {
       msg = `Patient profile recovered from blacklist (ID: ${content.patientId})`;
     }
+    
 
     await Notification.create({
       userIds: content.userId ? [content.userId] : [],

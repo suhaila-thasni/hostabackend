@@ -182,11 +182,11 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "staff_events", "STAFF_PASSWORD_CHANGED");
         await channel.bindQueue(queue, "staff_events", "STAFF_PASSWORD_CHANGED_BY_ADMIN");
 
-        // 10. Lab & Test & Report
-        await channel.assertExchange("lab_events", "direct", { durable: true });
-        await channel.bindQueue(queue, "lab_events", "LAB_REGISTERED");
-        await channel.bindQueue(queue, "lab_events", "LAB_UPDATED");
-        await channel.bindQueue(queue, "lab_events", "LAB_DELETED");
+        // 10. Lab Results, Tests & Reports
+        await channel.assertExchange("labresult_events", "direct", { durable: true });
+        await channel.bindQueue(queue, "labresult_events", "LABRESULT_REGISTERED");
+        await channel.bindQueue(queue, "labresult_events", "LABRESULT_UPDATED");
+        await channel.bindQueue(queue, "labresult_events", "LABRESULT_DELETED");
         await channel.assertExchange("test_events", "direct", { durable: true });
         await channel.bindQueue(queue, "test_events", "TEST_REGISTERED");
         await channel.assertExchange("report_events", "direct", { durable: true });
@@ -266,7 +266,7 @@ export const startConsumer = async () => {
                         await handlePrescriptionEvent(routingKey, content);
                     } else if (routingKey.startsWith("AD_")) {
                         await handleAdEvent(routingKey, content);
-                    } else if (routingKey.startsWith("LAB_") || routingKey.startsWith("TEST_") || routingKey.startsWith("REPORT_")) {
+                    } else if (routingKey.startsWith("LABRESULT_") || routingKey.startsWith("TEST_") || routingKey.startsWith("REPORT_")) {
                         await handleLabEvent(routingKey, content);
                     } else if (routingKey.startsWith("DOCUMENT_")) {
                         await handleDocumentEvent(routingKey, content);

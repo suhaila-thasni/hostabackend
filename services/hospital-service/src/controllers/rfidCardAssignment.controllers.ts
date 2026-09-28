@@ -49,6 +49,42 @@ export const assignRfidCard = async (req: Request, res: Response) => {
       { returning: true }
     );
 
+
+
+
+
+
+
+    //  // Publish FINGERPRINT_REGISTERED event
+    // try {
+    //   const hospital = await Hospital.findByPk(enrollment.hospitalId, { attributes: ["name"] });
+    //   await publishEvent("hospital_events", "FINGERPRINT_REGISTERED", {
+    //     id: enrollment.id,
+    //     hospitalId: enrollment.hospitalId,
+    //     hospitalName: hospital?.name || "Unknown Hospital",
+    //     deviceId: enrollment.deviceId,
+    //     employeeId: enrollment.employeeId,
+    //     employeeType: enrollment.employeeType,
+    //     employeeName: enrollment.employeeName,
+    //     department: enrollment.department,
+    //     fingerPosition: enrollment.fingerPosition,
+    //     fingerprintHash: enrollment.fingerprintHash,
+    //     templateReference: enrollment.templateReference,
+    //     quality: enrollment.quality,
+    //     attempts: enrollment.attempts,
+    //     status: enrollment.status,
+    //     enrolledAt: enrollment.enrolledAt,
+    //   });
+    // } catch (err: any) {
+    //   logger.error("Failed to publish FINGERPRINT_REGISTERED event:", { error: err.message });
+    // }
+
+
+
+
+
+
+
     res.status(created ? 201 : 200).json({
       success: true,
       message: created ? "RFID card assigned successfully." : "RFID card assignment updated successfully.",

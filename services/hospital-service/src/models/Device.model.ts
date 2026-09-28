@@ -109,7 +109,7 @@ RfidDevice.init(
   },
   {
     sequelize,
-    tableName: "rfid_devices",
+    tableName: "devices",
     hooks: {
       beforeCreate: async (device: RfidDevice) => {
         if (device.secretKey) {

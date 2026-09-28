@@ -47,7 +47,12 @@ export const createDocument = asyncHandler(async (req: Request, res: Response) =
 
   // Publish event (non-blocking)
   try {
-    await publishEvent("document_events", "DOCUMENT_REGISTERED", { userId: document.userId });
+    await publishEvent("document_events", "DOCUMENT_REGISTERED", {
+      userId: document.userId,
+      hospitalId: document.hospitalId,
+      patientId: document.patientId,
+      documentName: document.name,
+    });
   } catch (eventError) {
     console.error("Failed to publish DOCUMENT_REGISTERED event:", eventError);
     // Do not fail the request; log and continue
@@ -180,7 +185,12 @@ export const updateDocument = asyncHandler(async (req: Request, res: Response) =
 
   // Publish event (non-blocking)
   try {
-    await publishEvent("document_events", "DOCUMENT_UPDATED", { userId: document.userId });
+    await publishEvent("document_events", "DOCUMENT_UPDATED", {
+      userId: document.userId,
+      hospitalId: document.hospitalId,
+      patientId: document.patientId,
+      documentName: document.name,
+    });
   } catch (eventError) {
     console.error("Failed to publish DOCUMENT_UPDATED event:", eventError);
   }
@@ -209,7 +219,12 @@ export const deleteDocument = asyncHandler(async (req: Request, res: Response) =
 
   // Publish event (non-blocking)
   try {
-    await publishEvent("document_events", "DOCUMENT_DELETED", { userId: document.userId });
+    await publishEvent("document_events", "DOCUMENT_DELETED", {
+      userId: document.userId,
+      hospitalId: document.hospitalId,
+      patientId: document.patientId,
+      documentName: document.name,
+    });
   } catch (eventError) {
     console.error("Failed to publish DOCUMENT_DELETED event:", eventError);
   }
