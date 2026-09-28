@@ -41,18 +41,20 @@ export const handlePrescriptionEvent = async (routingKey: string, content: any) 
       }
     }
 
-    const includeHospital = routingKey !== "PRESCRIPTION_CREATED";
+    const saveNotificationForHospital = routingKey !== "PRESCRIPTION_CREATED";
 
     await Notification.create({
       userIds: content.userId ? [content.userId] : [],
-      hospitalIds: (includeHospital && content.hospitalId) ? [content.hospitalId] : [],
+      hospitalIds: (saveNotificationForHospital && content.hospitalId) ? [content.hospitalId] : [],
       message: msg,
     }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 
     if (content.userId) {
       safeSocketEmit(`user_${content.userId}`, "prescription_event", { event: routingKey, message: msg, data: content });
     }
-    if (includeHospital && content.hospitalId) {
+    
+    // ALWAYS emit to the hospital for real-time UI updates (e.g., patient details page)
+    if (content.hospitalId) {
       safeSocketEmit(`hospital_${content.hospitalId}`, "prescription_event", { event: routingKey, message: msg, data: content });
     }
   }

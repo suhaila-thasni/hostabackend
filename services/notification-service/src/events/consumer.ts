@@ -13,6 +13,9 @@ import { handleAmbulanceEvent } from "../handlers/ambulance.handler";
 import { handleBloodEvent } from "../handlers/blood.handler";
 import { handleBloodBankEvent } from "../handlers/bloodbankhandler";
 import { handleEmailEvent } from "../handlers/email.handler";
+import { handleFingerprintEvent } from "../handlers/fingerprint.handler";
+import { handleLabEvent } from "../handlers/lab.handler";
+import { handleDocumentEvent } from "../handlers/document.handler";
 
 let connection: any;
 let channel: amqp.Channel;
@@ -112,6 +115,12 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "hospital_events", "DEVICE_DELETED");
         await channel.bindQueue(queue, "hospital_events", "DEVICE_CREDENTIALS_REGENERATED");
 
+        // 1c. Fingerprint (same exchange as hospital)
+        await channel.bindQueue(queue, "hospital_events", "FINGERPRINT_REGISTERED");
+        await channel.bindQueue(queue, "hospital_events", "FINGERPRINT_UPDATED");
+        await channel.bindQueue(queue, "hospital_events", "FINGERPRINT_DEACTIVATED");
+        await channel.bindQueue(queue, "hospital_events", "FINGERPRINT_ACTIVATED");
+
         // 2. Booking
         await channel.assertExchange("booking_events", "direct", { durable: true });
         await channel.bindQueue(queue, "booking_events", "BOOKING_REGISTERED");
@@ -184,6 +193,12 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "report_events", "REPORT_REGISTERED");
         await channel.bindQueue(queue, "report_events", "REPORT_UPDATED");
 
+        // 10.5 Documents
+        await channel.assertExchange("document_events", "direct", { durable: true });
+        await channel.bindQueue(queue, "document_events", "DOCUMENT_REGISTERED");
+        await channel.bindQueue(queue, "document_events", "DOCUMENT_UPDATED");
+        await channel.bindQueue(queue, "document_events", "DOCUMENT_DELETED");
+
         // 11. Pharmacy
         await channel.assertExchange("pharmacy_queue", "direct", { durable: true });
         await channel.bindQueue(queue, "pharmacy_queue", "PHARMACY_UPDATED");
@@ -243,12 +258,18 @@ export const startConsumer = async () => {
                         await handleHospitalEvent(routingKey, content);
                     } else if (routingKey.startsWith("DEVICE_")) {
                         await handleDeviceEvent(routingKey, content);
+                    } else if (routingKey.startsWith("FINGERPRINT_")) {
+                        await handleFingerprintEvent(routingKey, content);
                     } else if (routingKey.startsWith("PATIENT_")) {
                         await handlePatientEvent(routingKey, content);
                     } else if (routingKey.startsWith("PRESCRIPTION_") || routingKey.includes("PRESCRIPTION")) {
                         await handlePrescriptionEvent(routingKey, content);
                     } else if (routingKey.startsWith("AD_")) {
                         await handleAdEvent(routingKey, content);
+                    } else if (routingKey.startsWith("LAB_") || routingKey.startsWith("TEST_") || routingKey.startsWith("REPORT_")) {
+                        await handleLabEvent(routingKey, content);
+                    } else if (routingKey.startsWith("DOCUMENT_")) {
+                        await handleDocumentEvent(routingKey, content);
                     } else if (routingKey.startsWith("AMBULANCE_")) {
                         await handleAmbulanceEvent(routingKey, content);
                     } else if (routingKey.startsWith("DONOR_")) {

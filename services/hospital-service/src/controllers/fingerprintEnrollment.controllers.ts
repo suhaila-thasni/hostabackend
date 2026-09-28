@@ -3,6 +3,8 @@ import crypto from "crypto";
 import FingerprintEnrollment from "../models/fingerprintEnrollment.model";
 import RfidDevice from "../models/Device.model";
 import { logger } from "../utils/logger";
+import Hospital from "../models/hospital.model";
+import { publishEvent } from "../events/publisher";
 
 export const createFingerprintHash = (value: string): string =>
   crypto.createHash("sha256").update(value.trim()).digest("hex");
@@ -84,6 +86,39 @@ export const createFingerprintEnrollment = async (req: Request, res: Response) =
       enrolledAt: new Date(),
     });
 
+
+
+
+    
+    // Publish FINGERPRINT_REGISTERED event
+    try {
+      const hospital = await Hospital.findByPk(enrollment.hospitalId, { attributes: ["name"] });
+      await publishEvent("hospital_events", "FINGERPRINT_REGISTERED", {
+        id: enrollment.id,
+        hospitalId: enrollment.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
+        deviceId: enrollment.deviceId,
+        employeeId: enrollment.employeeId,
+        employeeType: enrollment.employeeType,
+        employeeName: enrollment.employeeName,
+        department: enrollment.department,
+        fingerPosition: enrollment.fingerPosition,
+        fingerprintHash: enrollment.fingerprintHash,
+        templateReference: enrollment.templateReference,
+        quality: enrollment.quality,
+        attempts: enrollment.attempts,
+        status: enrollment.status,
+        enrolledAt: enrollment.enrolledAt,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish FINGERPRINT_REGISTERED event:", { error: err.message });
+    }
+
+
+
+
+
+
     res.status(201).json({
       success: true,
       message: "Fingerprint enrolled successfully.",
@@ -157,6 +192,40 @@ export const updateFingerprintEnrollment = async (req: Request, res: Response) =
 
     await enrollment.update(updates);
 
+
+
+
+
+
+    // Publish FINGERPRINT_UPDATED event
+    try {
+      const hospital = await Hospital.findByPk(enrollment.hospitalId, { attributes: ["name"] });
+      await publishEvent("hospital_events", "FINGERPRINT_UPDATED", {
+        id: enrollment.id,
+        hospitalId: enrollment.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
+        deviceId: enrollment.deviceId,
+        employeeId: enrollment.employeeId,
+        employeeType: enrollment.employeeType,
+        employeeName: enrollment.employeeName,
+        department: enrollment.department,
+        fingerPosition: enrollment.fingerPosition,
+        fingerprintHash: enrollment.fingerprintHash,
+        templateReference: enrollment.templateReference,
+        quality: enrollment.quality,
+        attempts: enrollment.attempts,
+        status: enrollment.status,
+        enrolledAt: enrollment.enrolledAt,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish FINGERPRINT_UPDATED event:", { error: err.message });
+    }
+
+
+
+
+
+
     res.status(200).json({
       success: true,
       message: "Fingerprint enrollment updated successfully.",
@@ -179,6 +248,35 @@ export const deactivateFingerprintEnrollment = async (req: Request, res: Respons
     enrollment.status = "Inactive";
     await enrollment.save();
 
+
+
+    // Publish FINGERPRINT_DEACTIVATED event
+    try {
+      const hospital = await Hospital.findByPk(enrollment.hospitalId, { attributes: ["name"] });
+      await publishEvent("hospital_events", "FINGERPRINT_DEACTIVATED", {
+        id: enrollment.id,
+        hospitalId: enrollment.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
+        deviceId: enrollment.deviceId,
+        employeeId: enrollment.employeeId,
+        employeeType: enrollment.employeeType,
+        employeeName: enrollment.employeeName,
+        department: enrollment.department,
+        fingerPosition: enrollment.fingerPosition,
+        fingerprintHash: enrollment.fingerprintHash,
+        templateReference: enrollment.templateReference,
+        quality: enrollment.quality,
+        attempts: enrollment.attempts,
+        status: enrollment.status,
+        enrolledAt: enrollment.enrolledAt,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish FINGERPRINT_DEACTIVATED event:", { error: err.message });
+    }
+
+
+
+
     res.status(200).json({
       success: true,
       message: "Fingerprint enrollment deactivated successfully.",
@@ -200,6 +298,34 @@ export const activateFingerprintEnrollment = async (req: Request, res: Response)
 
     enrollment.status = "Active";
     await enrollment.save();
+
+
+    // Publish FINGERPRINT_ACTIVATED event
+    try {
+      const hospital = await Hospital.findByPk(enrollment.hospitalId, { attributes: ["name"] });
+      await publishEvent("hospital_events", "FINGERPRINT_ACTIVATED", {
+        id: enrollment.id,
+        hospitalId: enrollment.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
+        deviceId: enrollment.deviceId,
+        employeeId: enrollment.employeeId,
+        employeeType: enrollment.employeeType,
+        employeeName: enrollment.employeeName,
+        department: enrollment.department,
+        fingerPosition: enrollment.fingerPosition,
+        fingerprintHash: enrollment.fingerprintHash,
+        templateReference: enrollment.templateReference,
+        quality: enrollment.quality,
+        attempts: enrollment.attempts,
+        status: enrollment.status,
+        enrolledAt: enrollment.enrolledAt,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish FINGERPRINT_ACTIVATED event:", { error: err.message });
+    }
+
+
+
 
     res.status(200).json({
       success: true,
