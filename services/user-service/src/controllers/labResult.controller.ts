@@ -24,8 +24,21 @@ export const createLabResult: any = asyncHandler(async (req: Request, res: Respo
 
 
       await publishEvent("labresult_events", "LABRESULT_REGISTERED", {
-      userId: userId,
-    });
+        id: labResult.id,
+        labId: labResult.labId,
+        userId: labResult.userId,
+        hospitalId: labResult.hospitalId,
+        patientId: labResult.patientId,
+        doctorId: labResult.doctorId,
+        department: labResult.department,
+        testName: labResult.testName,
+        imageUrl: labResult.imageUrl,
+        status: labResult.status,
+        hospitalName: labResult.hospitalName,
+        labName: labResult.labName,
+        patientName: labResult.patientName,
+        doctorName: labResult.doctorName,
+      });
 
   res.status(201).json({
     success: true,
@@ -236,7 +249,20 @@ export const updateLabResult: any = asyncHandler(async (req: Request, res: Respo
   await labResult.update(req.body);
 
     await publishEvent("labresult_events", "LABRESULT_UPDATED", {
+      id: labResult.id,
+      labId: labResult.labId,
       userId: labResult.userId,
+      hospitalId: labResult.hospitalId,
+      patientId: labResult.patientId,
+      doctorId: labResult.doctorId,
+      department: labResult.department,
+      testName: labResult.testName,
+      imageUrl: labResult.imageUrl,
+      status: labResult.status,
+      hospitalName: labResult.hospitalName,
+      labName: labResult.labName,
+      patientName: labResult.patientName,
+      doctorName: labResult.doctorName,
     });
 
   res.status(200).json({
@@ -262,7 +288,20 @@ export const deleteLabResult: any = asyncHandler(async (req: Request, res: Respo
   await labResult.update({ isActive: false });
 
     await publishEvent("labresult_events", "LABRESULT_DELETED", {
+      id: labResult.id,
+      labId: labResult.labId,
       userId: labResult.userId,
+      hospitalId: labResult.hospitalId,
+      patientId: labResult.patientId,
+      doctorId: labResult.doctorId,
+      department: labResult.department,
+      testName: labResult.testName,
+      imageUrl: labResult.imageUrl,
+      status: labResult.status,
+      hospitalName: labResult.hospitalName,
+      labName: labResult.labName,
+      patientName: labResult.patientName,
+      doctorName: labResult.doctorName,
     });
 
   res.status(200).json({

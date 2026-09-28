@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import RfidCardAssignment from "../models/rfidCardAssignment.model";
 import RfidDevice from "../models/Device.model";
 import { logger } from "../utils/logger";
+import { publishEvent } from "../events/publisher";
+import Hospital from "../models/hospital.model";
 
 export const assignRfidCard = async (req: Request, res: Response) => {
   try {
@@ -55,29 +57,25 @@ export const assignRfidCard = async (req: Request, res: Response) => {
 
 
 
-    //  // Publish FINGERPRINT_REGISTERED event
-    // try {
-    //   const hospital = await Hospital.findByPk(enrollment.hospitalId, { attributes: ["name"] });
-    //   await publishEvent("hospital_events", "FINGERPRINT_REGISTERED", {
-    //     id: enrollment.id,
-    //     hospitalId: enrollment.hospitalId,
-    //     hospitalName: hospital?.name || "Unknown Hospital",
-    //     deviceId: enrollment.deviceId,
-    //     employeeId: enrollment.employeeId,
-    //     employeeType: enrollment.employeeType,
-    //     employeeName: enrollment.employeeName,
-    //     department: enrollment.department,
-    //     fingerPosition: enrollment.fingerPosition,
-    //     fingerprintHash: enrollment.fingerprintHash,
-    //     templateReference: enrollment.templateReference,
-    //     quality: enrollment.quality,
-    //     attempts: enrollment.attempts,
-    //     status: enrollment.status,
-    //     enrolledAt: enrollment.enrolledAt,
-    //   });
-    // } catch (err: any) {
-    //   logger.error("Failed to publish FINGERPRINT_REGISTERED event:", { error: err.message });
-    // }
+     // Publish ACCESSCARD_ASSIGNED event
+    try {
+      const hospital = await Hospital.findByPk(assignment.hospitalId, { attributes: ["name"] });
+      await publishEvent("hospital_events", "ACCESSCARD_ASSIGNED", {
+        id: assignment.id,
+        hospitalId: assignment.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
+        deviceId: assignment.deviceId,
+        employeeId: assignment.employeeId,
+        employeeType: assignment.employeeType,
+        employeeName: assignment.employeeName,
+        department: assignment.department,
+        cardNumber: assignment.cardNumber,
+        status: assignment.status,
+        assignedAt: assignment.assignedAt,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish ACCESSCARD_ASSIGNED event:", { error: err.message });
+    }
 
 
 
@@ -143,6 +141,34 @@ export const updateRfidCardAssignment = async (req: Request, res: Response) => {
 
     await assignment.update(req.body);
 
+
+
+
+     // Publish ACCESSCARD_UPDATED event
+    try {
+      const hospital = await Hospital.findByPk(assignment.hospitalId, { attributes: ["name"] });
+      await publishEvent("hospital_events", "ACCESSCARD_UPDATED", {
+        id: assignment.id,
+        hospitalId: assignment.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
+        deviceId: assignment.deviceId,
+        employeeId: assignment.employeeId,
+        employeeType: assignment.employeeType,
+        employeeName: assignment.employeeName,
+        department: assignment.department,
+        cardNumber: assignment.cardNumber,
+        status: assignment.status,
+        assignedAt: assignment.assignedAt,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish ACCESSCARD_UPDATED event:", { error: err.message });
+    }
+
+
+
+
+
+
     res.status(200).json({
       success: true,
       message: "RFID card assignment updated successfully.",
@@ -165,6 +191,31 @@ export const deactivateRfidCardAssignment = async (req: Request, res: Response) 
     assignment.status = "Inactive";
     await assignment.save();
 
+
+     // Publish ACCESSCARD_DEACTIVATED event
+    try {
+      const hospital = await Hospital.findByPk(assignment.hospitalId, { attributes: ["name"] });
+      await publishEvent("hospital_events", "ACCESSCARD_DEACTIVATED", {
+        id: assignment.id,
+        hospitalId: assignment.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
+        deviceId: assignment.deviceId,
+        employeeId: assignment.employeeId,
+        employeeType: assignment.employeeType,
+        employeeName: assignment.employeeName,
+        department: assignment.department,
+        cardNumber: assignment.cardNumber,
+        status: assignment.status,
+        assignedAt: assignment.assignedAt,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish ACCESSCARD_DEACTIVATED event:", { error: err.message });
+    }
+
+
+
+
+
     res.status(200).json({
       success: true,
       message: "RFID card assignment deactivated successfully.",
@@ -186,6 +237,35 @@ export const activateRfidCardAssignment = async (req: Request, res: Response) =>
 
     assignment.status = "Active";
     await assignment.save();
+
+
+
+
+    
+     // Publish ACCESSCARD_ACTIVATED event
+    try {
+      const hospital = await Hospital.findByPk(assignment.hospitalId, { attributes: ["name"] });
+      await publishEvent("hospital_events", "ACCESSCARD_ACTIVATED", {
+        id: assignment.id,
+        hospitalId: assignment.hospitalId,
+        hospitalName: hospital?.name || "Unknown Hospital",
+        deviceId: assignment.deviceId,
+        employeeId: assignment.employeeId,
+        employeeType: assignment.employeeType,
+        employeeName: assignment.employeeName,
+        department: assignment.department,
+        cardNumber: assignment.cardNumber,
+        status: assignment.status,
+        assignedAt: assignment.assignedAt,
+      });
+    } catch (err: any) {
+      logger.error("Failed to publish ACCESSCARD_ACTIVATED event:", { error: err.message });
+    }
+
+
+
+
+
 
     res.status(200).json({
       success: true,

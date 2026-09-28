@@ -16,6 +16,8 @@ import { handleEmailEvent } from "../handlers/email.handler";
 import { handleFingerprintEvent } from "../handlers/fingerprint.handler";
 import { handleLabEvent } from "../handlers/lab.handler";
 import { handleDocumentEvent } from "../handlers/document.handler";
+import { handleAccessCardEvent } from "../handlers/accesscard.handler";
+import { handleAttendanceEvent } from "../handlers/attendance.handler";
 
 let connection: any;
 let channel: amqp.Channel;
@@ -120,6 +122,21 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "hospital_events", "FINGERPRINT_UPDATED");
         await channel.bindQueue(queue, "hospital_events", "FINGERPRINT_DEACTIVATED");
         await channel.bindQueue(queue, "hospital_events", "FINGERPRINT_ACTIVATED");
+
+        // 1d. Access Card (same exchange as hospital)
+        await channel.bindQueue(queue, "hospital_events", "ACCESSCARD_ASSIGNED");
+        await channel.bindQueue(queue, "hospital_events", "ACCESSCARD_UPDATED");
+        await channel.bindQueue(queue, "hospital_events", "ACCESSCARD_DEACTIVATED");
+        await channel.bindQueue(queue, "hospital_events", "ACCESSCARD_ACTIVATED");
+
+
+
+        // 1e. Attendance (same exchange as hospital)
+        await channel.bindQueue(queue, "hospital_events", "ATTENDANCE_REGISTERED");
+        await channel.bindQueue(queue, "hospital_events", "ATTENDANCE_UPDATED");
+        await channel.bindQueue(queue, "hospital_events", "ATTENDANCE_DELETED");
+
+
 
         // 2. Booking
         await channel.assertExchange("booking_events", "direct", { durable: true });
@@ -270,6 +287,10 @@ export const startConsumer = async () => {
                         await handleLabEvent(routingKey, content);
                     } else if (routingKey.startsWith("DOCUMENT_")) {
                         await handleDocumentEvent(routingKey, content);
+                    } else if (routingKey.startsWith("ACCESSCARD_")) {
+                        await handleAccessCardEvent(routingKey, content);
+                    } else if (routingKey.startsWith("ATTENDANCE_")) {
+                        await handleAttendanceEvent(routingKey, content);
                     } else if (routingKey.startsWith("AMBULANCE_")) {
                         await handleAmbulanceEvent(routingKey, content);
                     } else if (routingKey.startsWith("DONOR_")) {
