@@ -35,4 +35,5 @@ const EmailTemplate = sequelize.define("EmailTemplate", {
 });
 
 export default EmailTemplate;
- 
+
+

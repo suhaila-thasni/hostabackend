@@ -12,6 +12,7 @@ export const handlePrescriptionEvent = async (routingKey: string, content: any) 
     routingKey === "PRESCRIPTION_CREATED" ||
     routingKey === "PRESCRIPTION_UPDATED" ||
     routingKey === "PRESCRIPTION_DELETED" ||
+    routingKey === "PRESCRIPTION_RECOVERED" ||
     routingKey === "HOSPITALPRESCRIPTION_REGISTERED" ||
     routingKey === "HOSPITAL_PRESCRIPTION_UPDATED" ||
     routingKey === "HOSPITAL_PRESCRIPTION_DELETED"
@@ -38,14 +39,14 @@ export const handlePrescriptionEvent = async (routingKey: string, content: any) 
         msg = `Prescription ${formattedId} on your profile has been updated by ${doctorName} at ${hospitalName}.`;
       } else if (routingKey === "PRESCRIPTION_DELETED") {
         msg = `Prescription ${formattedId} on your profile has been blacklisted by ${hospitalName}.`;
+      } else if (routingKey === "PRESCRIPTION_RECOVERED") {
+        msg = `Prescription ${formattedId} has been recovered and restored by ${hospitalName}.`;
       }
     }
 
-    const saveNotificationForHospital = routingKey !== "PRESCRIPTION_CREATED";
-
     await Notification.create({
       userIds: content.userId ? [content.userId] : [],
-      hospitalIds: (saveNotificationForHospital && content.hospitalId) ? [content.hospitalId] : [],
+      hospitalIds: content.hospitalId ? [content.hospitalId] : [],
       message: msg,
     }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
 

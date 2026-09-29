@@ -33,7 +33,8 @@ import {
   getPrescription,
   getAPrescription,
   deletePrescription,
-  updateData
+  updateData,
+  recoverPrescription
 } from "../controllers/prescription.controller";
 
 import {
@@ -52,6 +53,7 @@ import {
   getLabResult,
   updateLabResult,
   deleteLabResult,
+  recoverLabResult,
 } from "../controllers/labResult.controller";
 
 import {
@@ -119,6 +121,7 @@ router.delete("/patients/:id", authenticate, checkPermission("patient", "delete"
 router.post("/prescription",  authenticate, checkPermission("prescription", "create"),  createPrescription);
 router.get("/prescription", authenticate, checkPermission("prescription", "view"), getPrescription);
 router.get("/prescription/:id", authenticate, checkPermission("prescription", "view"), getAPrescription);
+router.put("/prescription/recover/:id", authenticate, checkPermission("prescription", "edit"), recoverPrescription);
 router.put("/prescription/:id", authenticate, checkPermission("prescription", "edit"), updateData);
 router.delete("/prescription/:id", authenticate, checkPermission("prescription", "delete"), deletePrescription);
 
@@ -135,6 +138,7 @@ router.delete("/vitals/:id", authenticate, checkPermission("vitals", "delete"), 
 router.post("/lab-results", authenticate, checkPermission("labresult", "create"), createLabResult);
 router.get("/lab-results", authenticate, checkPermission("labresult", "view"), getLabResults);
 router.get("/lab-results/:id", authenticate, validateParams(idParamSchema), checkPermission("labresult", "view"), getLabResult);
+router.put("/lab-results/recover/:id", authenticate, checkPermission("labresult", "edit"), recoverLabResult);
 router.put("/lab-results/:id", authenticate, validateParams(idParamSchema), checkPermission("labresult", "edit"), updateLabResult);
 router.delete("/lab-results/:id", authenticate, validateParams(idParamSchema), checkPermission("labresult", "delete"), deleteLabResult);
 

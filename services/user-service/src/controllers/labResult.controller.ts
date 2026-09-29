@@ -309,3 +309,47 @@ export const deleteLabResult: any = asyncHandler(async (req: Request, res: Respo
     message: "Lab result deleted successfully",
   });
 });
+
+// RECOVER LAB RESULT FROM SOFT DELETE - PUT /lab-results/recover/:id
+export const recoverLabResult: any = asyncHandler(async (req: Request, res: Response) => {
+  const labResult = await LabResult.findOne({
+    where: { id: req.params.id, isActive: false },
+  });
+
+  if (!labResult) {
+    res.status(404).json({
+      success: false,
+      message: "Deleted lab result not found",
+    });
+    return;
+  }
+
+  await labResult.update({ isActive: true });
+
+  try {
+    await publishEvent("labresult_events", "LABRESULT_RECOVERED", {
+      id: labResult.id,
+      labId: labResult.labId,
+      userId: labResult.userId,
+      hospitalId: labResult.hospitalId,
+      patientId: labResult.patientId,
+      doctorId: labResult.doctorId,
+      department: labResult.department,
+      testName: labResult.testName,
+      imageUrl: labResult.imageUrl,
+      status: labResult.status,
+      hospitalName: labResult.hospitalName,
+      labName: labResult.labName,
+      patientName: labResult.patientName,
+      doctorName: labResult.doctorName,
+    });
+  } catch (err) {
+    console.error("Failed to publish LABRESULT_RECOVERED event:", err);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Lab result recovered successfully",
+    data: labResult,
+  });
+});

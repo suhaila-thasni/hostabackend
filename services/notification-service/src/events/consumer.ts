@@ -205,6 +205,7 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "labresult_events", "LABRESULT_REGISTERED");
         await channel.bindQueue(queue, "labresult_events", "LABRESULT_UPDATED");
         await channel.bindQueue(queue, "labresult_events", "LABRESULT_DELETED");
+        await channel.bindQueue(queue, "labresult_events", "LABRESULT_RECOVERED");
         await channel.assertExchange("test_events", "direct", { durable: true });
         await channel.bindQueue(queue, "test_events", "TEST_REGISTERED");
         await channel.assertExchange("report_events", "direct", { durable: true });
@@ -239,6 +240,7 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_CREATED");
         await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_UPDATED");
         await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_DELETED");
+        await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_RECOVERED");
 
         // Hospital Prescription Templates
         await channel.bindQueue(queue, "prescription_events", "HOSPITALPRESCRIPTION_REGISTERED");
@@ -363,3 +365,7 @@ export const closeRabbitMQ = async () => {
         console.error("❌ Error closing RabbitMQ connection:", err);
     }
 };
+
+
+
+

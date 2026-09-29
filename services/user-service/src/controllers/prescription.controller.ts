@@ -600,7 +600,77 @@ export const deletePrescription: any = asyncHandler(async (req: Request, res: Re
   });
 });
 
+// RECOVER PRESCRIPTION FROM SOFT DELETE - PUT /prescription/recover/:id
+export const recoverPrescription: any = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const hospitalId = req.query.hospitalId ? Number(req.query.hospitalId) : undefined;
 
+  const whereClause: any = { id, isDelete: true };
+  if (hospitalId) {
+    whereClause.hospitalId = hospitalId;
+  }
+
+  const prescription = await Prescription.findOne({ where: whereClause });
+
+  if (!prescription) {
+    res.status(404).json({
+      success: false,
+      message: "Deleted prescription not found",
+    });
+    return;
+  }
+
+  await prescription.update({
+    isActive: true,
+    isDelete: false,
+    deleteDate: null,
+  });
+
+  const patient = await Patient.findOne({ where: { patientNumber: prescription.patientId } });
+
+  let doctorName = "";
+  let hospitalName = "";
+  try {
+    const doctorRes = await httpClient.get(
+      `${process.env.DOCTOR_SERVICE_URL}/doctor/${prescription.doctorId}`,
+      { headers: { Authorization: req.headers.authorization } },
+    );
+    doctorName = doctorRes.data?.data?.displayName || "";
+  } catch (err: any) {
+    console.error("⚠️ Failed to fetch doctor name for prescription recover event:", err.message);
+  }
+
+  try {
+    const hospitalRes = await httpClient.get(
+      `${process.env.HOSPITAL_SERVICE_URL}/hospital/${prescription.hospitalId}`,
+      { headers: { Authorization: req.headers.authorization } },
+    );
+    hospitalName = hospitalRes.data?.data?.hospitalName || "";
+  } catch (err: any) {
+    console.error("⚠️ Failed to fetch hospital name for prescription recover event:", err.message);
+  }
+
+  try {
+    await publishEvent("prescription_events", "PRESCRIPTION_RECOVERED", {
+      prescriptionId: prescription.id,
+      prescriptionNumber: prescription.prescriptionNumber,
+      patientId: prescription.patientId,
+      patientNumber: patient ? patient.patientNumber : null,
+      userId: patient ? patient.userId : prescription.userId,
+      hospitalId: prescription.hospitalId,
+      doctorName,
+      hospitalName,
+    });
+  } catch (err) {
+    console.error("Failed to publish PRESCRIPTION_RECOVERED event:", err);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Prescription recovered successfully",
+    data: prescription,
+  });
+});
 
 
 

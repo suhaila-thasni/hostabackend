@@ -14,6 +14,9 @@ export const handleLabEvent = async (routingKey: string, content: any) => {
     case "LABRESULT_DELETED":
       msg = `Lab result has been removed for ${content.patientName || "the patient"}`;
       break;
+    case "LABRESULT_RECOVERED":
+      msg = `Lab result has been recovered for ${content.patientName || "the patient"}`;
+      break;
     case "TEST_REGISTERED":
       msg = `Test registered: ${content.testName || "Medical Test"}`;
       break;
