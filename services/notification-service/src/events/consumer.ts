@@ -19,6 +19,7 @@ import { handleDocumentEvent } from "../handlers/document.handler";
 import { handleAccessCardEvent } from "../handlers/accesscard.handler";
 import { handleAttendanceEvent } from "../handlers/attendance.handler";
 import { handleTemplateEvent } from "../handlers/template.handler";
+import { handleAuthEvent } from "../handlers/auth.handler";
 
 let connection: any;
 let channel: amqp.Channel;
@@ -257,6 +258,10 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "template_events", "TEMPLATE_UPDATED");
         await channel.bindQueue(queue, "template_events", "TEMPLATE_DELETED");
 
+        // 17. Auth / Audit
+        await channel.assertExchange("auth_events", "direct", { durable: true });
+        await channel.bindQueue(queue, "auth_events", "AUTH_LOGIN");
+
         console.log(`📥 Notification Consumer started on queue: ${queue}`);
 
         channel.consume(queue, async (msg) => {
@@ -310,6 +315,8 @@ export const startConsumer = async () => {
                         await handleEmailEvent(routingKey, content);
                     } else if (routingKey.startsWith("TEMPLATE_")) {
                         await handleTemplateEvent(routingKey, content);
+                    } else if (routingKey === "AUTH_LOGIN") {
+                        await handleAuthEvent(routingKey, content);
                     }
 
                     channel.ack(msg);

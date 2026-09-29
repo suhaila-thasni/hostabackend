@@ -3,6 +3,7 @@ import geoip from 'geoip-lite';
 import { Request } from 'express';
 import { AUDIT_EXCLUDED_ROLES } from '../constants/audit.constants';
 import { UAParser } from 'ua-parser-js';
+import { publishEvent } from '../events/publisher';
 
 interface CreateAuditLogParams {
   req: Request;
@@ -63,6 +64,9 @@ export const createAuditLog = async (params: CreateAuditLogParams) => {
       riskLevel: params.riskLevel || 'Low',
       loginMethod: params.loginMethod || 'Password',
     });
+
+    // Fire event for real-time tracking (audit / login)
+    void publishEvent('auth_events', 'AUTH_LOGIN', auditLog.toJSON());
 
     return auditLog;
   } catch (error) {

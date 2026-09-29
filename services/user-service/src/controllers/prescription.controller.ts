@@ -457,7 +457,13 @@ export const updateData: any = asyncHandler(async (req: Request, res: Response) 
 
 
 
-  const patient = await Patient.findOne({ where: { id: prescription[1][0].patientId, isDelete: false } });
+  const patient = await Patient.findOne({ 
+    where: { 
+      patientNumber: prescription[1][0].patientId, 
+      hospitalId: prescription[1][0].hospitalId,
+      isDelete: false 
+    } 
+  });
 
   // 🔄 Save/Update Vitals if provided
   if (vitals && typeof vitals === 'object') {
@@ -554,7 +560,13 @@ export const deletePrescription: any = asyncHandler(async (req: Request, res: Re
 
   
 
-  const patient = await Patient.findOne({ where: { id: user.patientId, isDelete: false } });
+  const patient = await Patient.findOne({ 
+    where: { 
+      patientNumber: user.patientId, 
+      hospitalId: user.hospitalId,
+      isDelete: false 
+    } 
+  });
 
   let doctorName = "";
   let hospitalName = "";
@@ -626,7 +638,13 @@ export const recoverPrescription: any = asyncHandler(async (req: Request, res: R
     deleteDate: null,
   });
 
-  const patient = await Patient.findOne({ where: { patientNumber: prescription.patientId } });
+  const patient = await Patient.findOne({ 
+    where: { 
+      patientNumber: prescription.patientId,
+      hospitalId: prescription.hospitalId,
+      isDelete: false
+    } 
+  });
 
   let doctorName = "";
   let hospitalName = "";
