@@ -106,7 +106,7 @@ export const updateAuditLogOnLogout = async (authId: number) => {
 
       await auditLog.update({
         status: 'Inactive',
-        lastActivity: now,
+        logoutTime: now,
         sessionDuration: sessionDuration.trim()
       });
     }

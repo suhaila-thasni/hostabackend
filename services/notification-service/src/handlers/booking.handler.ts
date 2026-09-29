@@ -64,9 +64,13 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
   // BOOKING_REGISTERED / BOOKING_CANCELLED
   // ==============================
   if (routingKey === "BOOKING_REGISTERED" || routingKey === "BOOKING_CANCELLED") {
-    const msgText = routingKey === "BOOKING_REGISTERED"
+    let msgText = routingKey === "BOOKING_REGISTERED"
       ? `${patientName} has booked an appointment ${formattedId} with ${doctorName} at ${hospitalName} for ${formattedDate}`
       : `${patientName} has cancelled appointment ${formattedId} with ${doctorName} at ${hospitalName} for ${formattedDate}`;
+
+    if (routingKey === "BOOKING_CANCELLED" && content.reason) {
+      msgText += `. Reason: ${content.reason}`;
+    }
 
     await persistNotification(
       {
@@ -222,6 +226,9 @@ export const handleBookingEvent = async (routingKey: string, content: any) => {
         }
       } else if (content.status === "cancel" || content.status === "cancelled") {
         msg = `Booking (${formattedId}) with ${doctorName} at ${hospitalName} has been cancelled`;
+        if (content.reason) {
+          msg += `. Reason: ${content.reason}`;
+        }
       } else if (content.status === "completed") {
         const completer = content.actionBy === "doctor" ? "the doctor" : "the hospital";
         msg = `Your booking (${formattedId}) with ${doctorName} at ${hospitalName} has been marked as completed by ${completer}`;

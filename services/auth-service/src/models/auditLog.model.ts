@@ -19,6 +19,7 @@ export interface IAuditLog {
   registeredAddress?: string;
   loginTime: Date;
   lastActivity: Date;
+  logoutTime?: Date;
   status: string; // 'Active', 'Inactive', 'Failed'
   riskLevel: string; // 'Low', 'Medium', 'High'
   sessionDuration?: string;
@@ -28,7 +29,7 @@ export interface IAuditLog {
 }
 
 // Ensure these fields are optional upon creation since they are set by DB or explicitly marked nullable
-type AuditLogCreationAttributes = Optional<IAuditLog, 'id' | 'authId' | 'department' | 'hospitalId' | 'browser' | 'browserVersion' | 'operatingSystem' | 'osVersion' | 'deviceType' | 'userAgent' | 'ipAddress' | 'registeredAddress' | 'loginTime' | 'lastActivity' | 'sessionDuration' | 'createdAt' | 'updatedAt'>;
+type AuditLogCreationAttributes = Optional<IAuditLog, 'id' | 'authId' | 'department' | 'hospitalId' | 'browser' | 'browserVersion' | 'operatingSystem' | 'osVersion' | 'deviceType' | 'userAgent' | 'ipAddress' | 'registeredAddress' | 'loginTime' | 'lastActivity' | 'logoutTime' | 'sessionDuration' | 'createdAt' | 'updatedAt'>;
 
 class AuditLog extends Model<IAuditLog, AuditLogCreationAttributes> implements IAuditLog {
   public id!: number;
@@ -48,6 +49,7 @@ class AuditLog extends Model<IAuditLog, AuditLogCreationAttributes> implements I
   public registeredAddress?: string;
   public loginTime!: Date;
   public lastActivity!: Date;
+  public logoutTime?: Date;
   public status!: string;
   public riskLevel!: string;
   public sessionDuration?: string;
@@ -124,6 +126,10 @@ AuditLog.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+    },
+    logoutTime: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     status: {
       type: DataTypes.STRING,
