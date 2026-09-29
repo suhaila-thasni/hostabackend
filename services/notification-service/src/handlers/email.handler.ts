@@ -2,6 +2,8 @@ import { env } from "../config/env";
 import axios from "axios";
 import nodemailer from "nodemailer";
 import EmailNotification from "../models/email.model";
+import { safeSocketEmit } from "../utils/socket.emitter";
+import Notification from "../models/notification.model";
 
 export const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -18,7 +20,16 @@ export const handleEmailEvent = async (
     content: any
 ) => {
     try {
-        const { notificationId, hospitalId, recipients, subject, message } = content;
+        const { notificationId, hospitalId, recipients, subject, message, createdBy } = content;
+
+        // ── Emit "SENDING" socket event ──
+        if (hospitalId) {
+            safeSocketEmit(`hospital_${hospitalId}`, "email_event", {
+                event: "EMAIL_SENDING",
+                message: `Sending email: "${subject}"...`,
+                data: { notificationId, subject, status: "SENDING" },
+            });
+        }
 
         let allEmails: any[] = [];
 
@@ -106,6 +117,16 @@ export const handleEmailEvent = async (
                     { where: { id: notificationId } }
                 );
             }
+
+            // ── Emit "FAILED" socket event (no recipients found) ──
+            if (hospitalId) {
+                safeSocketEmit(`hospital_${hospitalId}`, "email_event", {
+                    event: "EMAIL_FAILED",
+                    message: `Email "${subject}" failed: No recipients found`,
+                    data: { notificationId, subject, status: "FAILED", reason: "No recipients found" },
+                });
+            }
+
             return;
         }
 
@@ -139,15 +160,67 @@ export const handleEmailEvent = async (
             }
         });
 
+        const finalStatus = failedCount > 0 ? (successCount > 0 ? "PARTIAL" : "FAILED") : "SUCCESS";
+
         if (notificationId) {
             await EmailNotification.update(
                 { 
-                    status: failedCount > 0 ? (successCount > 0 ? "PARTIAL" : "FAILED") : "SUCCESS",
+                    status: finalStatus,
                     successCount,
                     failedCount
                 },
                 { where: { id: notificationId } }
             );
+        }
+
+        // ── Persist email notification to Notification table ──
+        try {
+            await Notification.create({
+                hospitalIds: hospitalId ? [hospitalId] : [],
+                staffIds: createdBy ? [createdBy] : [],
+                message: finalStatus === "SUCCESS"
+                    ? `Email "${subject}" sent successfully to ${successCount} recipient(s)`
+                    : finalStatus === "PARTIAL"
+                        ? `Email "${subject}" partially sent: ${successCount} succeeded, ${failedCount} failed`
+                        : `Email "${subject}" failed to send to all ${failedCount} recipient(s)`,
+                metadata: {
+                    type: "EMAIL",
+                    event: `EMAIL_${finalStatus}`,
+                    notificationId,
+                    subject,
+                    successCount,
+                    failedCount,
+                    totalRecipients: uniqueEmails.length,
+                },
+            });
+        } catch (persistErr) {
+            console.error("Failed to persist email notification:", persistErr);
+        }
+
+        // ── Emit final status socket event ──
+        if (hospitalId) {
+            const socketEvent = finalStatus === "SUCCESS" ? "EMAIL_SUCCESS"
+                : finalStatus === "PARTIAL" ? "EMAIL_PARTIAL"
+                : "EMAIL_FAILED";
+
+            const socketMessage = finalStatus === "SUCCESS"
+                ? `Email "${subject}" sent successfully to ${successCount} recipient(s)`
+                : finalStatus === "PARTIAL"
+                    ? `Email "${subject}": ${successCount} sent, ${failedCount} failed`
+                    : `Email "${subject}" failed to send`;
+
+            safeSocketEmit(`hospital_${hospitalId}`, "email_event", {
+                event: socketEvent,
+                message: socketMessage,
+                data: {
+                    notificationId,
+                    subject,
+                    status: finalStatus,
+                    successCount,
+                    failedCount,
+                    totalRecipients: uniqueEmails.length,
+                },
+            });
         }
     } catch (error: any) {
         if (content.notificationId) {
@@ -156,6 +229,21 @@ export const handleEmailEvent = async (
                 { where: { id: content.notificationId } }
             ).catch(() => undefined);
         }
+
+        // ── Emit error socket event ──
+        if (content.hospitalId) {
+            safeSocketEmit(`hospital_${content.hospitalId}`, "email_event", {
+                event: "EMAIL_FAILED",
+                message: `Email "${content.subject}" failed: ${error.message}`,
+                data: {
+                    notificationId: content.notificationId,
+                    subject: content.subject,
+                    status: "FAILED",
+                    error: error.message,
+                },
+            });
+        }
+
         throw error;
     }
 };

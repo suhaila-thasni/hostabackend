@@ -26,6 +26,8 @@ const EmailTemplate = sequelize.define("EmailTemplate", {
         type: DataTypes.TEXT,
         allowNull: false
     },
+
+    
     status: {
         type: DataTypes.ENUM("Active", "Inactive"),
         defaultValue: "Active"
@@ -33,3 +35,4 @@ const EmailTemplate = sequelize.define("EmailTemplate", {
 });
 
 export default EmailTemplate;
+ 

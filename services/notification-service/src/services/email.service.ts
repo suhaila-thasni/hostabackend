@@ -78,6 +78,7 @@ export const sendEmailNotification = async (payload: any) => {
         {
             notificationId: (notification as any).id,
             hospitalId,
+            createdBy,
             recipients,
             subject,
             message
@@ -109,6 +110,7 @@ export const sendDraft = async (id: number, hospitalId: number) => {
         {
             notificationId: id,
             hospitalId,
+            createdBy: draft.get("createdBy"),
             recipients,
             subject: draft.get("subject"),
             message: draft.get("message")
@@ -256,6 +258,7 @@ export const resendEmail = async (id: number, hospitalId: number) => {
         {
             notificationId: (resent as any).id,
             hospitalId,
+            createdBy: original.get("createdBy"),
             recipients,
             subject: original.get("subject"),
             message: original.get("message")

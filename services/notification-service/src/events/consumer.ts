@@ -18,6 +18,7 @@ import { handleLabEvent } from "../handlers/lab.handler";
 import { handleDocumentEvent } from "../handlers/document.handler";
 import { handleAccessCardEvent } from "../handlers/accesscard.handler";
 import { handleAttendanceEvent } from "../handlers/attendance.handler";
+import { handleTemplateEvent } from "../handlers/template.handler";
 
 let connection: any;
 let channel: amqp.Channel;
@@ -248,6 +249,12 @@ export const startConsumer = async () => {
         await channel.assertExchange("email_events", "direct", { durable: true });
         await channel.bindQueue(queue, "email_events", "EMAIL_SEND");
 
+        // 16. Email Templates
+        await channel.assertExchange("template_events", "direct", { durable: true });
+        await channel.bindQueue(queue, "template_events", "TEMPLATE_CREATED");
+        await channel.bindQueue(queue, "template_events", "TEMPLATE_UPDATED");
+        await channel.bindQueue(queue, "template_events", "TEMPLATE_DELETED");
+
         console.log(`📥 Notification Consumer started on queue: ${queue}`);
 
         channel.consume(queue, async (msg) => {
@@ -299,6 +306,8 @@ export const startConsumer = async () => {
                         await handleBloodBankEvent(routingKey, content);
                     } else if (routingKey === "EMAIL_SEND") {
                         await handleEmailEvent(routingKey, content);
+                    } else if (routingKey.startsWith("TEMPLATE_")) {
+                        await handleTemplateEvent(routingKey, content);
                     }
 
                     channel.ack(msg);

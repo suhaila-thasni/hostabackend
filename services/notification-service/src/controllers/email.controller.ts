@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as EmailService from "../services/email.service";
 import asyncHandler from "express-async-handler";
 import axios from "axios";
+import { safeSocketEmit } from "../utils/socket.emitter";
 
 // ── Save Draft ──
 export const saveDraft: any = asyncHandler(async (
@@ -12,6 +13,13 @@ export const saveDraft: any = asyncHandler(async (
         hospitalId: req.user.hospitalId,
         createdBy: req.user.id,
         ...req.body
+    });
+
+    // ── Emit socket event for draft saved ──
+    safeSocketEmit(`hospital_${req.user.hospitalId}`, "email_event", {
+        event: "EMAIL_DRAFT_SAVED",
+        message: `Email draft "${(draft as any).subject || 'Untitled'}" saved`,
+        data: draft,
     });
 
     return res.status(201).json({
@@ -42,6 +50,13 @@ export const sendEmailNotification: any = asyncHandler(async (
         templateId
     });
 
+    // ── Emit socket event for email queued ──
+    safeSocketEmit(`hospital_${req.user.hospitalId}`, "email_event", {
+        event: "EMAIL_QUEUED",
+        message: `Email "${subject || 'Untitled'}" queued for sending`,
+        data: { subject, recipientCount: recipients?.length || 0 },
+    });
+
     return res.status(202).json({
         success: true,
         message: "Email notification queued successfully."
@@ -69,6 +84,13 @@ export const sendDraft: any = asyncHandler(async (
             message: "Draft not found or already sent",
         });
     }
+
+    // ── Emit socket event for draft sent ──
+    safeSocketEmit(`hospital_${req.user.hospitalId}`, "email_event", {
+        event: "EMAIL_DRAFT_SENT",
+        message: `Draft email "${(result as any).subject || 'Untitled'}" queued for sending`,
+        data: result,
+    });
 
     return res.status(202).json({
         success: true,
