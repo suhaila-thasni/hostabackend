@@ -55,17 +55,17 @@ export const handleAuthEvent = async (routingKey: string, content: any) => {
       const newCount = currentCount + 1;
       updatedMetadata.count = newCount;
 
-      msg = `${name} signed in ${newCount} times today.`;
+      msg = `${role.toUpperCase()} ${name} has logged in ${newCount} times today.`;
 
       existingNotification.message = msg;
       existingNotification.metadata = updatedMetadata;
       await existingNotification.save();
       
-      emitSocket(routingKey, title, type, msg, content, hospitalIdsForNotification, isHospitalLogin);
+      emitSocket(routingKey, title, type, msg, content, updatedMetadata, hospitalIdsForNotification, isHospitalLogin);
       
     } else {
       // New notification
-      msg = `${name} signed in 1 time today.`;
+      msg = `${role.toUpperCase()} ${name} has logged in 1 time today.`;
 
       await Notification.create({
         userIds: [],
@@ -75,20 +75,21 @@ export const handleAuthEvent = async (routingKey: string, content: any) => {
         metadata: updatedMetadata,
       });
 
-      emitSocket(routingKey, title, type, msg, content, hospitalIdsForNotification, isHospitalLogin);
+      emitSocket(routingKey, title, type, msg, content, updatedMetadata, hospitalIdsForNotification, isHospitalLogin);
     }
   } catch (error) {
     console.error("Failed to process grouped auth notification", error);
   }
 };
 
-function emitSocket(routingKey: string, title: string, type: string, msg: string, content: any, hospitalIdsForNotification: number[], isHospitalLogin: boolean) {
+function emitSocket(routingKey: string, title: string, type: string, msg: string, content: any, metadata: any, hospitalIdsForNotification: number[], isHospitalLogin: boolean) {
   const payload = {
     event: routingKey,
     title,
     type,
     message: msg,
     data: content,
+    metadata
   };
 
   if (hospitalIdsForNotification.length > 0) {
