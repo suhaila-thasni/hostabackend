@@ -5,6 +5,7 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import Document from "../models/document.model";
+import Patient from "../models/patient.model";
 import { publishEvent } from "../events/publisher";
 import { col, fn, Op, Sequelize, where } from "sequelize";
 
@@ -45,6 +46,17 @@ export const createDocument = asyncHandler(async (req: Request, res: Response) =
     userId: Number(userId)
   });
 
+  // Fetch patient to get exact name if not in body
+  let actualPatientName = req.body.patientName;
+  if (!actualPatientName) {
+    const patientRecord = await Patient.findOne({ where: { patientNumber: Number(patientId) } });
+    if (patientRecord) {
+      actualPatientName = patientRecord.name;
+    } else {
+      actualPatientName = "Unknown Patient";
+    }
+  }
+
   // Publish event (non-blocking)
   try {
     await publishEvent("document_events", "DOCUMENT_REGISTERED", {
@@ -56,7 +68,7 @@ export const createDocument = asyncHandler(async (req: Request, res: Response) =
       // Audit details
       actorName: (req as any).user?.name || req.body.actorName || "Unknown",
       actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
-      patientName: req.body.patientName || "Unknown Patient",
+      patientName: actualPatientName,
       ipAddress: req.ip || "Unknown IP",
     });
   } catch (eventError) {
@@ -189,6 +201,17 @@ export const updateDocument = asyncHandler(async (req: Request, res: Response) =
 
   await document.update(req.body);
 
+  // Fetch patient to get exact name if not in body
+  let actualPatientName = req.body.patientName;
+  if (!actualPatientName) {
+    const patientRecord = await Patient.findOne({ where: { patientNumber: document.patientId } });
+    if (patientRecord) {
+      actualPatientName = patientRecord.name;
+    } else {
+      actualPatientName = "Unknown Patient";
+    }
+  }
+
   // Publish event (non-blocking)
   try {
     await publishEvent("document_events", "DOCUMENT_UPDATED", {
@@ -200,7 +223,7 @@ export const updateDocument = asyncHandler(async (req: Request, res: Response) =
       // Audit details
       actorName: (req as any).user?.name || req.body.actorName || "Unknown",
       actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
-      patientName: req.body.patientName || "Unknown Patient",
+      patientName: actualPatientName,
       ipAddress: req.ip || "Unknown IP",
     });
   } catch (eventError) {
@@ -229,6 +252,17 @@ export const deleteDocument = asyncHandler(async (req: Request, res: Response) =
   // Hard delete
   await document.destroy();
 
+  // Fetch patient to get exact name if not in body
+  let actualPatientName = req.body.patientName;
+  if (!actualPatientName) {
+    const patientRecord = await Patient.findOne({ where: { patientNumber: document.patientId } });
+    if (patientRecord) {
+      actualPatientName = patientRecord.name;
+    } else {
+      actualPatientName = "Unknown Patient";
+    }
+  }
+
   // Publish event (non-blocking)
   try {
     await publishEvent("document_events", "DOCUMENT_DELETED", {
@@ -240,7 +274,7 @@ export const deleteDocument = asyncHandler(async (req: Request, res: Response) =
       // Audit details
       actorName: (req as any).user?.name || req.body.actorName || "Unknown",
       actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
-      patientName: req.body.patientName || "Unknown Patient",
+      patientName: actualPatientName,
       ipAddress: req.ip || "Unknown IP",
     });
   } catch (eventError) {

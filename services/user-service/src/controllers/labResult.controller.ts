@@ -3,6 +3,7 @@ import asyncHandler from "express-async-handler";
 import LabResult from "../models/labResult.model";
 import { publishEvent } from "../events/publisher";
 import { col, fn, Op, Sequelize, where } from "sequelize";
+import Patient from "../models/patient.model";
 
 export const createLabResult: any = asyncHandler(async (req: Request, res: Response) => {
   const { labId, hospitalId, patientId, doctorId, department, testName,  status, userId, hospitalName, labName, patientName, doctorName } = req.body;
@@ -23,6 +24,13 @@ export const createLabResult: any = asyncHandler(async (req: Request, res: Respo
   });
 
 
+  let actualPatientName = labResult.patientName;
+  if (!actualPatientName && labResult.patientId) {
+    const patientRecord = await Patient.findOne({ where: { patientNumber: Number(labResult.patientId) } });
+    if (patientRecord) actualPatientName = patientRecord.name;
+    else actualPatientName = "Unknown Patient";
+  }
+
       await publishEvent("labresult_events", "LABRESULT_REGISTERED", {
         id: labResult.id,
         labId: labResult.labId,
@@ -36,8 +44,11 @@ export const createLabResult: any = asyncHandler(async (req: Request, res: Respo
         status: labResult.status,
         hospitalName: labResult.hospitalName,
         labName: labResult.labName,
-        patientName: labResult.patientName,
+        patientName: actualPatientName,
         doctorName: labResult.doctorName,
+        actorName: (req as any).user?.name || req.body.actorName || "Unknown",
+        actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
+        ipAddress: req.ip || "Unknown IP",
       });
 
   res.status(201).json({
@@ -248,6 +259,13 @@ export const updateLabResult: any = asyncHandler(async (req: Request, res: Respo
 
   await labResult.update(req.body);
 
+  let actualPatientName = labResult.patientName;
+  if (!actualPatientName && labResult.patientId) {
+    const patientRecord = await Patient.findOne({ where: { patientNumber: Number(labResult.patientId) } });
+    if (patientRecord) actualPatientName = patientRecord.name;
+    else actualPatientName = "Unknown Patient";
+  }
+
     await publishEvent("labresult_events", "LABRESULT_UPDATED", {
       id: labResult.id,
       labId: labResult.labId,
@@ -261,8 +279,11 @@ export const updateLabResult: any = asyncHandler(async (req: Request, res: Respo
       status: labResult.status,
       hospitalName: labResult.hospitalName,
       labName: labResult.labName,
-      patientName: labResult.patientName,
+      patientName: actualPatientName,
       doctorName: labResult.doctorName,
+      actorName: (req as any).user?.name || req.body.actorName || "Unknown",
+      actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
+      ipAddress: req.ip || "Unknown IP",
     });
 
   res.status(200).json({
@@ -287,6 +308,13 @@ export const deleteLabResult: any = asyncHandler(async (req: Request, res: Respo
 
   await labResult.update({ isActive: false });
 
+  let actualPatientName = labResult.patientName;
+  if (!actualPatientName && labResult.patientId) {
+    const patientRecord = await Patient.findOne({ where: { patientNumber: Number(labResult.patientId) } });
+    if (patientRecord) actualPatientName = patientRecord.name;
+    else actualPatientName = "Unknown Patient";
+  }
+
     await publishEvent("labresult_events", "LABRESULT_DELETED", {
       id: labResult.id,
       labId: labResult.labId,
@@ -300,8 +328,11 @@ export const deleteLabResult: any = asyncHandler(async (req: Request, res: Respo
       status: labResult.status,
       hospitalName: labResult.hospitalName,
       labName: labResult.labName,
-      patientName: labResult.patientName,
+      patientName: actualPatientName,
       doctorName: labResult.doctorName,
+      actorName: (req as any).user?.name || req.body.actorName || "Unknown",
+      actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
+      ipAddress: req.ip || "Unknown IP",
     });
 
   res.status(200).json({
@@ -326,6 +357,13 @@ export const recoverLabResult: any = asyncHandler(async (req: Request, res: Resp
 
   await labResult.update({ isActive: true });
 
+  let actualPatientName = labResult.patientName;
+  if (!actualPatientName && labResult.patientId) {
+    const patientRecord = await Patient.findOne({ where: { patientNumber: Number(labResult.patientId) } });
+    if (patientRecord) actualPatientName = patientRecord.name;
+    else actualPatientName = "Unknown Patient";
+  }
+
   try {
     await publishEvent("labresult_events", "LABRESULT_RECOVERED", {
       id: labResult.id,
@@ -340,8 +378,11 @@ export const recoverLabResult: any = asyncHandler(async (req: Request, res: Resp
       status: labResult.status,
       hospitalName: labResult.hospitalName,
       labName: labResult.labName,
-      patientName: labResult.patientName,
+      patientName: actualPatientName,
       doctorName: labResult.doctorName,
+      actorName: (req as any).user?.name || req.body.actorName || "Unknown",
+      actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
+      ipAddress: req.ip || "Unknown IP",
     });
   } catch (err) {
     console.error("Failed to publish LABRESULT_RECOVERED event:", err);

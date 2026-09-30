@@ -43,7 +43,8 @@ export const handleAuthEvent = async (routingKey: string, content: any) => {
     let updatedMetadata: any = {
       authId,
       eventType: "routine_login",
-      count: 1
+      count: 1,
+      latestSignInTime: new Date().toISOString()
     };
 
     if (existingNotification) {
