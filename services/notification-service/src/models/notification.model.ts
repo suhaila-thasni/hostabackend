@@ -37,6 +37,8 @@ interface INotification {
   pharmacyReadStatus?: object;
   labReadStatus?: object;
   superAdminReadStatus?: object;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 /* =======================

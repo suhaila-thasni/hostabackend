@@ -51,7 +51,13 @@ export const createDocument = asyncHandler(async (req: Request, res: Response) =
       userId: document.userId,
       hospitalId: document.hospitalId,
       patientId: document.patientId,
+      documentId: document.id,
       documentName: document.name,
+      // Audit details
+      actorName: (req as any).user?.name || req.body.actorName || "Unknown",
+      actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
+      patientName: req.body.patientName || "Unknown Patient",
+      ipAddress: req.ip || "Unknown IP",
     });
   } catch (eventError) {
     console.error("Failed to publish DOCUMENT_REGISTERED event:", eventError);
@@ -189,7 +195,13 @@ export const updateDocument = asyncHandler(async (req: Request, res: Response) =
       userId: document.userId,
       hospitalId: document.hospitalId,
       patientId: document.patientId,
+      documentId: document.id,
       documentName: document.name,
+      // Audit details
+      actorName: (req as any).user?.name || req.body.actorName || "Unknown",
+      actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
+      patientName: req.body.patientName || "Unknown Patient",
+      ipAddress: req.ip || "Unknown IP",
     });
   } catch (eventError) {
     console.error("Failed to publish DOCUMENT_UPDATED event:", eventError);
@@ -223,7 +235,13 @@ export const deleteDocument = asyncHandler(async (req: Request, res: Response) =
       userId: document.userId,
       hospitalId: document.hospitalId,
       patientId: document.patientId,
+      documentId: document.id,
       documentName: document.name,
+      // Audit details
+      actorName: (req as any).user?.name || req.body.actorName || "Unknown",
+      actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
+      patientName: req.body.patientName || "Unknown Patient",
+      ipAddress: req.ip || "Unknown IP",
     });
   } catch (eventError) {
     console.error("Failed to publish DOCUMENT_DELETED event:", eventError);

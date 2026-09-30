@@ -214,7 +214,7 @@ export const deactivateRfidCardAssignment = async (req: Request, res: Response) 
 
 
 
-
+ 
 
     res.status(200).json({
       success: true,
@@ -241,7 +241,7 @@ export const activateRfidCardAssignment = async (req: Request, res: Response) =>
 
 
 
-    
+        
      // Publish ACCESSCARD_ACTIVATED event
     try {
       const hospital = await Hospital.findByPk(assignment.hospitalId, { attributes: ["name"] });

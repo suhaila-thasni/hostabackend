@@ -6,6 +6,7 @@ import axios from "axios";
 import Attendance from "../models/attendance.model";
 import Hospital from "../models/hospital.model";
 import RfidDevice from "../models/Device.model";
+import RfidCardAssignment from "../models/rfidCardAssignment.model";
 import FingerprintEnrollment from "../models/fingerprintEnrollment.model";
 import { publishEvent } from "../events/publisher";
 import { logger } from "../utils/logger";
@@ -134,14 +135,15 @@ export const createAttendance = async (req: Request, res: Response) => {
       roles,
       department,
       location,
+      cardNumber,
     } = req.body;
     const type = req.body.type ? req.body.type.toLowerCase() : "";
 
     const resolvedEmployeeId = Number(employeeId ?? roleId);
-    if (!resolvedEmployeeId) {
+    if (!resolvedEmployeeId && !cardNumber) {
       res.status(400).json({
         success: false,
-        message: "employeeId (or roleId) is required in request body.",
+        message: "employeeId (or roleId) or cardNumber is required in request body.",
       });
       return;
     }
@@ -160,12 +162,17 @@ export const createAttendance = async (req: Request, res: Response) => {
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     const dateString = now.toISOString().split("T")[0]; // YYYY-MM-DD
 
+    const queryOr: any[] = [];
+    if (resolvedEmployeeId) {
+      queryOr.push({ employeeId: resolvedEmployeeId }, { roleId: resolvedEmployeeId });
+    }
+    if (cardNumber) {
+      queryOr.push({ cardNumber });
+    }
+
     const existingRecord = await Attendance.findOne({
       where: {
-        [Op.or]: [
-          { employeeId: resolvedEmployeeId },
-          { roleId: resolvedEmployeeId }
-        ],
+        [Op.or]: queryOr,
         timestamp: {
           [Op.gte]: startOfDay,
           [Op.lte]: endOfDay,
@@ -303,6 +310,7 @@ export const createAttendance = async (req: Request, res: Response) => {
         method: resolvedMethod,
         roles: roles || [staffRole],
         department: staffDepartment,
+        cardNumber,
       });
     } else {
       // type === "check-out"
@@ -318,6 +326,7 @@ export const createAttendance = async (req: Request, res: Response) => {
       existingRecord.duration = durationStr;
       existingRecord.status = status;
       existingRecord.type = type;
+      if (cardNumber) existingRecord.cardNumber = cardNumber;
       if (final_selfie_url) existingRecord.selfie_url = final_selfie_url;
       await existingRecord.save();
       attendance = existingRecord;
@@ -679,26 +688,70 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
     const deviceId = device.deviceId;
     const { accessCardUid, type, latitude, longitude } = req.body;
 
-    // 2. Look up doctor by accessCardUid
+    // 2. Look up employee by accessCardUid from local rfid_card_assignments table first
     let employeeData = null;
     let employeeType = "Staff";
 
-    try {
-      const doctorRes = await axios.get(`${process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3007"}/doctor/internal/by-access-card/${accessCardUid}`, {
-        params: { hospitalId },
-        headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
-        validateStatus: () => true
-      });
+    const cardAssignment = await RfidCardAssignment.findOne({
+      where: { cardNumber: accessCardUid, hospitalId, status: "Active" },
+    });
 
-      if (doctorRes.status === 200 && doctorRes.data?.success) {
-        employeeData = doctorRes.data.data;
-        employeeType = "Doctor";
+    if (cardAssignment) {
+      // Found in local rfid_card_assignments — fetch full employee data from the relevant service
+      employeeType = cardAssignment.employeeType;
+      const empId = cardAssignment.employeeId;
+
+      try {
+        if (employeeType === "Doctor") {
+          const doctorRes = await axios.get(`${process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3007"}/doctor/internal/${empId}`, {
+            headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
+            validateStatus: () => true,
+          });
+          if (doctorRes.status === 200 && doctorRes.data?.success) {
+            employeeData = doctorRes.data.data;
+          }
+        } else {
+          const staffRes = await axios.get(`${process.env.STAFF_SERVICE_URL || "http://staff-service:3006"}/staff/internal/${empId}`, {
+            headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
+            validateStatus: () => true,
+          });
+          if (staffRes.status === 200 && staffRes.data?.success) {
+            employeeData = staffRes.data.data;
+          }
+        }
+      } catch (err: any) {
+        logger.error("Failed to fetch employee details from card assignment", { error: err.message });
       }
-    } catch (err: any) {
-      logger.error("Failed to query doctor service for RFID", { error: err.message });
+
+      // If service call failed, use the card assignment data as fallback
+      if (!employeeData) {
+        employeeData = {
+          id: cardAssignment.employeeId,
+          name: cardAssignment.employeeName,
+          department: cardAssignment.department,
+          employeeType: cardAssignment.employeeType,
+        };
+      }
     }
 
-    // 2. If not doctor, look up staff
+    // 3. Fallback: look up by accessCardUid from doctor/staff services directly
+    if (!employeeData) {
+      try {
+        const doctorRes = await axios.get(`${process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3007"}/doctor/internal/by-access-card/${accessCardUid}`, {
+          params: { hospitalId },
+          headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
+          validateStatus: () => true
+        });
+
+        if (doctorRes.status === 200 && doctorRes.data?.success) {
+          employeeData = doctorRes.data.data;
+          employeeType = "Doctor";
+        }
+      } catch (err: any) {
+        logger.error("Failed to query doctor service for RFID", { error: err.message });
+      }
+    }
+
     if (!employeeData) {
       try {
         const staffRes = await axios.get(`${process.env.STAFF_SERVICE_URL || "http://staff-service:3006"}/staff/internal/by-access-card/${accessCardUid}`, {
@@ -795,8 +848,9 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
         latitude,
         longitude,
         status,
-        method: "Access Card",
+        method: "RFID",
         deviceId,
+        cardNumber: accessCardUid,
         roles: [employeeType],
         department: staffDepartment,
       });

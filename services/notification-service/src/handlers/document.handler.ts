@@ -2,30 +2,59 @@ import Notification from "../models/notification.model";
 import { safeSocketEmit } from "../utils/socket.emitter";
 
 export const handleDocumentEvent = async (routingKey: string, content: any) => {
+  const actorName = content.actorName || "Unknown Actor";
+  const actorRole = content.actorRole || "Staff";
+  const patientName = content.patientName || "Unknown Patient";
+  const docName = content.documentName || "Untitled";
+  const hospitalIds = content.hospitalId ? [content.hospitalId] : [];
+
+  let title = "";
+  let type = "";
   let msg = "";
 
   if (routingKey === "DOCUMENT_REGISTERED") {
-    msg = `A new document "${content.documentName || "Untitled"}" has been uploaded`;
+    title = "Patient document added";
+    type = "Info";
+    msg = `${actorName} added a document to ${patientName}'s patient record.`;
   } else if (routingKey === "DOCUMENT_UPDATED") {
-    msg = `Document "${content.documentName || "Untitled"}" has been updated`;
+    title = "Patient document updated";
+    type = "Info";
+    msg = `${actorName} (${actorRole}) updated a document in ${patientName}'s patient record.`;
   } else if (routingKey === "DOCUMENT_DELETED") {
-    msg = `A document has been deleted for ${content.patientName || "the patient"}`;
+    title = "Patient document deleted";
+    type = "Important";
+    msg = `${actorRole} ${actorName} deleted a document from ${patientName}'s patient record.`;
   } else {
     console.warn(`⚠️ Unhandled document event: ${routingKey}`);
     return;
   }
 
-  await Notification.create({
-    userIds: content.userId ? [content.userId] : [],
-    hospitalIds: content.hospitalId ? [content.hospitalId] : [],
-    message: msg,
-  }).catch((err) => console.error(`Failed to save ${routingKey} notification`, err));
+  try {
+    // 2. Create Notification (Skip for the actor's own dashboard unless required, sending to hospital admins instead)
+    await Notification.create({
+      userIds: [], 
+      hospitalIds: hospitalIds,
+      message: msg,
+      metadata: {
+        title,
+        type,
+        action: routingKey,
+        patientName,
+        documentId: content.documentId
+      }
+    });
 
-  if (content.userId) {
-    safeSocketEmit(`user_${content.userId}`, "document_event", { event: routingKey, message: msg, data: content });
-  }
-  
-  if (content.hospitalId) {
-    safeSocketEmit(`hospital_${content.hospitalId}`, "document_event", { event: routingKey, message: msg, data: content });
+    // 3. Emit Socket Events
+    const payload = { event: routingKey, title, type, message: msg, data: content };
+
+    if (content.userId) {
+      safeSocketEmit(`user_${content.userId}`, "document_event", payload);
+    }
+    
+    if (content.hospitalId) {
+      safeSocketEmit(`hospital_${content.hospitalId}`, "document_event", payload);
+    }
+  } catch (error) {
+    console.error(`Failed to process ${routingKey}`, error);
   }
 };

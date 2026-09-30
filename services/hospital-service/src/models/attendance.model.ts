@@ -21,7 +21,7 @@ export interface IAttendance {
   longitude?: number;
   selfie_url?: string;
   status?: string; // "Present" | "Late" | "Early Departure" | "Shift Completed" | "Absent" | "On Leave"
-  method?: string; // "Face" | "Access Card" | "Punch In"
+  method?: string; // "RFID" | "Fingerprint" | "Face Recognition" | "manual"
   roles?: any; // e.g., ["Doctor", "Nurse"]
   department?: string; // e.g., "Cardiology", "ENT"
   duration?: string; // e.g., "8h 08m"
@@ -30,6 +30,7 @@ export interface IAttendance {
   editor_type?: string;
   editor_id?: number;
   deviceId?: string;
+  cardNumber?: string;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date;
@@ -70,6 +71,7 @@ class Attendance extends Model<IAttendance, AttendanceCreationAttributes> implem
   public declare editor_type?: string;
   public declare editor_id?: number;
   public declare deviceId?: string;
+  public declare cardNumber?: string;
 }
 
 /* =======================
@@ -106,6 +108,7 @@ Attendance.init(
     editor_type: { type: DataTypes.STRING, allowNull: true },
     editor_id: { type: DataTypes.INTEGER, allowNull: true },
     deviceId: { type: DataTypes.STRING, allowNull: true },
+    cardNumber: { type: DataTypes.STRING, allowNull: true },
   },
   {
     sequelize,

@@ -32,26 +32,16 @@ const attendanceBaseSchema = z.object({
     .optional(),
   status: z.string().optional(),
   deviceId: z.string().optional(),
+  cardNumber: z.string().optional(),
 });
 
 export const attendanceSchema = attendanceBaseSchema.superRefine((data, ctx) => {
   // Must provide at least one identifier
-  if (data.employeeId === undefined && data.roleId === undefined) {
+  if (data.employeeId === undefined && data.roleId === undefined && data.cardNumber === undefined) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "employeeId or roleId is required",
+      message: "employeeId, roleId, or cardNumber is required",
       path: ["employeeId"],
-    });
-  }
-
-  const hasTopLevelCoordinates = data.latitude !== undefined && data.longitude !== undefined;
-  const hasLocationObject = data.location?.lat !== undefined && data.location?.lng !== undefined;
-
-  if (!hasTopLevelCoordinates && !hasLocationObject) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "latitude/longitude or location.lat/location.lng is required",
-      path: ["location"],
     });
   }
 });
