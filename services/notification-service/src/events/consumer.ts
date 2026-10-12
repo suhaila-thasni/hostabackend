@@ -18,8 +18,11 @@ import { handleLabEvent } from "../handlers/lab.handler";
 import { handleDocumentEvent } from "../handlers/document.handler";
 import { handleAccessCardEvent } from "../handlers/accesscard.handler";
 import { handleAttendanceEvent } from "../handlers/attendance.handler";
+import { handleHolidayEvent } from "../handlers/holiday.handler";
+import { handleLeaveEvent } from "../handlers/leave.handler";
 import { handleTemplateEvent } from "../handlers/template.handler";
 import { handleAuthEvent } from "../handlers/auth.handler";
+import { handlePatientVitalsEvent } from "../handlers/patientVitals.handler";
 
 let connection: any;
 let channel: amqp.Channel;
@@ -137,8 +140,27 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "hospital_events", "ATTENDANCE_REGISTERED");
         await channel.bindQueue(queue, "hospital_events", "ATTENDANCE_UPDATED");
         await channel.bindQueue(queue, "hospital_events", "ATTENDANCE_DELETED");
+        await channel.bindQueue(queue, "hospital_events", "ATTENDANCE_CHECKED_IN");
+        await channel.bindQueue(queue, "hospital_events", "ATTENDANCE_CHECKED_OUT");
+        await channel.bindQueue(queue, "hospital_events", "ATTENDANCE_CREATED_MANUALLY");
 
+        // 1f. Holiday (same exchange as hospital)
+        await channel.bindQueue(queue, "hospital_events", "HOLIDAY_CREATED");
+        await channel.bindQueue(queue, "hospital_events", "HOLIDAY_UPDATED");
+        await channel.bindQueue(queue, "hospital_events", "HOLIDAY_DELETED");
 
+        // 1g. Leave Requests (same exchange as hospital)
+        await channel.bindQueue(queue, "hospital_events", "LEAVE_REQUESTED");
+        await channel.bindQueue(queue, "hospital_events", "LEAVE_STATUS_UPDATED");
+        await channel.bindQueue(queue, "hospital_events", "LEAVE_UPDATED");
+        await channel.bindQueue(queue, "hospital_events", "LEAVE_CANCELLED");
+        await channel.bindQueue(queue, "hospital_events", "LEAVE_DELETED");
+
+        // 1h. Leave Templates (same exchange as hospital)
+        await channel.bindQueue(queue, "hospital_events", "LEAVE_TEMPLATE_CREATED");
+        await channel.bindQueue(queue, "hospital_events", "LEAVE_TEMPLATE_DUPLICATED");
+        await channel.bindQueue(queue, "hospital_events", "LEAVE_TEMPLATE_UPDATED");
+        await channel.bindQueue(queue, "hospital_events", "LEAVE_TEMPLATE_DELETED");
 
         // 2. Booking
         await channel.assertExchange("booking_events", "direct", { durable: true });
@@ -219,6 +241,12 @@ export const startConsumer = async () => {
         await channel.bindQueue(queue, "document_events", "DOCUMENT_UPDATED");
         await channel.bindQueue(queue, "document_events", "DOCUMENT_DELETED");
 
+        // 10.6 Patient Vitals
+        await channel.assertExchange("patientvitals_events", "direct", { durable: true });
+        await channel.bindQueue(queue, "patientvitals_events", "PATIENTVITALS_REGISTERED");
+        await channel.bindQueue(queue, "patientvitals_events", "PATIENTVITALS_UPDATED");
+        await channel.bindQueue(queue, "patientvitals_events", "PATIENTVITALS_DELETED");
+
         // 11. Pharmacy
         await channel.assertExchange("pharmacy_queue", "direct", { durable: true });
         await channel.bindQueue(queue, "pharmacy_queue", "PHARMACY_UPDATED");
@@ -236,7 +264,7 @@ export const startConsumer = async () => {
 
         // 14. Prescription & Hospital Prescription Templates
         await channel.assertExchange("prescription_events", "direct", { durable: true });
-        
+
         // Patient Prescriptions
         await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_CREATED");
         await channel.bindQueue(queue, "prescription_events", "PRESCRIPTION_UPDATED");
@@ -305,6 +333,10 @@ export const startConsumer = async () => {
                         await handleAccessCardEvent(routingKey, content);
                     } else if (routingKey.startsWith("ATTENDANCE_")) {
                         await handleAttendanceEvent(routingKey, content);
+                    } else if (routingKey.startsWith("HOLIDAY_")) {
+                        await handleHolidayEvent(routingKey, content);
+                    } else if (routingKey.startsWith("LEAVE_")) {
+                        await handleLeaveEvent(routingKey, content);
                     } else if (routingKey.startsWith("AMBULANCE_")) {
                         await handleAmbulanceEvent(routingKey, content);
                     } else if (routingKey.startsWith("DONOR_")) {
@@ -317,6 +349,8 @@ export const startConsumer = async () => {
                         await handleTemplateEvent(routingKey, content);
                     } else if (routingKey === "AUTH_LOGIN") {
                         await handleAuthEvent(routingKey, content);
+                    } else if (routingKey.startsWith("PATIENTVITALS_")) {
+                        await handlePatientVitalsEvent(routingKey, content);
                     }
 
                     channel.ack(msg);

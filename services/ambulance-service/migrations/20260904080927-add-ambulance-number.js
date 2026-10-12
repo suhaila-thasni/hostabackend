@@ -5,6 +5,21 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
+      // 0. Ensure the ambulanceNumber column exists (may not exist in restored DBs)
+      try {
+        await queryInterface.addColumn('ambulances', 'ambulanceNumber', {
+          type: Sequelize.INTEGER,
+          allowNull: true,
+        }, { transaction });
+        console.log('  ✅ Added column: ambulanceNumber');
+      } catch (err) {
+        if (err.message && err.message.includes('already exists')) {
+          console.log('  ⏭️  Column "ambulanceNumber" already exists');
+        } else {
+          throw err;
+        }
+      }
+
       // 1. Check existing ambulanceNumber values
       const [ambulances] = await queryInterface.sequelize.query(
         `
@@ -70,12 +85,20 @@ module.exports = {
       );
 
       // 4. Add unique constraint
-      await queryInterface.addConstraint('ambulances', {
-        fields: ['hospitalId', 'ambulanceNumber'],
-        type: 'unique',
-        name: 'ambulances_hospital_id_ambulance_number_unique',
-        transaction,
-      });
+      try {
+        await queryInterface.addConstraint('ambulances', {
+          fields: ['hospitalId', 'ambulanceNumber'],
+          type: 'unique',
+          name: 'ambulances_hospital_id_ambulance_number_unique',
+          transaction,
+        });
+      } catch (err) {
+        if (err.message && err.message.includes('already exists')) {
+          console.log('  ⏭️  Constraint already exists, skipping');
+        } else {
+          throw err;
+        }
+      }
 
       await transaction.commit();
 
@@ -97,4 +120,4 @@ module.exports = {
       'ambulanceNumber'
     );
   },
-};
+};

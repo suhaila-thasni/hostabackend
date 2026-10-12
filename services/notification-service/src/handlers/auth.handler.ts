@@ -2,6 +2,18 @@ import Notification from "../models/notification.model";
 import { safeSocketEmit } from "../utils/socket.emitter";
 import { Op } from "sequelize";
 
+// helper: format time for display (IST)
+const formatTime = (date: Date | string) =>
+  new Date(date).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
 export const handleAuthEvent = async (routingKey: string, content: any) => {
   if (routingKey !== "AUTH_LOGIN") return;
 
@@ -40,22 +52,27 @@ export const handleAuthEvent = async (routingKey: string, content: any) => {
     const title = "Staff login activity";
     const type = "Activity summary";
     
+    const now = new Date();
+
     let updatedMetadata: any = {
       authId,
       eventType: "routine_login",
       count: 1,
-      latestSignInTime: new Date().toISOString()
+      latestSignInTime: now.toISOString(),
+      previousSignInTime: null,
     };
 
     if (existingNotification) {
       // Grouping: increment count
-      const currentCount = existingNotification.metadata && typeof existingNotification.metadata === 'object' && 'count' in existingNotification.metadata 
-        ? (existingNotification.metadata as any).count 
-        : 1;
+      const oldMeta: any = existingNotification.metadata || {};
+      const currentCount = typeof oldMeta.count === "number" ? oldMeta.count : 1;
       const newCount = currentCount + 1;
-      updatedMetadata.count = newCount;
 
-      msg = `${role.toUpperCase()} ${name} has logged in ${newCount} times today.`;
+      updatedMetadata.count = newCount;
+      // the old "latest" becomes the previous login
+      updatedMetadata.previousSignInTime = oldMeta.latestSignInTime || null;
+
+      msg = `${role.toUpperCase()} | ${name} has logged in ${newCount} times today. Last login: ${formatTime(now)}`;
 
       existingNotification.message = msg;
       existingNotification.metadata = updatedMetadata;
@@ -65,7 +82,7 @@ export const handleAuthEvent = async (routingKey: string, content: any) => {
       
     } else {
       // New notification
-      msg = `${role.toUpperCase()} ${name} has logged in 1 time today.`;
+      msg = `${role.toUpperCase()} | ${name} has logged in 1 time today. Last login: ${formatTime(now)}`;
 
       await Notification.create({
         userIds: [],
