@@ -13,6 +13,99 @@ import { logger } from "../utils/logger";
 import { verificationService } from "../services/verification.service";
 import { createFingerprintHash } from "./fingerprintEnrollment.controllers";
 
+export const publishAttendanceNotification = async (
+  action: "CHECK_IN" | "CHECK_OUT" | "MANUAL" | "UPDATED" | "DELETED",
+  attendance: any,
+  staffName: string
+) => {
+  try {
+    let eventName = "";
+    let title = "";
+    let message = "";
+    let severity = "success";
+    let recipient = "employee";
+
+    const formatIST = (dateVal?: Date | string | null) => {
+      const d = dateVal ? new Date(dateVal) : new Date();
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleTimeString("en-US", {
+        timeZone: "Asia/Kolkata",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    };
+
+    const checkInTimeStr = formatIST(attendance.checkInTime) || formatIST(new Date());
+    const checkOutTimeStr = formatIST(attendance.checkOutTime) || formatIST(new Date());
+
+    switch (action) {
+      case "CHECK_IN":
+        eventName = "ATTENDANCE_CHECKED_IN";
+        recipient = "both";
+        if (attendance.status === "Late") {
+          title = "Late Check-in Recorded";
+          severity = "warning";
+          message = `${staffName} checked in at ${checkInTimeStr}, which is late.`;
+        } else {
+          title = "Attendance Check-in Successful";
+          message = `${staffName}, your check-in has been recorded successfully at ${checkInTimeStr}. You are marked ${attendance.status}.`;
+        }
+        break;
+      case "CHECK_OUT":
+        eventName = "ATTENDANCE_CHECKED_OUT";
+        recipient = "both";
+        title = "Shift Completed Successfully";
+        message = `${staffName}, your check-out has been recorded at ${checkOutTimeStr}. Total duration: ${attendance.duration || "N/A"}.`;
+        break;
+      case "MANUAL":
+        eventName = "ATTENDANCE_CREATED_MANUALLY";
+        title = "Manual Attendance Created";
+        message = `${staffName}, your attendance was recorded manually by the hospital administrator.`;
+        recipient = "employee";
+        break;
+      case "UPDATED":
+        eventName = "ATTENDANCE_UPDATED";
+        title = "Attendance Record Updated";
+        message = `${staffName}, your attendance record has been updated by an administrator.`;
+        recipient = "employee";
+        break;
+      case "DELETED":
+        eventName = "ATTENDANCE_DELETED";
+        title = "Attendance Record Deleted";
+        message = `${staffName}, your attendance record was removed by an authorized administrator.`;
+        recipient = "employee";
+        severity = "warning";
+        break;
+    }
+
+    const eventPayload = {
+      event: eventName,
+      title,
+      message,
+      category: "attendance",
+      severity,
+      recipient,
+      data: {
+        attendanceId: attendance.id,
+        employeeId: attendance.employeeId,
+        employeeType: attendance.employeeType,
+        hospitalId: attendance.hospitalId,
+        type: attendance.type,
+        status: attendance.status,
+        method: attendance.method,
+        checkInTime: attendance.checkInTime,
+        checkOutTime: attendance.checkOutTime,
+      },
+      createdAt: new Date(),
+    };
+    await publishEvent("hospital_events", eventName, eventPayload);
+    logger.info(`Successfully published ${eventName} to RabbitMQ for attendance ID ${attendance.id}`);
+  } catch (err: any) {
+    logger.error(`Failed to publish ${action} event:`, { error: err.message });
+  }
+};
+
 export const getAttendanceStatus = (
   type: string,
   timestamp: Date,
@@ -173,6 +266,7 @@ export const createAttendance = async (req: Request, res: Response) => {
     const existingRecord = await Attendance.findOne({
       where: {
         [Op.or]: queryOr,
+        employeeType: resolvedEmployeeType,
         timestamp: {
           [Op.gte]: startOfDay,
           [Op.lte]: endOfDay,
@@ -333,24 +427,8 @@ export const createAttendance = async (req: Request, res: Response) => {
     }
 
     // 8. Publish event via RabbitMQ
-    try {
-      await publishEvent("hospital_events", "ATTENDANCE_REGISTERED", {
-        attendanceId: attendance.id,
-        employeeId: attendance.employeeId,
-        employeeType: attendance.employeeType,
-        roleId: attendance.roleId,
-        staffName,
-        staffRole,
-        type: attendance.type,
-        status: attendance.status,
-        method: attendance.method,
-        checkInTime: attendance.checkInTime,
-        checkOutTime: attendance.checkOutTime,
-        hospitalId: attendance.hospitalId,
-      });
-    } catch (err: any) {
-      logger.error("Failed to publish ATTENDANCE_REGISTERED event:", { error: err.message });
-    }
+    const actionType = attendance.type === "check-in" ? "CHECK_IN" : "CHECK_OUT";
+    await publishAttendanceNotification(actionType, attendance, staffName);
 
     res.status(201).json({
       success: true,
@@ -381,6 +459,8 @@ export const getAttendances = async (req: Request, res: Response) => {
     if (req.query.status) where.status = req.query.status;
     if (req.query.type) where.type = req.query.type;
     if (req.query.department) where.department = req.query.department;
+    if (req.query.method) where.method = { [Op.iLike]: String(req.query.method) };
+    if (req.query.creator_type) where.creator_type = req.query.creator_type;
 
     if (req.query.search) {
       const searchParam = req.query.search;
@@ -499,23 +579,39 @@ export const updateAttendance = async (req: Request, res: Response) => {
       res.status(404).json({ success: false, message: "Attendance not found" });
       return;
     }
-    await attendance.update(req.body);
 
-    try {
-      await publishEvent("hospital_events", "ATTENDANCE_UPDATED", {
-        attendanceId: attendance.id,
-        roleId: attendance.roleId,
-        hospitalId: attendance.hospitalId,
-        type: attendance.type,
-        status: attendance.status,
-        checkInTime: attendance.type === "check-in" ? attendance.timestamp : undefined,
-        checkOutTime: attendance.type === "check-out" ? attendance.timestamp : undefined,
-      });
-    } catch (err: any) {
-      logger.error("Failed to publish ATTENDANCE_UPDATED event:", { error: err.message });
+    const updateData: any = { ...req.body };
+    const dateString = updateData.date || attendance.date || new Date().toISOString().split("T")[0];
+
+    // Handle checkInTime if 12-hr / HH:mm time string provided
+    if (updateData.checkInTime && typeof updateData.checkInTime === "string" && !updateData.checkInTime.includes("T")) {
+      updateData.checkInTime = new Date(`${dateString}T${convertTo24Hr(updateData.checkInTime)}`);
     }
 
-    res.status(200).json({ success: true, data: attendance });
+    // Handle checkOutTime if 12-hr / HH:mm time string provided
+    if (updateData.checkOutTime && typeof updateData.checkOutTime === "string" && !updateData.checkOutTime.includes("T")) {
+      updateData.checkOutTime = new Date(`${dateString}T${convertTo24Hr(updateData.checkOutTime)}`);
+    }
+
+    // Recalculate duration if both checkIn and checkOut are available
+    const finalCheckIn = updateData.checkInTime ? new Date(updateData.checkInTime) : attendance.checkInTime ? new Date(attendance.checkInTime) : undefined;
+    const finalCheckOut = updateData.checkOutTime ? new Date(updateData.checkOutTime) : attendance.checkOutTime ? new Date(attendance.checkOutTime) : undefined;
+
+    if (finalCheckIn && finalCheckOut) {
+      const diffMs = finalCheckOut.getTime() - finalCheckIn.getTime();
+      if (diffMs > 0) {
+        const diffHrs = Math.floor(diffMs / 3600000);
+        const diffMins = Math.floor((diffMs % 3600000) / 60000);
+        updateData.duration = `${diffHrs}h ${diffMins}m`;
+      }
+    }
+
+    await attendance.update(updateData);
+
+    const staffName = attendance.name || "Employee";
+    await publishAttendanceNotification("UPDATED", attendance, staffName);
+
+    res.status(200).json({ success: true, message: "Attendance updated successfully", data: attendance });
   } catch (error: any) {
     logger.error("Error updating attendance", { error });
     res.status(500).json({ success: false, message: error.message });
@@ -535,17 +631,8 @@ export const deleteAttendance = async (req: Request, res: Response) => {
     }
     await attendance.destroy(); // Soft delete (paranoid mode sets deletedAt)
 
-    try {
-      await publishEvent("hospital_events", "ATTENDANCE_DELETED", {
-        attendanceId: attendance.id,
-        roleId: attendance.roleId,
-        hospitalId: attendance.hospitalId,
-        type: attendance.type,
-        status: attendance.status,
-      });
-    } catch (err: any) {
-      logger.error("Failed to publish ATTENDANCE_DELETED event:", { error: err.message });
-    }
+    const staffName = attendance.name || "Employee";
+    await publishAttendanceNotification("DELETED", attendance, staffName);
 
     res.status(200).json({ success: true, message: "Attendance deleted successfully" });
   } catch (error: any) {
@@ -789,6 +876,7 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
           { employeeId: resolvedEmployeeId },
           { roleId: resolvedEmployeeId }
         ],
+        employeeType: employeeType,
         timestamp: {
           [Op.gte]: startOfDay,
           [Op.lte]: endOfDay,
@@ -872,24 +960,8 @@ export const createRfidAttendance = async (req: Request, res: Response) => {
       attendance = existingRecord;
     }
 
-    try {
-      await publishEvent("hospital_events", "ATTENDANCE_REGISTERED", {
-        attendanceId: attendance.id,
-        employeeId: attendance.employeeId,
-        employeeType: attendance.employeeType,
-        roleId: attendance.roleId,
-        staffName: staffName,
-        staffRole: employeeType,
-        type: attendance.type,
-        status: attendance.status,
-        method: attendance.method,
-        checkInTime: attendance.type === "check-in" ? attendance.timestamp : undefined,
-        checkOutTime: attendance.type === "check-out" ? attendance.timestamp : undefined,
-        hospitalId: attendance.hospitalId,
-      });
-    } catch (err: any) {
-      logger.error("Failed to publish ATTENDANCE_REGISTERED event:", { error: err.message });
-    }
+    const actionType = attendance.type === "check-in" ? "CHECK_IN" : "CHECK_OUT";
+    await publishAttendanceNotification(actionType, attendance, staffName);
 
     res.status(201).json({
       success: true,
@@ -976,6 +1048,7 @@ export const createFingerprintAttendance = async (req: Request, res: Response) =
           { employeeId: resolvedEmployeeId },
           { roleId: resolvedEmployeeId },
         ],
+        employeeType: employeeType,
         timestamp: {
           [Op.gte]: startOfDay,
           [Op.lte]: endOfDay,
@@ -1071,24 +1144,8 @@ export const createFingerprintAttendance = async (req: Request, res: Response) =
       attendance = existingRecord;
     }
 
-    try {
-      await publishEvent("hospital_events", "ATTENDANCE_REGISTERED", {
-        attendanceId: attendance.id,
-        employeeId: attendance.employeeId,
-        employeeType: attendance.employeeType,
-        roleId: attendance.roleId,
-        staffName,
-        staffRole: employeeType,
-        type: attendance.type,
-        status: attendance.status,
-        method: attendance.method,
-        checkInTime: attendance.checkInTime,
-        checkOutTime: attendance.checkOutTime,
-        hospitalId: attendance.hospitalId,
-      });
-    } catch (err: any) {
-      logger.error("Failed to publish ATTENDANCE_REGISTERED event:", { error: err.message });
-    }
+    const actionType = attendance.type === "check-in" ? "CHECK_IN" : "CHECK_OUT";
+    await publishAttendanceNotification(actionType, attendance, staffName);
 
     res.status(201).json({
       success: true,
@@ -1101,3 +1158,158 @@ export const createFingerprintAttendance = async (req: Request, res: Response) =
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/* =======================
+   CREATE MANUAL ATTENDANCE
+   (Admin creates full attendance record in one shot)
+======================= */
+
+export const createManualAttendance = async (req: Request, res: Response) => {
+  try {
+    const {
+      hospitalId,
+      employeeId,
+      employeeType,
+      date,
+      checkInTime,
+      checkOutTime,
+      status,
+      method,
+      notes,
+      department,
+    } = req.body;
+
+    const resolvedEmployeeId = Number(employeeId);
+    if (!resolvedEmployeeId) {
+      res.status(400).json({
+        success: false,
+        message: "employeeId is required.",
+      });
+      return;
+    }
+
+    const resolvedEmployeeType = employeeType || "Staff";
+
+    // Build date values
+    const dateString = date || new Date().toISOString().split("T")[0];
+
+    // Parse check-in / check-out times into full Date objects
+    let parsedCheckIn: Date | undefined;
+    let parsedCheckOut: Date | undefined;
+
+    if (checkInTime) {
+      parsedCheckIn = new Date(`${dateString}T${convertTo24Hr(checkInTime)}`);
+    }
+    if (checkOutTime) {
+      parsedCheckOut = new Date(`${dateString}T${convertTo24Hr(checkOutTime)}`);
+    }
+
+    // Calculate duration if both times are provided
+    let durationStr: string | undefined;
+    if (parsedCheckIn && parsedCheckOut) {
+      const diffMs = parsedCheckOut.getTime() - parsedCheckIn.getTime();
+      if (diffMs > 0) {
+        const diffHrs = Math.floor(diffMs / 3600000);
+        const diffMins = Math.floor((diffMs % 3600000) / 60000);
+        durationStr = `${diffHrs}h ${diffMins}m`;
+      }
+    }
+
+    // Fetch employee name
+    let staffName = "Unknown staff";
+    let staffRole = resolvedEmployeeType;
+    let staffDepartment = department;
+
+    try {
+      if (resolvedEmployeeType.toLowerCase() === "doctor") {
+        const doctorResponse = await axios.get(
+          `${process.env.DOCTOR_SERVICE_URL || "http://doctor-service:3007"}/doctor/internal/${resolvedEmployeeId}`,
+          {
+            timeout: 10000,
+            validateStatus: () => true,
+            headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
+          }
+        );
+        if (doctorResponse.status === 200 && doctorResponse.data?.success) {
+          const docData = doctorResponse.data.data;
+          staffName = docData?.displayName || docData?.name || docData?.username || (docData?.firstName ? `${docData.firstName} ${docData.lastName || ''}`.trim() : staffName);
+          staffRole = docData?.role || staffRole;
+          staffDepartment = docData?.department || staffDepartment;
+        }
+      } else {
+        const staffResponse = await axios.get(
+          `${process.env.STAFF_SERVICE_URL || "http://staff-service:3006"}/staff/internal/${resolvedEmployeeId}`,
+          {
+            timeout: 10000,
+            validateStatus: () => true,
+            headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "mySuperSecret123" },
+          }
+        );
+        if (staffResponse.status === 200 && staffResponse.data?.success) {
+          const staffData = staffResponse.data.data;
+          staffName = staffData?.name || staffData?.username || staffName;
+          staffRole = staffData?.role || staffRole;
+          staffDepartment = staffData?.department || staffData?.designation || staffDepartment;
+        }
+      }
+    } catch (error: any) {
+      logger.error("Failed to fetch employee details for manual attendance:", { error: error.message });
+    }
+
+    const attendance = await Attendance.create({
+      hospitalId,
+      employeeId: resolvedEmployeeId,
+      employeeType: staffRole,
+      roleId: resolvedEmployeeId,
+      name: staffName,
+      type: parsedCheckOut ? "check-out" : "check-in",
+      date: dateString,
+      checkInTime: parsedCheckIn,
+      checkOutTime: parsedCheckOut,
+      timestamp: parsedCheckIn || new Date(),
+      status: status || "Present",
+      method: method || "Manual",
+      roles: [staffRole],
+      department: staffDepartment,
+      duration: durationStr,
+      notes,
+      creator_type: "Admin",
+    });
+
+    // Publish event
+    await publishAttendanceNotification("MANUAL", attendance, staffName);
+
+    res.status(201).json({
+      success: true,
+      message: "Manual attendance created successfully",
+      data: attendance,
+    });
+  } catch (error: any) {
+    logger.error("Error creating manual attendance", { error });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =======================
+   HELPER: Convert 12-hr time to 24-hr format
+   e.g. "09:00 AM" -> "09:00:00", "06:00 PM" -> "18:00:00"
+======================= */
+function convertTo24Hr(timeStr: string): string {
+  // If already in 24-hr format (e.g. "09:00" or "18:00:00")
+  if (!timeStr.match(/AM|PM/i)) {
+    return timeStr.includes(":") && timeStr.split(":").length === 2 ? `${timeStr}:00` : timeStr;
+  }
+
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return timeStr;
+
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2];
+  const period = match[3].toUpperCase();
+
+  if (period === "PM" && hours !== 12) hours += 12;
+  if (period === "AM" && hours === 12) hours = 0;
+
+  return `${hours.toString().padStart(2, "0")}:${minutes}:00`;
+}
+

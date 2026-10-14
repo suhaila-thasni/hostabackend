@@ -31,6 +31,7 @@ export interface IAttendance {
   editor_id?: number;
   deviceId?: string;
   cardNumber?: string;
+  notes?: string;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date;
@@ -72,6 +73,7 @@ class Attendance extends Model<IAttendance, AttendanceCreationAttributes> implem
   public declare editor_id?: number;
   public declare deviceId?: string;
   public declare cardNumber?: string;
+  public declare notes?: string;
 }
 
 /* =======================
@@ -109,6 +111,7 @@ Attendance.init(
     editor_id: { type: DataTypes.INTEGER, allowNull: true },
     deviceId: { type: DataTypes.STRING, allowNull: true },
     cardNumber: { type: DataTypes.STRING, allowNull: true },
+    notes: { type: DataTypes.TEXT, allowNull: true },
   },
   {
     sequelize,

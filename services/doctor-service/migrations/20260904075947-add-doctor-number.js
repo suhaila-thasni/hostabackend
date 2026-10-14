@@ -2,11 +2,19 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // 1. Add doctorNumber temporarily as nullable
-    await queryInterface.addColumn('doctor', 'doctorNumber', {
-      type: Sequelize.INTEGER,
-      allowNull: true,
-    });
+    // 1. Add doctorNumber temporarily as nullable (skip if exists)
+    try {
+      await queryInterface.addColumn('doctor', 'doctorNumber', {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+      });
+    } catch (err) {
+      if (err.message && err.message.includes('already exists')) {
+        console.log('  ⏭️  Column "doctorNumber" already exists, skipping addColumn');
+      } else {
+        throw err;
+      }
+    }
 
     // 2. Backfill existing doctors with hospital-scoped numbers
     await queryInterface.sequelize.transaction(async (transaction) => {
@@ -54,12 +62,20 @@ module.exports = {
       allowNull: false,
     });
 
-    // 4. Ensure doctorNumber is unique within each hospital
-    await queryInterface.addConstraint('doctor', {
-      fields: ['hospitalId', 'doctorNumber'],
-      type: 'unique',
-      name: 'doctor_hospital_id_doctor_number_unique',
-    });
+    // 4. Ensure doctorNumber is unique within each hospital (skip if exists)
+    try {
+      await queryInterface.addConstraint('doctor', {
+        fields: ['hospitalId', 'doctorNumber'],
+        type: 'unique',
+        name: 'doctor_hospital_id_doctor_number_unique',
+      });
+    } catch (err) {
+      if (err.message && err.message.includes('already exists')) {
+        console.log('  ⏭️  Constraint already exists, skipping');
+      } else {
+        throw err;
+      }
+    }
   },
 
   async down(queryInterface) {
@@ -72,4 +88,4 @@ module.exports = {
     // Remove doctorNumber
     await queryInterface.removeColumn('doctor', 'doctorNumber');
   },
-};
+};

@@ -27,6 +27,16 @@ const validateDocumentInput = (body: any) => {
   }
 };
 
+const resolvePatientName = async (patientId: number, providedName?: string) => {
+  if (providedName?.trim()) return providedName.trim();
+
+  const patientRecord =
+    (await Patient.findByPk(patientId)) ??
+    (await Patient.findOne({ where: { patientNumber: patientId } }));
+
+  return patientRecord?.name || "Unknown Patient";
+};
+
 // Create Document
 export const createDocument = asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -46,16 +56,7 @@ export const createDocument = asyncHandler(async (req: Request, res: Response) =
     userId: Number(userId)
   });
 
-  // Fetch patient to get exact name if not in body
-  let actualPatientName = req.body.patientName;
-  if (!actualPatientName) {
-    const patientRecord = await Patient.findOne({ where: { patientNumber: Number(patientId) } });
-    if (patientRecord) {
-      actualPatientName = patientRecord.name;
-    } else {
-      actualPatientName = "Unknown Patient";
-    }
-  }
+  const actualPatientName = await resolvePatientName(Number(patientId), req.body.patientName);
 
   // Publish event (non-blocking)
   try {
@@ -201,16 +202,7 @@ export const updateDocument = asyncHandler(async (req: Request, res: Response) =
 
   await document.update(req.body);
 
-  // Fetch patient to get exact name if not in body
-  let actualPatientName = req.body.patientName;
-  if (!actualPatientName) {
-    const patientRecord = await Patient.findOne({ where: { patientNumber: document.patientId } });
-    if (patientRecord) {
-      actualPatientName = patientRecord.name;
-    } else {
-      actualPatientName = "Unknown Patient";
-    }
-  }
+  const actualPatientName = await resolvePatientName(document.patientId, req.body.patientName);
 
   // Publish event (non-blocking)
   try {
@@ -252,16 +244,7 @@ export const deleteDocument = asyncHandler(async (req: Request, res: Response) =
   // Hard delete
   await document.destroy();
 
-  // Fetch patient to get exact name if not in body
-  let actualPatientName = req.body.patientName;
-  if (!actualPatientName) {
-    const patientRecord = await Patient.findOne({ where: { patientNumber: document.patientId } });
-    if (patientRecord) {
-      actualPatientName = patientRecord.name;
-    } else {
-      actualPatientName = "Unknown Patient";
-    }
-  }
+  const actualPatientName = await resolvePatientName(document.patientId, req.body.patientName);
 
   // Publish event (non-blocking)
   try {

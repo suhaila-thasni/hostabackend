@@ -33,6 +33,7 @@ const attendanceBaseSchema = z.object({
   status: z.string().optional(),
   deviceId: z.string().optional(),
   cardNumber: z.string().optional(),
+  notes: z.string().optional().nullable(),
 });
 
 export const attendanceSchema = attendanceBaseSchema.superRefine((data, ctx) => {
@@ -83,3 +84,16 @@ export const fingerprintAttendanceSchema = z
       });
     }
   });
+
+export const manualAttendanceSchema = z.object({
+  hospitalId: z.number().int(),
+  employeeId: z.number().int(),
+  employeeType: z.enum(["Doctor", "Staff"]).optional(),
+  date: z.string(), // YYYY-MM-DD
+  checkInTime: z.string().optional(), // "09:00 AM" or "09:00"
+  checkOutTime: z.string().optional(), // "06:00 PM" or "18:00"
+  status: z.string().optional(), // "Present", "Late", "Absent", etc.
+  method: z.string().optional(), // defaults to "Manual"
+  notes: z.string().optional().nullable(),
+  department: z.string().optional(),
+});

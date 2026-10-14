@@ -7,6 +7,7 @@ import { Op } from "sequelize";
 dotenv.config();
 
 // REGISTER - POST /speciality/register
+
 export const Registeration: any = asyncHandler(async (req: any, res: Response) => {
   const { name } = req.body;
 
@@ -113,7 +114,7 @@ export const specialityDelete: any = asyncHandler(async (req: Request, res: Resp
   await speciality.destroy();
 
     await publishEvent("speciality_events", "SPECIALITY_DELETED", {
-    specialityId: speciality[1][0].id,
+    specialityId: speciality.id,
   });
 
   res.status(200).json({

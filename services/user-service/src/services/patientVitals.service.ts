@@ -53,22 +53,22 @@ export const patientVitalsService = {
   },
 
 
-  
+
   async getAllVitals() {
-  return await PatientVitals.findAll({
-    order: [["createdAt", "DESC"]],
-  });
-},
+    return await PatientVitals.findAll({
+      order: [["createdAt", "DESC"]],
+    });
+  },
 
   /**
    * Get latest vitals for a patient
    */
   async getLatestVitals(patientId: number) {
-   
-    
+
+
     const patient = await Patient.findByPk(
- patientId,
-);
+      patientId,
+    );
     if (!patient) {
       throw { status: 404, message: "Patient not found" };
     }

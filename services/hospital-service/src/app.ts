@@ -11,10 +11,13 @@ import cookieParser from "cookie-parser";
 import hospitalRoutes from "./routes/hospital.routes";
 import prescriptionTemplateRoutes from "./routes/prescription.routes";
 import attendanceRoutes from "./routes/attendance.routes";
+import holidayRoutes from "./routes/holiday.routes";
 import rfidDeviceRoutes from "./routes/Device.routes";
 import fingerprintEnrollmentRoutes from "./routes/fingerprintEnrollment.routes";
 
 import rfidCardAssignmentRoutes from "./routes/rfidCardAssignment.routes";
+import leaveRequestRoutes from "./routes/leaveRequest.routes";
+import leaveTemplateRoutes from "./routes/leaveTemplate.routes";
 
 import { requestLogger } from "./middleware/logger.middleware";
 
@@ -83,6 +86,11 @@ app.use(cookieParser());
 app.use("/", hospitalRoutes);
 app.use("/", prescriptionTemplateRoutes);
 app.use("/", attendanceRoutes);
+app.use("/", holidayRoutes);
+app.use("/", leaveRequestRoutes);
+app.use("/leave-requests", leaveRequestRoutes);
+app.use("/", leaveTemplateRoutes);
+app.use("/leave-templates", leaveTemplateRoutes);
 app.use("/devices", rfidDeviceRoutes);
 app.use("/fingerprint-enrollments", fingerprintEnrollmentRoutes);
 app.use("/rfid-card-assignments", rfidCardAssignmentRoutes);

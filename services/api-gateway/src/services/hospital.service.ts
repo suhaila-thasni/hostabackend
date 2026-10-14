@@ -22,7 +22,17 @@ export const proxyRequest = async (req: Request, res: Response, next: NextFuncti
   try {
     // 🛡️ Safe Path Mapping: Gateway /api/blood-bank -> Microservice /blood-bank
    
-     const cleanedPath = req.originalUrl.replace("/api/hospital", "/hospital").replace("/api/prescription-template", "/prescription-template").replace("/api/attendances", "/attendances").replace("/api/devices", "/devices").replace("/api/fingerprint-enrollments", "/fingerprint-enrollments").replace("/api/rfid-card-assignments", "/rfid-card-assignments");
+     const pathWithoutQuery = req.originalUrl.split("?")[0];
+     const cleanedPath = pathWithoutQuery
+       .replace("/api/hospital", "/hospital")
+       .replace("/api/prescription-template", "/prescription-template")
+       .replace("/api/attendances", "/attendances")
+       .replace("/api/holidays", "/holidays")
+       .replace("/api/devices", "/devices")
+       .replace("/api/fingerprint-enrollments", "/fingerprint-enrollments")
+       .replace("/api/rfid-card-assignments", "/rfid-card-assignments")
+       .replace("/api/leave-requests", "/leave-requests")
+       .replace("/api/leave-templates", "/leave-templates");
     const url = `${SERVICES.HOSPITAL_SERVICE}${cleanedPath}`;
 
     const options = {

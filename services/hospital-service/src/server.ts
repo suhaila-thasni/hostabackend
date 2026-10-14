@@ -100,9 +100,13 @@ const syncDevSchema = async (): Promise<void> => {
 
     const { default: Hospital } = await import("./models/hospital.model");
     const { default: TemplateItem } = await import("./models/prescription.model");
+    const { default: LeaveRequest } = await import("./models/leaveRequest.model");
+    const { default: LeaveTemplate } = await import("./models/leaveTemplate.model");
 
     await Hospital.sync({ alter: true });
     await TemplateItem.sync({ alter: true });
+    await LeaveRequest.sync({ alter: true });
+    await LeaveTemplate.sync({ alter: true });
 
     logger.warn("⚠️  Dev mode: schema auto-synced. Use migrations in production!");
 };
