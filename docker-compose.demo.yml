@@ -1,0 +1,276 @@
+services:
+  api-gateway:
+    image: safvanmp/hosta-api-gateway:latest
+    container_name: api-gateway
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file: ./services/api-gateway/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  user-service:
+    image: safvanmp/hosta-user-service:demo-latest
+    container_name: user-service
+    restart: always
+    env_file: ./services/user-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  ambulance-service:
+    image: safvanmp/hosta-ambulance-service:latest
+    container_name: ambulance-service
+    restart: always
+    env_file: ./services/ambulance-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  blood-service:
+    image: safvanmp/hosta-blooddonor-service:latest
+    container_name: blood-donor-service
+    restart: always
+    env_file: ./services/blooddonor-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3003/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  blood-bank-service:
+    image: safvanmp/hosta-blood-bank-service:latest
+    container_name: blood-bank-service
+    restart: always
+    env_file: ./services/blood-bank-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3004/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  staff-service:
+    image: safvanmp/hosta-staff-service:latest
+    container_name: staff-service
+    restart: always
+    env_file: ./services/staff-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3006/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  auth-service:
+    image: safvanmp/hosta-auth-service:latest
+    container_name: auth-service
+    restart: always
+    env_file: ./services/auth-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3020/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  doctor-service:
+    image: safvanmp/hosta-doctor-service:latest
+    container_name: doctor-service
+    restart: always
+    env_file: ./services/doctor-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3007/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  speciality-service:
+    image: safvanmp/hosta-speciality-service:latest
+    container_name: speciality-service
+    restart: always
+    env_file: ./services/speciality-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3008/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  hospital-service:
+    image: safvanmp/hosta-hospital-service:latest
+    container_name: hospital-service
+    restart: always
+    env_file: ./services/hospital-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3009/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  booking-service:
+    image: safvanmp/hosta-booking-service:latest
+    container_name: booking-service
+    restart: always
+    env_file: ./services/booking-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3011/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  notification-service:
+    image: safvanmp/hosta-notification-service:latest
+    container_name: notification-service
+    restart: always
+    env_file: ./services/notification-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3012/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  review-service:
+    image: safvanmp/hosta-review-service:latest
+    container_name: review-service
+    restart: always
+    env_file: ./services/review-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3013/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  ads-service:
+    image: safvanmp/hosta-ads-service:latest
+    container_name: ads-service
+    restart: always
+    env_file: ./services/ads-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3015/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  role-service:
+    image: safvanmp/hosta-role-service:latest
+    container_name: role-service
+    restart: always
+    env_file: ./services/role-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3016/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  s3-service:
+    image: safvanmp/hosta-s3-service:latest
+    container_name: s3-service
+    restart: always
+    env_file: ./services/s3-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3017/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  bulmq-service:
+    image: safvanmp/hosta-bulmq-service:latest
+    container_name: bulmq-service
+    restart: always
+    env_file: ./services/bulmq-service/.env
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3018/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  socketio-service:
+    image: safvanmp/hosta-socketio-service:latest
+    container_name: socketio-service
+    restart: always
+    env_file: ./services/socketio-service/.env
+    ports:
+      - "3019:3019"
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3019/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - hosta-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  hosta-network:
+    name: hosta-network
+    driver: bridge

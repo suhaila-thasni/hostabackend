@@ -1,0 +1,104 @@
+
+name: Deploy Demo (EC2)
+
+on:
+  push:
+    branches:
+      - demo
+    paths:
+      - "services/**"
+      - "docker-compose.demo.yml"
+      - ".github/workflows/demo-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hosta-demo-deployment
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.service }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        service:
+          - user-service
+
+    steps:
+      - name: Checkout demo code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push demo image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/hosta-${{ matrix.service }}:demo-latest
+            ${{ secrets.DOCKER_USERNAME }}/hosta-${{ matrix.service }}:demo-${{ github.sha }}
+          cache-from: type=gha,scope=demo-${{ matrix.service }}
+          cache-to: type=gha,scope=demo-${{ matrix.service }},mode=max
+
+  deploy:
+    name: Deploy User Service to Demo EC2
+    needs: build
+    runs-on: ubuntu-latest
+    environment: demo
+
+    steps:
+      - name: Checkout demo code
+        uses: actions/checkout@v4
+
+      - name: Copy demo Compose file to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEMO_EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.DEMO_EC2_SSH_KEY }}
+          source: docker-compose.demo.yml
+          target: /home/ubuntu/hostabackend-demo
+
+      - name: Pull and deploy User Service
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        with:
+          host: ${{ secrets.DEMO_EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.DEMO_EC2_SSH_KEY }}
+          envs: DOCKERHUB_USERNAME,DOCKERHUB_PASSWORD
+          script: |
+            set -eu
+
+            cd /home/ubuntu/hostabackend-demo
+
+            echo "$DOCKERHUB_PASSWORD" | sudo docker login \
+              --username "$DOCKERHUB_USERNAME" \
+              --password-stdin
+
+            sudo docker compose -f docker-compose.demo.yml config -q
+
+            sudo docker compose -f docker-compose.demo.yml pull user-service
+
+            sudo docker compose -f docker-compose.demo.yml up \
+              -d --no-build --no-deps user-service
+
+            sudo docker compose -f docker-compose.demo.yml ps user-service
+
+            echo "Demo User Service deployment completed."
