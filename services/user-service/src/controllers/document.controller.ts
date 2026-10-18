@@ -9,6 +9,10 @@ import Patient from "../models/patient.model";
 import { publishEvent } from "../events/publisher";
 import { col, fn, Op, Sequelize, where } from "sequelize";
 
+
+
+
+
 // Helper to normalize single query params (in case of array)
 const normalizeQuery = (value: any): string | undefined =>
   Array.isArray(value) ? value[0] : value;
@@ -254,7 +258,7 @@ export const deleteDocument = asyncHandler(async (req: Request, res: Response) =
       patientId: document.patientId,
       documentId: document.id,
       documentName: document.name,
-      // Audit details
+      // Audit detailssssss
       actorName: (req as any).user?.name || req.body.actorName || "Unknown",
       actorRole: (req as any).user?.role || req.body.actorRole || "Staff",
       patientName: actualPatientName,
