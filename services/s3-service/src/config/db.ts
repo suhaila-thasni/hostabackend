@@ -15,6 +15,7 @@ const isProduction = env.NODE_ENV === "production";
 
 const useSSL = env.DATABASE_URL.includes("neon.tech");
 
+
 const sequelize = new Sequelize(env.DATABASE_URL, {
   dialect: "postgres",
 
