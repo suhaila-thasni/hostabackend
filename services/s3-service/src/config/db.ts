@@ -1,53 +1,10 @@
 
+// services/s3-service/src/config/db.ts
 
-
-
-
-
-
-
-
-
-import { Sequelize } from "sequelize";
-import { env } from "./env";
-
-const isProduction = env.NODE_ENV === "production";
-
-const useSSL = env.DATABASE_URL.includes("neon.tech");
-
-
-const sequelize = new Sequelize(env.DATABASE_URL, {
-  dialect: "postgres",
-
-  logging: !isProduction,
-
-  dialectOptions: useSSL
-    ? {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false,
-        },
-      }
-    : {},
-
-  pool: {
-    max: 10,
-    min: 2,
-    acquire: 30000,
-    idle: 10000,
-  },
-});
-
-export const connectDB = async () => {
-  try {
-    await sequelize.authenticate();
-
-    console.log("✅ PostgreSQL Connected (s3 Service)");
-
-  } catch (error) {
-    console.error("❌ DB Error:", error);
-    process.exit(1);
-  }
+// S3 service does not require a database connection.
+// Keep this file only if other code still imports it.
+export const connectDB = async (): Promise<void> => {
+  console.log("ℹ️ Database connection skipped for S3 Service");
 };
 
-export default sequelize;
+export default null;
