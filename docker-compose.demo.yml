@@ -1,6 +1,6 @@
 services:
   api-gateway:
-    image: safvanmp/hosta-api-gateway:latest
+    image: safvanmp/hosta-api-gateway:demo-latest
     container_name: api-gateway
     restart: always
     ports:
@@ -30,7 +30,7 @@ services:
       retries: 3
 
   ambulance-service:
-    image: safvanmp/hosta-ambulance-service:latest
+    image: safvanmp/hosta-ambulance-service:demo-latest
     container_name: ambulance-service
     restart: always
     env_file: ./services/ambulance-service/.env
@@ -44,7 +44,7 @@ services:
       retries: 3
 
   blood-service:
-    image: safvanmp/hosta-blooddonor-service:latest
+    image: safvanmp/hosta-blooddonor-service:demo-latest
     container_name: blood-donor-service
     restart: always
     env_file: ./services/blooddonor-service/.env
@@ -58,7 +58,7 @@ services:
       retries: 3
 
   blood-bank-service:
-    image: safvanmp/hosta-blood-bank-service:latest
+    image: safvanmp/hosta-blood-bank-service:demo-latest
     container_name: blood-bank-service
     restart: always
     env_file: ./services/blood-bank-service/.env
@@ -72,7 +72,7 @@ services:
       retries: 3
 
   staff-service:
-    image: safvanmp/hosta-staff-service:latest
+    image: safvanmp/hosta-staff-service:demo-latest
     container_name: staff-service
     restart: always
     env_file: ./services/staff-service/.env
@@ -86,7 +86,7 @@ services:
       retries: 3
 
   auth-service:
-    image: safvanmp/hosta-auth-service:latest
+    image: safvanmp/hosta-auth-service:demo-latest
     container_name: auth-service
     restart: always
     env_file: ./services/auth-service/.env
@@ -100,7 +100,7 @@ services:
       retries: 3
 
   doctor-service:
-    image: safvanmp/hosta-doctor-service:latest
+    image: safvanmp/hosta-doctor-service:demo-latest
     container_name: doctor-service
     restart: always
     env_file: ./services/doctor-service/.env
@@ -114,7 +114,7 @@ services:
       retries: 3
 
   speciality-service:
-    image: safvanmp/hosta-speciality-service:latest
+    image: safvanmp/hosta-speciality-service:demo-latest
     container_name: speciality-service
     restart: always
     env_file: ./services/speciality-service/.env
@@ -128,7 +128,7 @@ services:
       retries: 3
 
   hospital-service:
-    image: safvanmp/hosta-hospital-service:latest
+    image: safvanmp/hosta-hospital-service:demo-latest
     container_name: hospital-service
     restart: always
     env_file: ./services/hospital-service/.env
@@ -142,7 +142,7 @@ services:
       retries: 3
 
   booking-service:
-    image: safvanmp/hosta-booking-service:latest
+    image: safvanmp/hosta-booking-service:demo-latest
     container_name: booking-service
     restart: always
     env_file: ./services/booking-service/.env
@@ -156,7 +156,7 @@ services:
       retries: 3
 
   notification-service:
-    image: safvanmp/hosta-notification-service:latest
+    image: safvanmp/hosta-notification-service:demo-latest
     container_name: notification-service
     restart: always
     env_file: ./services/notification-service/.env
@@ -170,7 +170,7 @@ services:
       retries: 3
 
   review-service:
-    image: safvanmp/hosta-review-service:latest
+    image: safvanmp/hosta-review-service:demo-latest
     container_name: review-service
     restart: always
     env_file: ./services/review-service/.env
@@ -184,7 +184,7 @@ services:
       retries: 3
 
   ads-service:
-    image: safvanmp/hosta-ads-service:latest
+    image: safvanmp/hosta-ads-service:demo-latest
     container_name: ads-service
     restart: always
     env_file: ./services/ads-service/.env
@@ -198,7 +198,7 @@ services:
       retries: 3
 
   role-service:
-    image: safvanmp/hosta-role-service:latest
+    image: safvanmp/hosta-role-service:demo-latest
     container_name: role-service
     restart: always
     env_file: ./services/role-service/.env
@@ -212,7 +212,7 @@ services:
       retries: 3
 
   s3-service:
-    image: safvanmp/hosta-s3-service:latest
+    image: safvanmp/hosta-s3-service:demo-latest
     container_name: s3-service
     restart: always
     env_file: ./services/s3-service/.env
@@ -226,7 +226,7 @@ services:
       retries: 3
 
   bulmq-service:
-    image: safvanmp/hosta-bulmq-service:latest
+    image: safvanmp/hosta-bulmq-service:demo-latest
     container_name: bulmq-service
     restart: always
     env_file: ./services/bulmq-service/.env
@@ -240,7 +240,7 @@ services:
       retries: 3
 
   socketio-service:
-    image: safvanmp/hosta-socketio-service:latest
+    image: safvanmp/hosta-socketio-service:demo-latest
     container_name: socketio-service
     restart: always
     env_file: ./services/socketio-service/.env
