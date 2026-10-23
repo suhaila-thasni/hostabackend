@@ -49,12 +49,17 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://hostahospital.com",
   "https://www.hostahospital.com",
+  "https://hostahospital-git-test-zorrowtech-projects.vercel.app",
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        /^https:\/\/hostahospital.*\.vercel\.app$/.test(origin)
+      ) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));

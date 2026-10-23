@@ -151,7 +151,9 @@ app.use(
         origin: [
             "http://localhost:5173",
             "https://hostahospital.com",
+            "https://www.hostahospital.com",
             "https://hostahospital-git-test-zorrowtech-projects.vercel.app",
+            /^https:\/\/hostahospital.*\.vercel\.app$/,
         ],
 
         methods: [

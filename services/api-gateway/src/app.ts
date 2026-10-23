@@ -107,6 +107,7 @@ app.use(
             "https://hostahospital.com",
             "https://www.hostahospital.com",
             "https://hostahospital-git-test-zorrowtech-projects.vercel.app",
+            /^https:\/\/hostahospital.*\.vercel\.app$/,
         ],
         methods: [
             "GET",
