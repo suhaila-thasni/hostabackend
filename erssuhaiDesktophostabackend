@@ -1,0 +1,113 @@
+[33mcommit ba5e0c88fa48a9d5ea039f29aee4945beec19bf6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/demo[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m, [m[1;32mdemo[m[33m)[m
+Author:     suhaila thasni <suhailathasni0@gmail.com>
+AuthorDate: Sat Oct 24 15:30:46 2026 +0530
+Commit:     suhaila thasni <suhailathasni0@gmail.com>
+CommitDate: Sat Oct 24 15:30:46 2026 +0530
+
+    updated
+
+[1mdiff --git a/services/bulmq-service/src/config/db.ts b/services/bulmq-service/src/config/db.ts[m
+[1mindex f6d7990..22b8c39 100644[m
+[1m--- a/services/bulmq-service/src/config/db.ts[m
+[1m+++ b/services/bulmq-service/src/config/db.ts[m
+[36m@@ -1,82 +1,9 @@[m
+[31m-// import { Sequelize } from "sequelize";[m
+[32m+[m[32m// services/bulmq-service/src/config/db.ts[m
+ [m
+[31m-// import { env } from "./env";[m
+[31m-[m
+[31m-// const sequelize = new Sequelize(env.DATABASE_URL, {[m
+[31m-//   dialect: "postgres",[m
+[31m-//   logging: env.NODE_ENV === "development" ? console.log : false,[m
+[31m-//   dialectOptions: {[m
+[31m-//     ssl: {[m
+[31m-//       require: true,[m
+[31m-//       rejectUnauthorized: false,[m
+[31m-//     },[m
+[31m-//   },[m
+[31m-// });[m
+[31m-[m
+[31m-// export const connectDB = async () => {[m
+[31m-//   try {[m
+[31m-//     await sequelize.authenticate();[m
+[31m-[m
+[31m-//     console.log("✅ PostgreSQL Connected (Booking Service)");[m
+[31m-[m
+[31m-//   } catch (error) {[m
+[31m-//     console.error("❌ DB Error:", error);[m
+[31m-//     process.exit(1);[m
+[31m-//   }[m
+[31m-// };[m
+[31m-[m
+[31m-// export default sequelize;[m
+[31m-[m
+[31m-import { Sequelize } from "sequelize";[m
+[31m-import { env } from "./env";[m
+[31m-[m
+[31m-const isProduction = env.NODE_ENV === "production";[m
+[31m-[m
+[31m-const sequelize = new Sequelize(env.DATABASE_URL, {[m
+[31m-  dialect: "postgres",[m
+[31m-[m
+[31m-  logging: !isProduction,[m
+[31m-[m
+[31m-  dialectOptions: isProduction[m
+[31m-    ? {[m
+[31m-      ssl: {[m
+[31m-        require: true,[m
+[31m-        rejectUnauthorized: true, // ✅ secure[m
+[31m-      },[m
+[31m-    }[m
+[31m-    : {},[m
+[31m-[m
+[31m-  pool: {[m
+[31m-    max: 10,        // ✅ better for production[m
+[31m-    min: 2,[m
+[31m-    acquire: 30000,[m
+[31m-    idle: 10000,[m
+[31m-  },[m
+[31m-});[m
+[31m-[m
+[31m-export const connectDB = async () => {[m
+[31m-  try {[m
+[31m-    await sequelize.authenticate();[m
+[31m-    console.log("✅ PostgreSQL Connected (Ambulance Service)");[m
+[31m-[m
+[31m-    // ✅ PRODUCTION: Use migrations instead of sync[m
+[31m-    // In development, you can still use sync for convenience[m
+[31m-    if (isProduction) {[m
+[31m-      console.log("⚠️  Production mode: Ensure migrations are run via 'npm run migrate'");[m
+[31m-      // Do NOT use sync in production - migrations should be run separately[m
+[31m-    } else {[m
+[31m-      await sequelize.sync({ alter: true }); // dev — alters columns to match model[m
+[31m-      console.log("🚀 Database schema synchronized (dev mode)");[m
+[31m-    }[m
+[31m-[m
+[31m-  } catch (error) {[m
+[31m-    console.error("❌ DB Error:", error);[m
+[31m-    process.exit(1);[m
+[31m-  }[m
+[32m+[m[32m// Bulmq service does not require a database connection (uses Redis and RabbitMQ).[m
+[32m+[m[32m// Kept for consistency if connectDB is referenced.[m
+[32m+[m[32mexport const connectDB = async (): Promise<void> => {[m
+[32m+[m[32m  console.log("ℹ️ Database connection skipped for Bulmq Service");[m
+ };[m
+ [m
+[31m-export default sequelize;[m
+[31m-[m
+[31m-[m
+[31m-[m
+[31m-[m
+[32m+[m[32mexport default null;[m
+[1mdiff --git a/services/bulmq-service/src/config/env.ts b/services/bulmq-service/src/config/env.ts[m
+[1mindex 8563587..36fe2dd 100644[m
+[1m--- a/services/bulmq-service/src/config/env.ts[m
+[1m+++ b/services/bulmq-service/src/config/env.ts[m
+[36m@@ -6,7 +6,6 @@[m [mdotenv.config();[m
+ const envSchema = z.object({[m
+   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),[m
+   PORT: z.string().default("3004"),[m
+[31m-  DATABASE_URL: z.string().url(),[m
+   RABBITMQ_URL: z.string().url(),[m
+   JWT_SECRET: z.string().min(10),[m
+ });[m
