@@ -1,5 +1,5 @@
 # # # -------- BUILD STAGE --------
-# # FROM public.ecr.aws/docker/library/node:20 AS builder
+# # FROM node:20 AS builder
 # # WORKDIR /app
 # # COPY package*.json ./
 # # RUN npm install
@@ -7,7 +7,7 @@
 # # RUN npm run build
 
 # # # -------- PRODUCTION STAGE --------
-# # FROM public.ecr.aws/docker/library/node:20-slim
+# # FROM node:20-slim
 # # WORKDIR /app
 # # COPY package*.json ./
 # # RUN npm install --omit=dev
@@ -30,7 +30,7 @@
 
 
 # # -------- BUILD STAGE --------
-# FROM public.ecr.aws/docker/library/node:20 AS builder
+# FROM node:20 AS builder
 # WORKDIR /app
 # COPY package*.json ./
 # RUN npm install
@@ -38,7 +38,7 @@
 # RUN npm run build
 
 # # -------- PRODUCTION STAGE --------
-# FROM public.ecr.aws/docker/library/node:20-slim
+# FROM node:20-slim
 # WORKDIR /app
 # COPY package*.json ./
 # RUN npm install --omit=dev --legacy-peer-deps
@@ -64,7 +64,7 @@
 
 
 # -------- BUILD STAGE --------
-FROM public.ecr.aws/docker/library/node:20-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -80,7 +80,7 @@ COPY . .
 RUN npm run build
 
 # -------- PRODUCTION STAGE --------
-FROM public.ecr.aws/docker/library/node:20-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
