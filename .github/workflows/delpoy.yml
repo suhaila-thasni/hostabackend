@@ -119,11 +119,14 @@ jobs:
             echo "${{ secrets.SOCKETIO_SERVICE_ENV }}" > services/socketio-service/.env
                         # Login and Deploy
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-            
-            docker compose -f docker-compose.prod.yml down --remove-orphans
-            
+                        # Stop deployment if a command fails
+            set -e
+
+            # Validate production Compose configuration
+            docker compose -p hostabackend-prod -f docker-compose.prod.yml config --quiet
+
             # Pull services one-by-one to avoid rate limits
-            docker compose -f docker-compose.prod.yml config --services | xargs -I {} docker compose -f docker-compose.prod.yml pull {}
-            
-            docker compose -f docker-compose.prod.yml up -d
-            docker image prune -af
+            docker compose -p hostabackend-prod -f docker-compose.prod.yml config --services | xargs -r -I {} docker compose -p hostabackend-prod -f docker-compose.prod.yml pull {}
+
+            # Update the existing production project
+            docker compose -p hostabackend-prod -f docker-compose.prod.yml up -d
