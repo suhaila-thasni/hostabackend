@@ -1,129 +1,23 @@
-name: Deploy Production (EC2)
+            # Stop if a deployment command fails
+            set -e
 
-on:
-  push:
-    branches:
-      - production
+            # Validate the production Compose configuration
+            docker compose -p hostabackend-prod -f docker-compose.prod.yml config --quiet
 
-concurrency:
-  group: hosta-production-deployment
-  cancel-in-progress: true
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false # Extremely important for microservices
-      max-parallel: 2
-      matrix:
-        service:
-          - ads-service
-          - ambulance-service
-          - api-gateway
-          - blood-bank-service
-          - blooddonor-service
-          - booking-service
-          - bulmq-service
-          - doctor-service
-          - hospital-service
-          - notification-service
-          - review-service
-          - role-service
-          - s3-service
-          - socketio-service
-          - speciality-service
-          - staff-service
-          - user-service
-          - auth-service
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          buildkitd-config-inline: |
-            [registry."docker.io"]
-              mirrors = ["mirror.gcr.io"]
-
-      - name: Prepare Image Name
-        id: prep
-        run: |
-          # Safely lowercase the image name
-          LOW_NAME=$(echo "${{ matrix.service }}" | tr '[:upper:]' '[:lower:]')
-          echo "image_tag=${{ secrets.DOCKER_USERNAME }}/hosta-${LOW_NAME}:latest" >> $GITHUB_OUTPUT
-
-      - name: Build & Push
-        uses: docker/build-push-action@v5
-        with:
-          context: ./services/${{ matrix.service }}
-          push: true
-          tags: ${{ steps.prep.outputs.image_tag }}
-          cache-from: type=gha,scope=prod-${{ matrix.service }}
-          cache-to: type=gha,scope=prod-${{ matrix.service }},mode=max
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Copy project files to EC2         
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "./*"
-          target: "/home/ubuntu/app"
-          rm: false # Keep existing files
-
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            mkdir -p /home/ubuntu/app
-            cd /home/ubuntu/app
-            
-            # Sync .env files individually into service directories matching docker-compose.prod.yml
-            mkdir -p services/api-gateway services/user-service services/auth-service services/ambulance-service services/blooddonor-service services/blood-bank-service services/staff-service services/doctor-service services/speciality-service services/hospital-service services/booking-service services/notification-service services/review-service services/ads-service services/role-service services/s3-service services/bulmq-service services/socketio-service
-
-            echo "${{ secrets.APIGATEWAY_SERVICE_ENV }}" > services/api-gateway/.env
-            echo "${{ secrets.USER_SERVICE_ENV }}" > services/user-service/.env
-            echo "${{ secrets.AUTH_SERVICE_ENV }}" > services/auth-service/.env
-            echo "${{ secrets.AMBULANCE_SERVICE_ENV }}" > services/ambulance-service/.env
-            echo "${{ secrets.BLOODDONOR_SERVICE_ENV }}" > services/blooddonor-service/.env
-            echo "${{ secrets.BLOODBANK_SERVICE_ENV }}" > services/blood-bank-service/.env
-            echo "${{ secrets.STAFF_SERVICE_ENV }}" > services/staff-service/.env
-            echo "${{ secrets.DOCTOR_SERVICE_ENV }}" > services/doctor-service/.env
-            echo "${{ secrets.SPECIALITY_SERVICE_ENV }}" > services/speciality-service/.env
-            echo "${{ secrets.HOSPITAL_SERVICE_ENV }}" > services/hospital-service/.env
-            echo "${{ secrets.BOOKING_SERVICE_ENV }}" > services/booking-service/.env
-            echo "${{ secrets.NOTIFICATION_SERVICE_ENV }}" > services/notification-service/.env
-            echo "${{ secrets.REVIEW_SERVICE_ENV }}" > services/review-service/.env
-            echo "${{ secrets.ADS_SERVICE_ENV }}" > services/ads-service/.env
-            echo "${{ secrets.ROLE_SERVICE_ENV }}" > services/role-service/.env
-            echo "${{ secrets.S3_SERVICE_ENV }}" > services/s3-service/.env
-            echo "${{ secrets.BULMQ_SERVICE_ENV }}" > services/bulmq-service/.env
-            echo "${{ secrets.SOCKETIO_SERVICE_ENV }}" > services/socketio-service/.env
-                        # Login and Deploy
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-            
-            docker compose -f docker-compose.prod.yml down --remove-orphans
-            
             # Pull services one-by-one to avoid rate limits
-            docker compose -f docker-compose.prod.yml config --services | xargs -I {} docker compose -f docker-compose.prod.yml pull {}
-            
-            docker compose -f docker-compose.prod.yml up -d
-            docker image prune -af
+            docker compose -p hostabackend-prod -f docker-compose.prod.yml config --services | xargs -r -I {} docker compose -p hostabackend-prod -f docker-compose.prod.yml pull {}
+
+            # Update the existing production project without taking everything down first
+            docker compose -p hostabackend-prod -f docker-compose.prod.yml up -d
+            # Login and Deploy
+            set -e
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+            # Validate production Compose configuration
+            docker compose -p hostabackend-prod -f docker-compose.prod.yml config --quiet
+
+            # Pull services one-by-one to avoid rate limits
+            docker compose -p hostabackend-prod -f docker-compose.prod.yml config --services | xargs -r -I {} docker compose -p hostabackend-prod -f docker-compose.prod.yml pull {}
+
+            # Update existing production project without taking everything down
+            docker compose -p hostabackend-prod -f docker-compose.prod.yml up -d

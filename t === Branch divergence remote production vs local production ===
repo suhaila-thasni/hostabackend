@@ -1,0 +1,231 @@
+[33m< 0356a85[m[33m ([m[1;31mupstream/production[m[33m, [m[1;32mproduction[m[33m)[m Merge branch 'main' into production
+[33m< af07ae1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdemo[m[33m, [m[1;31mupstream/main[m[33m, [m[1;31mupstream/HEAD[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m updated
+[33m< 90fc9bb[m Merge branch 'main' of https://github.com/zorrowtechitsolutions/hostabackend into production
+[33m< ba5e0c8[m[33m ([m[1;31morigin/demo[m[33m, [m[1;32mbackup/local-main-before-sync[m[33m)[m updated
+[33m< d301c13[m Merge branch 'fix/bulmq-remove-unused-database-url'
+[33m< 0311108[m Merge pull request #212 from suhaila-thasni/fix/docker-hub-node-images-demo
+[33m< b178052[m fix(docker): use Docker Hub Node.js base images
+[33m< 2a88c18[m Merge pull request #211 from suhaila-thasni/fix/docker-hub-node-base-images
+[33m< c4e8347[m fix(docker): use Docker Hub Node.js base images
+[33m< 96c335e[m Merge branch 'production'
+[33m< 43d70b0[m updated
+[33m< ce605a0[m Merge remote-tracking branch 'upstream/main'
+[33m< e7ef127[m updated
+[33m< 529be35[m fix: add Vercel preview domain support to CORS across all services
+[33m< ce1c458[m fix: set all services to demo-latest in docker-compose.demo.yml
+[33m< b8a36b3[m updated
+[33m< a0e3f9c[m updated
+[33m< 4002901[m chore: make CI/CD and Dockerfiles production grade with ECR and GCR mirror
+[33m< 51a7c8e[m updated
+[33m< 16a09f2[m Merge pull request #210 from suhaila-thasni/demo
+[33m< b7fbdf0[m Merge origin/demo and resolve demo-deploy workflow conflict
+[33m< 7be7ec3[m Merge branch 'main' of https://github.com/zorrowtechitsolutions/hostabackend into demo
+[33m< 8f0a7c0[m Update CORS and holiday routes for demo
+[33m< d1a004f[m Merge pull request #209 from suhaila-thasni/demo
+[33m< 2cff378[m fix: configure demo user service deployment
+[33m< 10c079f[m chore: remove private key from demo repository
+[33m< 6f91a38[m updated
+[33m< eb3e6fb[m updated
+[33m< 428daaa[m updated
+[33m< f492e9d[m updated
+[33m< 080d9e3[m updated
+[33m< 963974a[m updated
+[33m< 52287dd[m updated
+[33m< 885c510[m updated
+[33m< 878101d[m updated
+[33m< f1facaa[m updated
+[33m< e6cc547[m updated
+[33m< c44a182[m updated
+[33m< 5d1f7a8[m updated
+[33m< 5db0636[m updated
+[33m< b27ee07[m updated
+[33m< 0aabe31[m updated
+[33m< 5d71e94[m updated
+[33m< 6f82ba9[m updated
+[33m< 8018a81[m updated
+[33m< 4e831e0[m updated
+[33m< d7e4c5f[m updated
+[33m< 496aba8[m updated
+[33m< d6fcf84[m updated
+[33m< 67c07bd[m updated
+[33m< 86dda6a[m updated
+[33m< c789ff8[m updated
+[33m< 36c3ed5[m updated
+[33m< bfb48dc[m updated
+[33m< 2e73717[m updated
+[33m< bbf78ae[m updated
+[33m< 0dc8426[m updated
+[33m< 4bf810c[m updated
+[33m< 030ae5a[m updated
+[33m< 34d3210[m updated
+[33m< da25dfa[m updated
+[33m< feda6c2[m updated
+[33m< 6e5c663[m updated
+[33m< b72e7bd[m updated
+[33m< 062ef51[m updated
+[33m< 7abcb63[m updated
+[33m< 80b6764[m updated
+[33m< de80757[m updated
+[33m< 8e6d69f[m updated
+[33m< 74df3b2[m updated
+[33m< fbf9e5f[m updated
+[33m< 70b9414[m updated
+[33m< a5eb2a6[m updated
+[33m< 0411501[m updated
+[33m< 59f4d6b[m updated
+[33m< 5551d8e[m updated
+[33m< 4d9df48[m updated
+[33m< b86864f[m updated
+[33m< 7d2fbe8[m updated
+[33m< e10fff0[m updated
+[33m< 10eb18e[m fix : update the booking update event
+[33m< 946ee09[m feet:fix id upto first and mail
+[33m< 636427a[m updated
+[33m< 84396ae[m updated
+[33m< 4835ad7[m updated
+[33m< fd9523f[m updated
+[33m< 4634b66[m updated
+[33m< 6fc15cf[m updated
+[33m< 1bfc084[m updated
+[33m< 7c0230b[m updated
+[33m< bb9b2c5[m updated
+[33m< 9c423d6[m updated
+[33m< 41affaf[m updated
+[33m< 9ad790a[m updated
+[33m< b7d3895[m updated
+[33m< 3f72613[m updated
+[33m< e52f192[m updated
+[33m< 4c7ebc4[m updated
+[33m< 76c6c16[m updated
+[33m< e359573[m updated
+[33m< 3e3078a[m updated
+[33m< afb9f4e[m updated
+[33m< 9e2f5ba[m updated
+[33m< 1455df6[m updated
+[33m< 9c8451f[m updated
+[33m< 2c0d5f0[m updated
+[33m< 0af2ab7[m updated
+[33m< ea81783[m updated
+[33m< ab0bf90[m updatewd
+[33m< 746028f[m updated
+[33m< e43ed1b[m updated
+[33m< dc49735[m updated
+[33m< 6049f4a[m updated
+[33m< ebb1a80[m updated
+[33m< 5997176[m updated
+[33m< 379f8c0[m updated
+[33m< 551a213[m updated
+[33m< 470d61b[m updated
+[33m< 022e696[m updated
+[33m< 4b420de[m updated
+[33m< dce400e[m updated
+[33m< 556c247[m updated
+[33m< 656b5c3[m updated
+[33m< d938aa9[m updated
+[33m< df4ce24[m updated
+[33m< 1a490b0[m updated
+[33m< 957a6ec[m updated
+[33m< 5721202[m updated
+[33m< 536a4b3[m updated
+[33m< 6b50a38[m updated
+[33m< f5f97fb[m updated
+[33m< af64057[m updated
+[33m< e6cb743[m updated
+[33m< 6db4767[m updated
+[33m< 50c5c1a[m Merge branch 'main' into production
+[33m< 693aa9b[m Merge branch 'main' of https://github.com/zorrowtechitsolutions/hostabackend
+[33m< b5956eb[m updated
+[33m< 0cccbda[m Update doctor.handler.ts
+[33m< 2b255ab[m Update staff.handler.ts
+[33m< 6d334df[m Update staff.handler.ts
+[33m< aaa0637[m Update doctor.handler.ts
+[33m< 422bfc7[m Update doctor.handler.ts
+[33m< cb75826[m Update doctor.handler.ts
+[33m< 9d7c989[m updated
+[33m< 130127a[m updated
+[33m< 71ff591[m updated
+[33m< dfc4d70[m Refactor doctor event handling and notifications
+[33m< 3f9cc05[m Update doctor.handler.ts
+[33m< 37f1837[m Update doctor.handler.ts
+[33m< 4d078ba[m Update doctor.handler.ts
+[33m< 8831da2[m updated
+[33m< 68b53e5[m updated
+[33m< dfbc807[m updated
+[33m< 3120399[m Merge branch 'main' into production
+[33m< 584f378[m Merge branch 'production' of https://github.com/zorrowtechitsolutions/hostabackend
+[33m< df2078a[m Merge branch 'main' into production
+[33m< 306ab51[m Merge branch 'main' of https://github.com/zorrowtechitsolutions/hostabackend
+[33m< 457dd37[m updated
+[33m< 5b8bc63[m Update hospital.controllers.ts
+[33m< 9cb3337[m Update hospital.controllers.ts
+[33m< 1950476[m updated
+[33m< c7aa054[m updated
+[33m< 4f80f4a[m updated
+[33m< 8540b73[m updated
+[33m< a2329c1[m updated
+[33m< 2b81f40[m updated
+[33m< 49ab4bf[m updated
+[33m< fa4ce97[m updated
+[33m< 7b803bb[m updated
+[33m< c4d91f9[m updated
+[33m< 3cdf095[m updated
+[33m< 1bd9f07[m updated
+[33m< 60a0bac[m updated
+[33m< bf58eb7[m updated
+[33m< 9880cc7[m updated
+[33m< 930a49f[m updated
+[33m< abb5e35[m updated
+[33m< 55142bb[m updated
+[33m< e40717b[m updated
+[33m< 587a935[m updated
+[33m< 07b7cf9[m updated
+[33m< e5e8253[m updated
+[33m< 429066f[m Update fmt.Println message from 'Hello' to 'Goodbye'
+[33m< b9aa078[m Update auth.controller.ts
+[33m< b057577[m updatyed
+[33m< 586258d[m updated
+[33m< fd5d0a6[m updated
+[33m< f91610d[m updated
+[33m< 030ec7e[m updated
+[33m< 3bcb9ed[m updated
+[33m< 53b9963[m updated
+[33m< 61bb65d[m updated
+[33m< 588c66f[m updated
+[33m< c2f699d[m Merge branch 'main' of https://github.com/zorrowtechitsolutions/hostabackend
+[33m< 7e5f063[m updated
+[33m< e4da0d9[m Merge pull request #208 from zorrowtechitsolutions/production
+[33m< f5a5651[m updated
+[33m< 461b2a8[m updated
+[33m< 5258251[m updated
+[33m< e54cdc4[m Update rolepermission.routes.ts
+[33m< ea5ad9b[m Update role.routes.ts
+[33m< 15251a5[m Update permission.routes.ts
+[33m< 88ece44[m Simplify createRolepermission route
+[33m< c33fafb[m Simplify createRole route by removing permission check
+[33m< a467d17[m Update permission.routes.ts
+[33m< b6a498b[m updated
+[33m< 8eff2b2[m updated
+[33m< 5d2b3a8[m updated
+[33m< 0efc90d[m Merge branch 'main' into production
+[33m< e8c432e[m updated
+[33m< 00e1809[m updated
+[33m< 719a52c[m updated
+[33m< 25714b4[m Merge branch 'production'
+[33m< ddd808e[m updated
+[33m< 83e831d[m updated
+[33m< 2f1d740[m updated
+[33m< 1652c6b[m Update hospital.controllers.ts
+[33m< bc47dfd[m Merge branch 'production'
+[33m< 2fb4558[m updated
+[33m< 09480f7[m Merge branch 'production'
+[33m< 7b7b2b5[m Merge branch 'production' of https://github.com/zorrowtechitsolutions/hostabackend into production
+[33m< 02550c3[m updated
+[33m< 1cdcac3[m Update auth.controller.ts
+[33m< e7403f5[m Update auth.controller.ts
+[33m< 85a5a51[m updated
+[33m< 2068ee5[m Merge branch 'main' into production
+[33m< 3b775b9[m updated
+[33m< 6d9bbdb[m Merge pull request #207 from zorrowtechitsolutions/production
+[33m< 5740921[m updated
+[33m< aa542ff[m updated
+[33m< b8a7d4b[m updated
