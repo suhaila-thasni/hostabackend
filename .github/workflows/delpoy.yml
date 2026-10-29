@@ -1,15 +1,32 @@
-name: Deploy Production (EC2)
+
+name: Hosta CI/CD - Demo and Production
 
 on:
   push:
     branches:
+      - demo
       - production
 
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hosta-${{ github.ref_name }}-deployment
+  cancel-in-progress: false
+
 jobs:
+  # =========================================
+  # BUILD ALL MICROSERVICES
+  # =========================================
   build:
+    name: Build ${{ matrix.service }}
+    if: github.ref_name == 'demo' || github.ref_name == 'production'
     runs-on: ubuntu-latest
+
     strategy:
-      fail-fast: false # Extremely important for microservices
+      fail-fast: false
       max-parallel: 2
       matrix:
         service:
@@ -45,77 +62,220 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Prepare Image Name
+      - name: Prepare image tags
         id: prep
+        shell: bash
+        env:
+          SERVICE: ${{ matrix.service }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          BRANCH_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
-          # Safely lowercase the image name
-          LOW_NAME=$(echo "${{ matrix.service }}" | tr '[:upper:]' '[:lower:]')
-          echo "image_tag=${{ secrets.DOCKER_USERNAME }}/hosta-${LOW_NAME}:latest" >> $GITHUB_OUTPUT
+          set -eu
 
-      - name: Build & Push
-        uses: docker/build-push-action@v5
+          IMAGE="${DOCKERHUB_USERNAME}/hosta-${SERVICE}"
+
+          if [ "$BRANCH_NAME" = "demo" ]; then
+            {
+              echo "tags<<EOF"
+              echo "${IMAGE}:demo-latest"
+              echo "${IMAGE}:demo-${COMMIT_SHA}"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+
+          elif [ "$BRANCH_NAME" = "production" ]; then
+            {
+              echo "tags<<EOF"
+              echo "${IMAGE}:latest"
+              echo "${IMAGE}:prod-${COMMIT_SHA}"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+
+          else
+            exit 1
+          fi
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
         with:
           context: ./services/${{ matrix.service }}
           push: true
-          tags: ${{ steps.prep.outputs.image_tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ steps.prep.outputs.tags }}
+          cache-from: type=gha,scope=${{ github.ref_name }}-${{ matrix.service }}
+          cache-to: type=gha,scope=${{ github.ref_name }}-${{ matrix.service }},mode=max
 
-  deploy:
+  # =========================================
+  # DEPLOY DEMO
+  # =========================================
+  deploy_demo:
+    name: Sync files and deploy Demo EC2
+    if: github.ref == 'refs/heads/demo'
     needs: build
     runs-on: ubuntu-latest
+    environment: demo
+
     steps:
-      - name: Checkout code
+      - name: Checkout demo code
         uses: actions/checkout@v4
 
-      - name: Copy project files to EC2         
+      # Package repository files but NEVER package .env files
+      - name: Create deployment archive
+        shell: bash
+        run: |
+          set -eu
+
+          tar -czf hosta-deploy.tar.gz \
+            --exclude='.git' \
+            --exclude='*/.git' \
+            --exclude='node_modules' \
+            --exclude='*/node_modules' \
+            --exclude='.env*' \
+            --exclude='*/.env*' \
+            --exclude='hosta-deploy.tar.gz' \
+            .
+
+      - name: Copy updated project files to Demo EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "./*"
-          target: "/home/ubuntu/app"
-          rm: false # Keep existing files
+          source: hosta-deploy.tar.gz
+          target: /home/ubuntu/hostabackend-demo
+          overwrite: true
 
-      - name: Deploy to EC2
+      - name: Deploy Demo
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DOCKERHUB_USERNAME,DOCKERHUB_PASSWORD
           script: |
-            mkdir -p /home/ubuntu/app
-            cd /home/ubuntu/app
-            
-            # Sync .env files individually into service directories matching docker-compose.prod.yml
-            mkdir -p services/api-gateway services/user-service services/auth-service services/ambulance-service services/blooddonor-service services/blood-bank-service services/staff-service services/doctor-service services/speciality-service services/hospital-service services/booking-service services/notification-service services/review-service services/ads-service services/role-service services/s3-service services/bulmq-service services/socketio-service
+            set -eu
 
-            echo "${{ secrets.APIGATEWAY_SERVICE_ENV }}" > services/api-gateway/.env
-            echo "${{ secrets.USER_SERVICE_ENV }}" > services/user-service/.env
-            echo "${{ secrets.AUTH_SERVICE_ENV }}" > services/auth-service/.env
-            echo "${{ secrets.AMBULANCE_SERVICE_ENV }}" > services/ambulance-service/.env
-            echo "${{ secrets.BLOODDONOR_SERVICE_ENV }}" > services/blooddonor-service/.env
-            echo "${{ secrets.BLOODBANK_SERVICE_ENV }}" > services/blood-bank-service/.env
-            echo "${{ secrets.STAFF_SERVICE_ENV }}" > services/staff-service/.env
-            echo "${{ secrets.DOCTOR_SERVICE_ENV }}" > services/doctor-service/.env
-            echo "${{ secrets.SPECIALITY_SERVICE_ENV }}" > services/speciality-service/.env
-            echo "${{ secrets.HOSPITAL_SERVICE_ENV }}" > services/hospital-service/.env
-            echo "${{ secrets.BOOKING_SERVICE_ENV }}" > services/booking-service/.env
-            echo "${{ secrets.NOTIFICATION_SERVICE_ENV }}" > services/notification-service/.env
-            echo "${{ secrets.REVIEW_SERVICE_ENV }}" > services/review-service/.env
-            echo "${{ secrets.ADS_SERVICE_ENV }}" > services/ads-service/.env
-            echo "${{ secrets.ROLE_SERVICE_ENV }}" > services/role-service/.env
-            echo "${{ secrets.S3_SERVICE_ENV }}" > services/s3-service/.env
-            echo "${{ secrets.BULMQ_SERVICE_ENV }}" > services/bulmq-service/.env
-            echo "${{ secrets.SOCKETIO_SERVICE_ENV }}" > services/socketio-service/.env
-                        # Login and Deploy
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-            
-            docker compose -f docker-compose.prod.yml down --remove-orphans
-            
-            # Pull services one-by-one to avoid rate limits
-            docker compose -f docker-compose.prod.yml config --services | xargs -I {} docker compose -f docker-compose.prod.yml pull {}
-            
-            docker compose -f docker-compose.prod.yml up -d
-            docker image prune -af
+            cd /home/ubuntu/hostabackend-demo
+
+            # Update project files while preserving existing .env files
+            tar -xzf hosta-deploy.tar.gz
+            rm -f hosta-deploy.tar.gz
+
+            # Use the existing environment files
+            test -f docker-compose.demo.yml
+
+            echo "$DOCKERHUB_PASSWORD" | \
+              sudo docker login \
+                --username "$DOCKERHUB_USERNAME" \
+                --password-stdin
+
+            # Validate before changing running services
+            sudo docker compose \
+              -p hostabackend-demo \
+              -f docker-compose.demo.yml config -q
+
+            # Pull new demo images
+            sudo docker compose \
+              -p hostabackend-demo \
+              -f docker-compose.demo.yml pull
+
+            # Update services without taking everything down first
+            sudo docker compose \
+              -p hostabackend-demo \
+              -f docker-compose.demo.yml up -d --no-build --remove-orphans
+
+            sudo docker compose \
+              -p hostabackend-demo \
+              -f docker-compose.demo.yml ps
+
+            echo "Demo deployment completed."
+
+  # =========================================
+  # DEPLOY PRODUCTION
+  # =========================================
+  deploy_production:
+    name: Sync files and deploy Production EC2
+    if: github.ref == 'refs/heads/production'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout production code
+        uses: actions/checkout@v4
+
+      # Package repository files but NEVER package .env files
+      - name: Create deployment archive
+        shell: bash
+        run: |
+          set -eu
+
+          tar -czf hosta-deploy.tar.gz \
+            --exclude='.git' \
+            --exclude='*/.git' \
+            --exclude='node_modules' \
+            --exclude='*/node_modules' \
+            --exclude='.env*' \
+            --exclude='*/.env*' \
+            --exclude='hosta-deploy.tar.gz' \
+            .
+
+      - name: Copy updated project files to Production EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: hosta-deploy.tar.gz
+          target: /home/ubuntu/hostabackend-prod
+          overwrite: true
+
+      - name: Deploy Production
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DOCKERHUB_USERNAME,DOCKERHUB_PASSWORD
+          script: |
+            set -eu
+
+            cd /home/ubuntu/hostabackend-prod
+
+            # Update project files without replacing existing .env files
+            tar -xzf hosta-deploy.tar.gz
+            rm -f hosta-deploy.tar.gz
+
+            # Use existing production environment files
+            test -f docker-compose.prod.yml
+
+            echo "$DOCKERHUB_PASSWORD" | \
+              sudo docker login \
+                --username "$DOCKERHUB_USERNAME" \
+                --password-stdin
+
+            # Validate Compose configuration before deployment
+            sudo docker compose \
+              -p hostabackend-prod \
+              -f docker-compose.prod.yml config -q
+
+            # Pull updated production images
+            sudo docker compose \
+              -p hostabackend-prod \
+              -f docker-compose.prod.yml pull
+
+            # Update services without a full shutdown first
+            sudo docker compose \
+              -p hostabackend-prod \
+              -f docker-compose.prod.yml up -d --remove-orphans
+
+            sudo docker compose \
+              -p hostabackend-prod \
+              -f docker-compose.prod.yml ps
+
+            echo "Production deployment completed."
